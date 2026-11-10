@@ -4,6 +4,7 @@
 #include "CNetGame.h"
 #include "Guis/CGui.h"
 #include "../CStartGameScreen.h"
+#include "../CTheZones.h"
 #include "../Base/CPatches.h"
 #include "../Base/CHooks.h"
 #include "../COptimizeDistance.h"
@@ -38,7 +39,8 @@ void CMultiPlayer::Uninitialise()
 
 void CMultiPlayer::Process()
 {
-    if (CGui::GetChat()) {
+    if (CGui::GetChat())
+	{
         CGui::GetChat()->ProcessPendingChatInputs();
     }
 
@@ -59,8 +61,20 @@ void CMultiPlayer::Process()
     }
 }
 
-void CMultiPlayer::Reconnect()
+void CMultiPlayer::Reconnect(bool waitconnect)
 {
+    if (CMultiPlayer::GetActiveNetwork())
+	{
+		CMultiPlayer::GetActiveNetwork()->InitialiseGameLogic();
+
+		CClock::EnableGameClock(false);
+		CTheZones::EnableZoneNames(false);
+
+		if (waitconnect)
+		{
+			CMultiPlayer::GetActiveNetwork()->SetNetworkState(eNetworkState::GAMESTATE_WAIT_CONNECT);
+		}
+	}
 }
 
 void CMultiPlayer::StartSAMP()

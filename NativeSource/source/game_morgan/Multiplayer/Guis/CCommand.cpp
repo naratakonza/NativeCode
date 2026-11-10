@@ -1,6 +1,7 @@
 #include "../../../../Main.h"
 #include "CCommand.h"
 #include "../CMultiPlayer.h"
+#include "../CNetGame.h"
 
 #include <strings.h>
 
@@ -84,7 +85,11 @@ bool CCommand::Process(const std::string& input)
 
 void CCommand::Reconnect(const std::vector<std::string>&)
 {
-    CMultiPlayer::Reconnect();
+    if (CMultiPlayer::GetActiveNetwork())
+    {
+        CMultiPlayer::GetActiveNetwork()->SetNetworkState(eNetworkState::GAMESTATE_RESTARTING);
+        CMultiPlayer::Reconnect();
+    }
 }
 
 void CCommand::QuitGame(const std::vector<std::string>&)

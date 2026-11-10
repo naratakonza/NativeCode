@@ -13,7 +13,7 @@ public:
 
 public:
 	static void Initialise();
-    static void Reconnect();
+    static void Reconnect(bool waitconnect = true);
 	static void Uninitialise();
 	static void Process();
 	static void StartSAMP();
