@@ -12,6 +12,8 @@ static std::mutex m_ChatInputMutex;
 
 CChat::CChat()
 {
+	CNecessary::Log(OBFUSCATE("CChat Initialise"));
+
 	CChat::m_dwTextColor = 0xFFFFFFFF;
 	CChat::m_dwInfoColor = 0x62AA88FF;
 	CChat::m_dwDebugColor = 0xBEBEBEFF;

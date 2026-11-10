@@ -9,6 +9,8 @@ std::vector<ChatCommand> CCommand::commandList;
 
 void CCommand::Initialise()
 {
+    CNecessary::Log(OBFUSCATE("CCommand Initialise"));
+
     CCommand::commandList.clear();
     CCommand::Add(OBFUSCATE("/rec"), CCommand::Reconnect);
     CCommand::Add(OBFUSCATE("/reconnect"), CCommand::Reconnect);
