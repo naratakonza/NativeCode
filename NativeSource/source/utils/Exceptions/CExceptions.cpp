@@ -11,6 +11,12 @@ void CExceptions::Print(const char* type, const char* detail)
         if (warnings.compare_exchange_weak(count, count + 1, std::memory_order_relaxed))
         {
             CNecessary::Log(OBFUSCATE("Warning(%s): %s"), type, detail);
+
+            // if (CGui::GetChat())
+            // {
+            //     CGui::GetChat()->AddDebugMessage(1, OBFUSCATE("Warning(%s): %s"), type, detail);
+            // }
+
             return;
         }
     }

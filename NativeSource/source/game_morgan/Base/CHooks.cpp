@@ -92,9 +92,9 @@ void CHooks::InstallNecessary()
     }
 }
 
-extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (*Render2dStuff)())
+extern "C" __attribute__((visibility("default"))) void RenderTitleEndFrame_hook(void (*EndFrame2D)())
 {
-    Render2dStuff();
+    EndFrame2D();
 
     if (pthread_main_np() && renderTitleHookInstalled && CMultiPlayer::IsSampActive())
     {
@@ -116,9 +116,10 @@ void CHooks::InstallMenu()
         CExceptions::Print(OBFUSCATE("CHooks InstallMenu"), OBFUSCATE("CGame Process bridge unavailable"));
     }
 
-    renderTitleHookInstalled = CMemory::HasMappedInstruction(SA_ADDR(0x159B5C), "\xFD\x7B\xBF\xA9") && CMemory::HasMappedInstruction(SA_ADDR(0x15A468), "\x41\xF3\x0C\x94");
+    // Both GTA 2D paths reach this call before RwCameraEndUpdate.
+    renderTitleHookInstalled = CMemory::HasMappedInstruction(SA_ADDR(0x319178), "\xC0\x03\x5F\xD6") && CMemory::HasMappedInstruction(SA_ADDR(0x15A2D0), "\xA7\xF3\x0C\x94");
     if (!renderTitleHookInstalled) {
-        CExceptions::Print(OBFUSCATE("CHooks InstallMenu"), OBFUSCATE("Render2dStuff title bridge unavailable"));
+        CExceptions::Print(OBFUSCATE("CHooks InstallMenu"), OBFUSCATE("End-of-frame title bridge unavailable"));
     }
 }
 

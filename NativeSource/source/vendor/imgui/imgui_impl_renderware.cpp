@@ -99,14 +99,24 @@ void ImGui_ImplRenderWare_RenderDrawData(const ImDrawData* drawData)
     static_assert(sizeof(ImDrawIdx) == sizeof(RwImVertexIndex));
     static_assert(sizeof(RwIm2DVertex) == 28);
     void* saved[count]{};
+    bool savedState[count]{};
     for (std::size_t i = 0; i < count; ++i)
     {
-        if (!RwRenderStateGet(states[i], &saved[i])) {
+        savedState[i] = RwRenderStateGet(states[i], &saved[i]);
+        const bool alphaTest = states[i] == rwRENDERSTATEALPHATESTFUNCTION || states[i] == rwRENDERSTATEALPHATESTFUNCTIONREF;
+        if (!savedState[i] && !alphaTest)
+        {
+            static bool loggedStateFailure = false;
+            if (!loggedStateFailure)
+            {
+                CNecessary::Log(OBFUSCATE("GUI | Title render state unavailable: %d"), static_cast<int>(states[i]));
+                loggedStateFailure = true;
+            }
             return;
         }
     }
 
-    const float screenZ = *reinterpret_cast<const float*>(SA_ADDR(0x867604) + gtaSlide);
+    const float screenZ = *reinterpret_cast<const float*>(SA_ADDR(0x867604) + gtaSlide) + 1.0f;
     const float recipNearClip = *reinterpret_cast<const float*>(SA_ADDR(0x867600) + gtaSlide);
     if (!std::isfinite(screenZ) || !std::isfinite(recipNearClip) || recipNearClip <= 0.0f) {
         return;
@@ -141,16 +151,26 @@ void ImGui_ImplRenderWare_RenderDrawData(const ImDrawData* drawData)
             if (!command.UserCallback && command.TextureId == fontRaster && command.ElemCount)
             {
                 for (std::size_t i = 0; i < count - 1; ++i) {
-                    RwRenderStateSet(states[i], reinterpret_cast<void*>(values[i]));
+                    if (savedState[i]) {
+                        RwRenderStateSet(states[i], reinterpret_cast<void*>(values[i]));
+                    }
                 }
                 RwRenderStateSet(rwRENDERSTATETEXTURERASTER, fontRaster);
-                RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRILIST, vertices.data(), list.VtxBuffer.Size, indices, command.ElemCount);
+                const bool submitted = RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRILIST, vertices.data(), list.VtxBuffer.Size, indices, command.ElemCount);
+                static bool loggedDraw = false;
+                if (submitted && !loggedDraw)
+                {
+                    CNecessary::Log(OBFUSCATE("GUI | Title geometry submitted"));
+                    loggedDraw = true;
+                }
             }
             indices += command.ElemCount;
         }
     }
     for (std::size_t i = count; i > 0; --i) {
-        RwRenderStateSet(states[i - 1], saved[i - 1]);
+        if (savedState[i - 1]) {
+            RwRenderStateSet(states[i - 1], saved[i - 1]);
+        }
     }
 }
 

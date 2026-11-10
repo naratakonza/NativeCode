@@ -19,6 +19,10 @@ CFontRender::CFontRender()
 	ImGuiIO &io = ImGui::GetIO();
 
 	CFontRender::m_bBackendReady = ImGui_ImplRenderWare_Init();
+	if (!CFontRender::m_bBackendReady)
+	{
+		CNecessary::Log(OBFUSCATE("CFontRender | RenderWare bindings unavailable"));
+	}
 	io.IniFilename = nullptr;
 	io.LogFilename = nullptr;
 
@@ -28,7 +32,7 @@ CFontRender::CFontRender()
 	ImGui::StyleColorsDark();
 
 	// load font
-	const char* fontName = OBFUSCATE("arial.ttf");
+	const auto fontName = OBFUSCATE("arial.ttf");
 	static const ImWchar ranges[] =
 	{
 		0x0020, 0x00FF,
@@ -43,7 +47,7 @@ CFontRender::CFontRender()
 	};
 
 	io.Fonts->TexDesiredWidth = 2048;
-	CNecessary::Log(OBFUSCATE("CFontRender | Loading font: %s"), fontName);
+	CNecessary::Log(OBFUSCATE("CFontRender | Loading font: %s"), static_cast<const char*>(fontName));
 	io.FontDefault = CFontRender::LoadFont(fontName, atlasFontSize, ranges);
 	CNecessary::Log(OBFUSCATE("CFontRender | ImFont pointer = %p"), static_cast<void*>(io.FontDefault));
 	if (!io.FontDefault)
@@ -73,8 +77,7 @@ CFontRender::~CFontRender()
 
 void CFontRender::Render()
 {
-	if (!CFontRender::m_bBackendReady)
-	{
+	if (!CFontRender::m_bBackendReady) {
 		return;
 	}
 
@@ -127,7 +130,12 @@ ImFont* CFontRender::LoadFont(const char* font, float fontsize, const ImWchar* r
 	char path[0xFF];
 	std::snprintf(path, sizeof(path), OBFUSCATE("SAMP/fonts/%s"), font);
 	auto result = morgan::fileio::CStorage::OpenActiveResource(nullptr, morgan::fileio::ResolveGameAssetPath(path));
-	if (!result.file || std::fseek(result.file.get(), 0, SEEK_END) != 0) {
+	if (!result.file)
+	{
+		CNecessary::Log(OBFUSCATE("CFontRender | Font open failed: %s (error %d)"), path, result.error.value());
+		return nullptr;
+	}
+	if (std::fseek(result.file.get(), 0, SEEK_END) != 0) {
 		return nullptr;
 	}
 
