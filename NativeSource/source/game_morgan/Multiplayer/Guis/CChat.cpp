@@ -83,15 +83,11 @@ void CChat::ChatWindowInputHandler(const char* str)
 			return;
 		}
 
-		if (!CMultiPlayerPacket::SendChatCommand(str)) {
-            CChat::AddInfoMessage(OBFUSCATE("Chat is unavailable until the server connection is ready."));
-        }
+		CMultiPlayerPacket::SendChatCommand(str);
 	}
 	else
 	{
-		if (!CMultiPlayerPacket::SendChatMessage(str)) {
-            CChat::AddInfoMessage(OBFUSCATE("Chat is unavailable until the server connection is ready."));
-        }
+		CMultiPlayerPacket::SendChatMessage(str);
 	}
 }
 

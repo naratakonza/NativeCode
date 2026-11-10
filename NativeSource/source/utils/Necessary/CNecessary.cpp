@@ -34,6 +34,20 @@ std::uint32_t CNecessary::GetTickCount()
     return static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
 }
 
+std::size_t CNecessary::MPSTRLEN(const char* str)
+{
+    if (!str) {
+        return 0;
+    }
+
+    std::size_t len = 0;
+    while (*str != '\0') {
+        len++;
+        str++;
+    }
+    return len;
+}
+
 std::uint32_t CNecessary::GetLocalizedEncoding()
 {
     auto* settings = CSetting::GetConfig();

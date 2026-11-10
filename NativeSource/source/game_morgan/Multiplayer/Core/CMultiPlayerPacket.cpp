@@ -7,34 +7,40 @@
 #include <raknet/BitStream.h>
 #include <raknet/SAMP/SAMPRPC.h>
 
-bool CMultiPlayerPacket::SendChatMessage(const char* text)
-{
-    return CMultiPlayerPacket::SendChatRPC(text, false);
-}
-
-bool CMultiPlayerPacket::SendChatCommand(const char* text)
-{
-    return CMultiPlayerPacket::SendChatRPC(text, true);
-}
-
-bool CMultiPlayerPacket::SendChatRPC(const char* text, bool command)
+void CMultiPlayerPacket::SendChatCommand(const char* szCommand)
 {
     auto* network = CMultiPlayer::GetActiveNetwork();
-    if (!network || !network->GetRakClient() || network->GetNetworkState() != GAMESTATE_CONNECTED || !text) {
-        return false;
+    if (!network || !network->GetRakClient() || network->GetNetworkState() != eNetworkState::GAMESTATE_CONNECTED || !szCommand) {
+        return;
     }
 
-    const auto length = std::strlen(text);
-    if (length == 0 || length > eMaxItem::MAX_MESSAGE_LENGTH) {
-        return false;
+    const auto length = CNecessary::MPSTRLEN(szCommand);
+    if (!length || length > eMaxItem::MAX_MESSAGE_LENGTH) {
+        return;
     }
 
-    RakNet::BitStream stream;
-    if (command) {
-        stream.Write(static_cast<uint32_t>(length));
-    } else {
-        stream.Write(static_cast<uint8_t>(length));
+    RakNet::BitStream bsParams;
+    const int iStrlen = static_cast<int>(length);
+    bsParams.Write(iStrlen);
+    bsParams.Write(szCommand, iStrlen);
+    network->GetRakClient()->RPC(&RPC_ServerCommand, &bsParams, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, nullptr);
+}
+
+void CMultiPlayerPacket::SendChatMessage(const char* szMsg)
+{
+    auto* network = CMultiPlayer::GetActiveNetwork();
+    if (!network || !network->GetRakClient() || network->GetNetworkState() != eNetworkState::GAMESTATE_CONNECTED || !szMsg) {
+        return;
     }
-    stream.Write(text, static_cast<int>(length));
-    return network->GetRakClient()->RPC(command ? &RPC_ServerCommand : &RPC_Chat, &stream, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, nullptr);
+
+    const auto length = CNecessary::MPSTRLEN(szMsg);
+    if (!length || length > eMaxItem::MAX_MESSAGE_LENGTH) {
+        return;
+    }
+
+    RakNet::BitStream bsSend;
+    const auto byteTextLen = static_cast<uint8_t>(length);
+    bsSend.Write(byteTextLen);
+    bsSend.Write(szMsg, byteTextLen);
+    network->GetRakClient()->RPC(&RPC_Chat, &bsSend, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, nullptr);
 }

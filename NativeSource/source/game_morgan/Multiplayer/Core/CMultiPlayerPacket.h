@@ -3,9 +3,6 @@
 class CMultiPlayerPacket
 {
 public:
-    static bool SendChatMessage(const char* text);
-    static bool SendChatCommand(const char* text);
-
-private:
-    static bool SendChatRPC(const char* text, bool command);
+    static void SendChatCommand(const char* szCommand);
+    static void SendChatMessage(const char* szMsg);
 };
