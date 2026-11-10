@@ -31,10 +31,11 @@ target="$out/MorganFlutter.framework"
 [[ -d "$source" && ! -e "$target" ]]
 ditto --norsrc --noextattr "$source" "$target"
 mv "$target/App" "$target/MorganFlutter"
+# Preserve the original __LINKEDIT layout while changing the install name.
+xcrun install_name_tool -id @rpath/MorganFlutter.framework/MorganFlutter "$target/MorganFlutter"
 if codesign -dv "$target/MorganFlutter" >/dev/null 2>&1; then
     codesign --remove-signature "$target/MorganFlutter"
 fi
-xcrun install_name_tool -id @rpath/MorganFlutter.framework/MorganFlutter "$target/MorganFlutter"
 [[ "$(xcrun otool -D "$target/MorganFlutter" | sed -n '2p')" == @rpath/MorganFlutter.framework/MorganFlutter ]]
 plutil -replace CFBundleExecutable -string MorganFlutter "$target/Info.plist"
 plutil -replace CFBundleIdentifier -string com.morgangame.ios.flutter "$target/Info.plist"
