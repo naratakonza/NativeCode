@@ -62,6 +62,7 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 @property(nonatomic) BOOL chatReady;
 @property(nonatomic) BOOL chatVisible;
 @property(nonatomic) BOOL loadingFinished;
+@property(nonatomic, strong) NSNumber* chatPosition;
 - (BOOL)attachTo:(UIViewController*)parent;
 - (void)close;
 - (void)send:(NSString*)method value:(id)value;
@@ -208,6 +209,9 @@ static NSString* MGChatColor(uint32_t rgba)
                 [screen.chatChannel invokeMethod:@"addMessage" arguments:message];
             }
             [screen.pendingMessages removeAllObjects];
+            if (screen.chatPosition) {
+                [screen.chatChannel invokeMethod:@"ChatPosition" arguments:screen.chatPosition];
+            }
             [screen updateChatVisibility];
             result(@YES);
             return;
@@ -390,6 +394,20 @@ void MGSetFlutterChatVisible(bool visible)
 void MGCloseFlutterChat()
 {
     MGRunLoadingOnMain(^{ [loadingScreen close]; });
+}
+
+void MGSetFlutterChatPosition(int position)
+{
+    MGRunLoadingOnMain(^{
+        MGFlutterLoadingScreen* screen = loadingScreen;
+        if (screen && ![screen.chatPosition isEqualToNumber:@(position)])
+        {
+            screen.chatPosition = @(position);
+            if (screen.chatReady) {
+                [screen.chatChannel invokeMethod:@"ChatPosition" arguments:screen.chatPosition];
+            }
+        }
+    });
 }
 
 void MGAddFlutterChatMessage(int type, uint32_t color, uint32_t nickColor, const char* nick, const char* text)

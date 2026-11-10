@@ -61,9 +61,6 @@ void CMultiPlayer::Process()
 
 void CMultiPlayer::Reconnect()
 {
-    if (CMultiPlayer::GetActiveNetwork()) {
-        CMultiPlayer::GetActiveNetwork()->Reconnect();
-    }
 }
 
 void CMultiPlayer::StartSAMP()

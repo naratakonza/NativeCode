@@ -102,7 +102,7 @@ for source in MGLauncherViewController MGLauncherRuntime MGStartupTickGate MGSta
 done
 raknet="$native/source/vendor/raknet"
 raknet_objects=()
-for unit in BitStream CheckSum DataBlockEncryptor DataCompressor DS_HuffmanEncodingTree GetTime InternalPacketPool NetworkTypes PluginInterface RakClient RakNetStatistics RakNetworkFactory RakPeer rakserver RakSleep Rand ReliabilityLayer rijndael RPCMap SHA1 SimpleMutex SocketLayer StringCompressor StringTable SAMP/samp_netencr SAMP/SAMPRPC SAMP/samp_auth; do
+for unit in BitStream CheckSum DataBlockEncryptor DataCompressor DS_HuffmanEncodingTree GetTime InternalPacketPool NetworkTypes PluginInterface RakClient RakNetStatistics RakNetworkFactory RakPeer rakserver RakSleep Rand ReliabilityLayer rijndael RPCMap SHA1 SimpleMutex SocketLayer StringCompressor StringTable SAMP/samp_netencr SAMP/SAMPRPC; do
     object="$out/fileio-objects/raknet-${unit##*/}.o"
     xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
         -std=c++17 "${fileio_flags[@]}" -fvisibility=hidden -DRAKSAMP_CLIENT -DNDEBUG \

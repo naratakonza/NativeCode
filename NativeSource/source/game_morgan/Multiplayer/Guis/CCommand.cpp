@@ -22,31 +22,63 @@ void CCommand::Add(const char* cmd, CommandCallback callback)
 
 bool CCommand::Process(const std::string& input)
 {
-    if (input.size() < 2 || input.front() != '/') {
+    if (input.empty() || input[0] != '/') {
         return false;
     }
 
-    const auto end = input.find(' ');
-    const auto length = end == std::string::npos ? input.size() : end;
+    const char* data = input.c_str() + 1;
+    const char* cmsStart = data;
+
+    while (*data && *data != ' ')
+    {
+        ++data;
+    }
+
+    size_t cmdLen = data - cmsStart;
+    if (cmdLen == 0) {
+        return false;
+    }
+
     for (const auto& entry : CCommand::commandList)
     {
-        if (entry.name.size() != length || strncasecmp(entry.name.c_str(), input.c_str(), length) != 0) {
-            continue;
-        }
-
-        std::vector<std::string> args{input.substr(1, length - 1)};
-        if (end != std::string::npos)
+        if (!entry.name.empty())
         {
-            for (auto start = input.find_first_not_of(' ', end); start != std::string::npos;)
+            const char* regCmd = entry.name.c_str() + 1;
+            if (strlen(regCmd) == cmdLen && strncasecmp(regCmd, cmsStart, cmdLen) == 0)
             {
-                const auto next = input.find(' ', start);
-                args.push_back(input.substr(start, next == std::string::npos ? next : next - start));
-                start = next == std::string::npos ? next : input.find_first_not_of(' ', next);
+                std::vector<std::string> args;
+                args.emplace_back(cmsStart, cmdLen);
+
+                if (*data == ' ')
+                {
+                    const char* arg = data + 1;
+                    while (*arg)
+                    {
+                        while (*arg == ' ')
+                        {
+                            ++arg;
+                        }
+
+                        if (*arg == '\0') {
+                            break;
+                        }
+
+                        const char* start = arg;
+                        while (*arg != ' ' && *arg != '\0')
+                        {
+                            ++arg;
+                        }
+
+                        args.emplace_back(start, arg - start);
+                    }
+                }
+
+                entry.callback(args);
+                return true;
             }
         }
-        entry.callback(args);
-        return true;
     }
+
     return false;
 }
 

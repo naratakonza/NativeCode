@@ -1,33 +1,43 @@
 #include "../../../../Main.h"
 #include "CChat.h"
+#include "CGui.h"
 #include "CCommand.h"
 #include "../CMultiPlayer.h"
 #include "../Core/CMultiPlayerPacket.h"
-#include "../../Enums/eMaxItem.h"
 #include "../../../../Launcher/MGFlutterLoadingScreen.h"
-
 #include <queue>
 
 static std::queue<std::string> m_ChatInputQueue;
+static std::mutex m_ChatInputMutex;
 
 CChat::CChat()
 {
-    CCommand::Initialise();
+	CChat::m_dwTextColor = 0xFFFFFFFF;
+	CChat::m_dwInfoColor = 0x62AA88FF;
+	CChat::m_dwDebugColor = 0xBEBEBEFF;
+
+	CCommand::Initialise();
 }
 
 CChat::~CChat()
 {
-    m_ChatInputQueue = {};
+    {
+        std::lock_guard<std::mutex> lock(m_ChatInputMutex);
+        m_ChatInputQueue = {};
+    }
     MGCloseFlutterChat();
 }
 
 bool CChat::QueueInput(std::string input)
 {
-    // Flutter and the existing CGame_Process hook both run on the iOS main thread.
-    if (!pthread_main_np() || input.empty() || input.size() > eMaxItem::MAX_MESSAGE_LENGTH || input.find('\0') != std::string::npos || m_ChatInputQueue.size() >= 16) {
+    if (input.empty() || input.size() > eMaxItem::MAX_MESSAGE_LENGTH || input.find('\0') != std::string::npos) {
         return false;
     }
 
+    std::lock_guard<std::mutex> lock(m_ChatInputMutex);
+    if (m_ChatInputQueue.size() >= 16) {
+        return false;
+    }
     m_ChatInputQueue.push(std::move(input));
     return true;
 }
@@ -35,28 +45,50 @@ bool CChat::QueueInput(std::string input)
 void CChat::ProcessPendingChatInputs()
 {
     std::queue<std::string> localQueue;
-    localQueue.swap(m_ChatInputQueue);
+
+    {
+        std::lock_guard<std::mutex> lock(m_ChatInputMutex);
+        localQueue.swap(m_ChatInputQueue);
+    }
+
     while (!localQueue.empty())
     {
-        CChat::ChatWindowInputHandler(localQueue.front().c_str());
+        std::string input = std::move(localQueue.front());
         localQueue.pop();
+
+        if (CGui::GetChat())
+        {
+            CGui::GetChat()->ChatWindowInputHandler(input.c_str());
+        }
     }
 }
 
 void CChat::ChatWindowInputHandler(const char* str)
 {
-    if (!str || !*str) {
-        return;
-    }
+	if (!str || *str == '\0') {
+		return;
+	}
 
-    if (*str == '/' && CCommand::Process(str)) {
-        return;
-    }
+	if (!CMultiPlayer::GetActiveNetwork()) {
+		return;
+	}
 
-    const bool sent = *str == '/' ? CMultiPlayerPacket::SendChatCommand(str) : CMultiPlayerPacket::SendChatMessage(str);
-    if (!sent) {
-        CChat::AddInfoMessage(OBFUSCATE("Chat is unavailable until the server connection is ready."));
-    }
+	if (*str == '/')
+	{
+		if (CCommand::Process(str)) {
+			return;
+		}
+
+		if (!CMultiPlayerPacket::SendChatCommand(str)) {
+            CChat::AddInfoMessage(OBFUSCATE("Chat is unavailable until the server connection is ready."));
+        }
+	}
+	else
+	{
+		if (!CMultiPlayerPacket::SendChatMessage(str)) {
+            CChat::AddInfoMessage(OBFUSCATE("Chat is unavailable until the server connection is ready."));
+        }
+	}
 }
 
 void CChat::Render()
@@ -66,61 +98,109 @@ void CChat::Render()
     }
 
     // if (CGui::GetScoreBoard()->GetActiveScore() || CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() ||
-    //     CGui::GetVoiceMenu()->GetActiveVoiceMenu() || CVoiceMenu::m_bCustomizeMode)
+    //     CGui::GetVoiceMenu()->GetActiveVoiceMenu() || CVoiceMenu::m_bCustomizeMode /*|| CGui::GetClientMenu()->GetActiveClientMenu()*/)
     // {
     //     MGSetFlutterChatVisible(false);
     //     return;
     // }
 
-    // || CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsSpectating()
     MGSetFlutterChatVisible(true);
+
+    // || CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsSpectating()
+    if (auto* settings = CSetting::GetConfig())
+    {
+        const float position = settings->GetFloatValue(OBFUSCATE("JavaChatPosX"));
+        MGSetFlutterChatPosition(std::isfinite(position) ? static_cast<int>(std::clamp(position, 0.0f, 16.0f)) : 16);
+    }
 }
 
 void CChat::AddChatMessage(const char* szNick, uint32_t dwNickColor, const char* szMessage)
 {
-    if (szMessage) {
-        CChat::AddToChatWindowBuffer(CHAT_TYPE_CHAT, szMessage, szNick, CChat::m_dwTextColor, dwNickColor, 0);
-    }
+	CChat::AddToChatWindowBuffer(eChatMessageType::CHAT_TYPE_CHAT, szMessage, szNick, CChat::m_dwTextColor, dwNickColor, 0);
 }
 
 void CChat::AddInfoMessage(const char* szFormat, ...)
 {
-    char message[1024]{};
+    std::string message;
+
     va_list args;
     va_start(args, szFormat);
-    std::vsnprintf(message, sizeof(message), szFormat, args);
+
+    va_list args_copy;
+    va_copy(args_copy, args);
+
+    int len = vsnprintf(nullptr, 0, szFormat, args);
+    if (len >= 0)
+    {
+        message.resize(static_cast<size_t>(len) + 1);
+        vsnprintf(message.data(), message.size(), szFormat, args_copy);
+    }
+
+    va_end(args_copy);
     va_end(args);
-    CChat::AddToChatWindowBuffer(CHAT_TYPE_INFO, message, nullptr, CChat::m_dwInfoColor, 0, 0);
+
+    CChat::AddToChatWindowBuffer(eChatMessageType::CHAT_TYPE_INFO, message.c_str(), nullptr, CChat::m_dwInfoColor, 0, 0);
 }
 
 void CChat::AddDebugMessage(int alerttype, const char* szFormat, ...)
 {
-    char message[1024]{};
+    std::string message;
+
     va_list args;
     va_start(args, szFormat);
-    std::vsnprintf(message, sizeof(message), szFormat, args);
+
+    va_list args_copy;
+    va_copy(args_copy, args);
+
+    int len = vsnprintf(nullptr, 0, szFormat, args);
+    if (len >= 0)
+    {
+        message.resize(static_cast<size_t>(len) + 1);
+        vsnprintf(message.data(), message.size(), szFormat, args_copy);
+    }
+
+    va_end(args_copy);
     va_end(args);
-    CChat::AddToChatWindowBuffer(CHAT_TYPE_DEBUG, message, nullptr, CChat::m_dwDebugColor, 0, alerttype);
+
+    CChat::AddToChatWindowBuffer(eChatMessageType::CHAT_TYPE_DEBUG, message.c_str(), nullptr, CChat::m_dwDebugColor, 0, alerttype);
 }
 
 void CChat::AddClientMessage(uint32_t dwColor, const char* szStr)
 {
-    if (szStr) {
-        CChat::AddToChatWindowBuffer(CHAT_TYPE_INFO, szStr, nullptr, dwColor, 0, 0);
-    }
+	CChat::AddToChatWindowBuffer(eChatMessageType::CHAT_TYPE_INFO, szStr, nullptr, dwColor, 0, 0);
 }
 
-void CChat::AddToChatWindowBuffer(eChatMessageType type, std::string message, const char* nick, uint32_t textColor, uint32_t nickColor, int alerttype)
+void CChat::AddToChatWindowBuffer(eChatMessageType type, const char* szString, const char* szNick, uint32_t dwTextColor, uint32_t dwNickColor, int alerttype)
 {
-    if (message.empty()) {
+    if (!szString || !*szString) {
         return;
     }
 
-    for (char& ch : message)
-    {
-        if (static_cast<unsigned char>(ch) < ' ') {
-            ch = ' ';
-        }
+    CHAT_WINDOW_ENTRY entry{};
+    entry.eType = type;
+    entry.dwNickColor = dwNickColor | 0x000000FF;
+    entry.dwTextColor = dwTextColor | 0x000000FF;
+    if (szNick) {
+        std::snprintf(entry.szNick, sizeof(entry.szNick), "%s", szNick);
     }
-    MGAddFlutterChatMessage(type == CHAT_TYPE_DEBUG ? alerttype : 0, textColor, nickColor, nick, message.c_str());
+    std::snprintf(entry.szMessage, sizeof(entry.szMessage), "%s", szString);
+    CChat::FilterInvalidChars(entry.szMessage);
+    CChat::FilterInvalidChars(entry.szNick);
+
+    MGAddFlutterChatMessage(entry.eType == CHAT_TYPE_DEBUG ? alerttype : 0, entry.dwTextColor, entry.dwNickColor, entry.szNick, entry.szMessage);
+}
+
+void CChat::FilterInvalidChars(char *szString)
+{
+	if (szString == NULL) {
+		return;
+	}
+
+	while (*szString)
+	{
+		if(*szString > 0 && *szString < ' ')
+			*szString = ' ';
+
+		szString++;
+	}
 }

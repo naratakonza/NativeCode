@@ -27,22 +27,29 @@ void main() {
     expect(calls.any((call) => call.method == 'ready'), isTrue);
     await native('show');
     await native('addMessage', {'message': 'Welcome {FFCC00}Morgan', 'color': '{FFFFFF}', 'type': 0});
-    final message = tester.widget<Text>(find.textContaining('Welcome'));
-    final spans = (message.textSpan! as TextSpan).children!.cast<TextSpan>();
-    expect(spans.last.text, 'Morgan');
-    expect(spans.last.style?.color, const Color(0xffffcc00));
+    expect(find.textContaining('Welcome', findRichText: true), findsWidgets);
+    final colored = tester.widgetList<RichText>(find.byType(RichText)).any((widget) {
+      var found = false;
+      widget.text.visitChildren((span) {
+        found |= span is TextSpan && span.text == 'Morgan' && span.style?.color == const Color(0xffffcc00);
+        return !found;
+      });
+      return found;
+    });
+    expect(colored, isTrue);
 
-    await tester.tap(find.byTooltip('เปิดแชท'));
+    await tester.tapAt(const Offset(140, 30));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.enterText(find.byType(TextField), '/rec');
     await tester.tap(find.byTooltip('ส่ง'));
     await tester.pump();
     final submission = calls.singleWhere((call) => call.method == 'sendText');
     expect(submission.arguments, {'text': '/rec'});
-    expect(find.byType(TextField), findsNothing);
+    expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
 
     await native('hide');
-    expect(find.byTooltip('เปิดแชท'), findsNothing);
+    expect(find.byType(TextField), findsNothing);
     final region = calls.lastWhere((call) => call.method == 'hitRegion');
     expect((region.arguments as Map)['width'], 0);
     messenger.setMockMethodCallHandler(channel, null);
