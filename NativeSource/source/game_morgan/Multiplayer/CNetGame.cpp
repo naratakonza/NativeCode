@@ -50,15 +50,8 @@ CNetGame::CNetGame(const char* szHostOrIp, int iPort, const char* szPlayerName, 
 
     // if (CGui::GetChat() && !hasChanged)
     // {
-    //     if (CMultiPlayer::IsModServerActive())
-    //     {
-    //         CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("{FFFFFF}THUNDER SA-MP {B9C9BF}MOD {FFFFFF}STARTED"));
-    //     }
-    //     else
-    //     {
-    //         const char* szSampVersion = SAMP_VERSION;
-    //         CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("{FFFFFF}SA-MP {B9C9BF}%s {FFFFFF}Started"), szSampVersion);
-    //     }
+    //     const char* szSampVersion = SAMP_VERSION;
+    //     CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("{FFFFFF}SA-MP {B9C9BF}%s {FFFFFF}Started"), szSampVersion);
     // }
 }
 

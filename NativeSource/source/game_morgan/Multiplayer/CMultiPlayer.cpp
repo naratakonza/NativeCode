@@ -26,6 +26,7 @@ void CMultiPlayer::Uninitialise()
 	CNecessary::Log(OBFUSCATE("CMultiPlayer Uninitialise"));
 
     CGui::Uninitialise();
+
 	SAFE_DELETE(CMultiPlayer::pNetGame);
 
 	CGame::SetPlayerStatsLocked(false);
@@ -73,6 +74,7 @@ void CMultiPlayer::StartSAMP()
     CScripting::Init();
 
     CMultiPlayer::SetThread(eThreadType::THREAD_TYPE_START);
+
     CGui::Initialise();
 
     CMultiPlayer::m_bPlaySAMP = true;

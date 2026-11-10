@@ -22,10 +22,13 @@ bool ImGui_ImplRenderWare_Init()
 
 static bool CreateFontRaster()
 {
+    CNecessary::Log(OBFUSCATE("GUI | CreateDeviceObjects."));
+
     auto* atlas = ImGui::GetIO().Fonts;
     unsigned char* pixels = nullptr;
     int width = 0, height = 0;
     atlas->GetTexDataAsRGBA32(&pixels, &width, &height);
+    CNecessary::Log(OBFUSCATE("GUI | Font atlas width: %d, height: %d, depth: %d"), width, height, 32);
     if (!pixels || width <= 0 || height <= 0) {
         return false;
     }
@@ -66,7 +69,12 @@ bool ImGui_ImplRenderWare_NewFrame()
     if (width <= 0 || height <= 0) {
         return false;
     }
-    ImGui::GetIO().DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
+    ImGuiIO& io = ImGui::GetIO();
+    const ImVec2 displaySize(static_cast<float>(width), static_cast<float>(height));
+    if (io.DisplaySize.x != displaySize.x || io.DisplaySize.y != displaySize.y) {
+        CNecessary::Log(OBFUSCATE("GUI | Display size: %f, %f"), displaySize.x, displaySize.y);
+    }
+    io.DisplaySize = displaySize;
     return fontRaster || CreateFontRaster();
 }
 
@@ -108,7 +116,11 @@ void ImGui_ImplRenderWare_RenderDrawData(const ImDrawData* drawData)
     for (int listIndex = 0; listIndex < drawData->CmdListsCount; ++listIndex)
     {
         const auto& list = *drawData->CmdLists[listIndex];
+        const auto oldCapacity = vertices.capacity();
         vertices.resize(static_cast<std::size_t>(list.VtxBuffer.Size));
+        if (vertices.capacity() != oldCapacity) {
+            CNecessary::Log(OBFUSCATE("GUI | Vertex buffer reallocated. Size: %zu"), vertices.capacity());
+        }
         for (int index = 0; index < list.VtxBuffer.Size; ++index)
         {
             const auto& src = list.VtxBuffer[index];
@@ -144,6 +156,8 @@ void ImGui_ImplRenderWare_RenderDrawData(const ImDrawData* drawData)
 
 void ImGui_ImplRenderWare_ShutDown()
 {
+    CNecessary::Log(OBFUSCATE("ImGui ShutDown."));
+
     if (fontRaster)
     {
         RwRasterDestroy(fontRaster);

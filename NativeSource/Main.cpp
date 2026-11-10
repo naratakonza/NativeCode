@@ -1,5 +1,6 @@
 #include "Main.h"
 #include "source/game_morgan/Multiplayer/CMultiPlayer.h"
+#include "source/game_morgan/Multiplayer/CNetGame.h"
 
 void InitialiseClient()
 {
@@ -11,7 +12,7 @@ void InitialiseClient()
 	}
 
 	InitialiseRenderWare();
-	
+
 	CGame::Initialize();
 	CMultiPlayer::Initialise();
 }
@@ -21,19 +22,16 @@ void UninitialiseClient()
 	CNecessary::Log(OBFUSCATE("Client Uninitialise"));
 
 	CGame::Uninitialise();
-	// CGui::Uninitialise();
 
-	// if (CMultiPlayer::GetActiveNetwork())
-	// {
-	// 	if (CMultiPlayer::GetActiveNetwork()->GetRakClient())
-	// 	{
-	// 		CMultiPlayer::GetActiveNetwork()->GetRakClient()->Disconnect(500, 0);
-	// 	}
-	// }
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetRakClient())
+		{
+			CMultiPlayer::GetActiveNetwork()->GetRakClient()->Disconnect(500, 0);
+		}
+	}
 
 	CMultiPlayer::Uninitialise();
 
-	// SAFE_DELETE(CJava::pJava);
-	// SAFE_DELETE(javaVM);
 	// SAFE_DELETE(CCrashHandler::pCrashHandler);
 }

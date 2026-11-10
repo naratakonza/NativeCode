@@ -20,7 +20,7 @@ public:
 	void RenderText(ImVec2& pos, ImU32 col, bool bOutline, const char* text_begin, const char* text_end = nullptr);
 
 private:
-	ImFont* LoadFont(const char* font, float fontsize);
+	ImFont* LoadFont(const char* font, float fontsize, const ImWchar* ranges = nullptr);
 
 	ImGuiContext* m_pContext = nullptr;
 	std::uint32_t m_dwLastFrameTick = 0;

@@ -4,7 +4,7 @@
 #include "../../../../utils/Storage/CStorage.h"
 #include "../../../../vendor/imgui/imgui_impl_renderware.h"
 
-#include <CommonCrypto/CommonDigest.h>
+#include <CoreGraphics/CoreGraphics.h>
 
 static constexpr float atlasFontSize = 30.0f;
 
@@ -12,7 +12,6 @@ CFontRender::CFontRender()
 {
 	CNecessary::Log(OBFUSCATE("Initializing CFontRender.."));
 
-	// setup ImGUI
 	ImGuiContext* previous = ImGui::GetCurrentContext();
 	IMGUI_CHECKVERSION();
 	m_pContext = ImGui::CreateContext();
@@ -29,9 +28,29 @@ CFontRender::CFontRender()
 	ImGui::StyleColorsDark();
 
 	// load font
-	const char* fontName = OBFUSCATE("arial_bold.ttf");
+	const char* fontName = OBFUSCATE("arial.ttf");
+	static const ImWchar ranges[] =
+	{
+		0x0020, 0x00FF,
+		0x0100, 0x017F,
+		0x0400, 0x04FF,
+		0x0E00, 0x0E5B,
+		0x2DE0, 0x2DFF,
+		0xA640, 0xA69F,
+		0xF020, 0xF0FF,
+		0x2010, 0x205E,
+		0
+	};
+
+	io.Fonts->TexDesiredWidth = 2048;
 	CNecessary::Log(OBFUSCATE("CFontRender | Loading font: %s"), fontName);
-	io.FontDefault = CFontRender::LoadFont(fontName, atlasFontSize);
+	io.FontDefault = CFontRender::LoadFont(fontName, atlasFontSize, ranges);
+	CNecessary::Log(OBFUSCATE("CFontRender | ImFont pointer = %p"), static_cast<void*>(io.FontDefault));
+	if (!io.FontDefault)
+	{
+		CNecessary::Log(OBFUSCATE("CFontRender | Could not load SAMP/fonts/arial.ttf"));
+		m_bBackendReady = false;
+	}
 
 	style.WindowRounding = 0.0f;
 	ImGui::SetCurrentContext(previous);
@@ -46,7 +65,8 @@ CFontRender::~CFontRender()
 	ImGui_ImplRenderWare_ShutDown();
 	ImGui::DestroyContext(m_pContext);
 
-	if (previous != m_pContext) {
+	if (previous != m_pContext)
+	{
 		ImGui::SetCurrentContext(previous);
 	}
 }
@@ -66,14 +86,18 @@ void CFontRender::Render()
 	}
 
 	ImGuiIO& io = ImGui::GetIO();
-	const auto now = CNecessary::GetTickCount();
-	io.DeltaTime = m_dwLastFrameTick ? std::max(0.001f, (now - m_dwLastFrameTick) / 1000.0f) : 1.0f / 60.0f;
-	m_dwLastFrameTick = now;
-
 	auto* settings = CSetting::GetConfig();
 	const float size = settings ? settings->GetFloatValue(OBFUSCATE("FontSize")) : atlasFontSize;
 	const float fontSize = std::isfinite(size) ? std::clamp(size, 1.0f, 80.0f) : atlasFontSize;
 	io.FontGlobalScale = SCALE_Y(io, fontSize) / atlasFontSize;
+
+	if (!m_dwLastFrameTick) {
+		CNecessary::Log(OBFUSCATE("CFontRender | Scale factor: %f, %f Font size: %f"), io.DisplaySize.x * MULT_X, io.DisplaySize.y * MULT_Y, SCALE_Y(io, fontSize));
+	}
+
+	const auto now = CNecessary::GetTickCount();
+	io.DeltaTime = m_dwLastFrameTick ? std::max(0.001f, (now - m_dwLastFrameTick) / 1000.0f) : 1.0f / 60.0f;
+	m_dwLastFrameTick = now;
 
 	ImGui::NewFrame();
 
@@ -89,9 +113,8 @@ void CFontRender::Render()
 	ImGui::SetCurrentContext(previous);
 }
 
-ImFont* CFontRender::LoadFont(const char* font, float fontsize)
+ImFont* CFontRender::LoadFont(const char* font, float fontsize, const ImWchar* ranges)
 {
-	using namespace morgan::fileio;
 	ImGuiIO &io = ImGui::GetIO();
 
 	ImFontConfig fontCfg;
@@ -99,28 +122,39 @@ ImFont* CFontRender::LoadFont(const char* font, float fontsize)
 	fontCfg.OversampleH = 1;
 	fontCfg.OversampleV = 1;
 
-	// Use the verified Arial Bold asset from the selected SAMP pack.
-	constexpr std::size_t size = 352224;
-	constexpr unsigned char expected[CC_SHA256_DIGEST_LENGTH] = {
-		0xDF, 0x70, 0x59, 0x7F, 0x0B, 0xDF, 0x49, 0xDA, 0x3A, 0xF2, 0x70, 0x13, 0x8F, 0x8A, 0x34, 0x39,
-		0x6E, 0x4F, 0x56, 0x18, 0xC6, 0x71, 0xA1, 0xDB, 0x34, 0x80, 0xE6, 0x26, 0xF3, 0x8A, 0xAE, 0xCE,
-	};
 	char path[0xFF];
-	std::snprintf(path, sizeof(path), "SAMP/fonts/%s", font);
-	auto result = CStorage::OpenActiveResource(nullptr, ResolveGameAssetPath(path));
-	void* data = result.file ? ImGui::MemAlloc(size) : nullptr;
+	std::snprintf(path, sizeof(path), OBFUSCATE("SAMP/fonts/%s"), font);
+	auto result = morgan::fileio::CStorage::OpenActiveResource(nullptr, morgan::fileio::ResolveGameAssetPath(path));
+	if (!result.file || std::fseek(result.file.get(), 0, SEEK_END) != 0) {
+		return nullptr;
+	}
+
+	const long size = std::ftell(result.file.get());
+	if (size < 12 || size > 4 * 1024 * 1024 || std::fseek(result.file.get(), 0, SEEK_SET) != 0) {
+		return nullptr;
+	}
+
+	auto* data = static_cast<unsigned char*>(ImGui::MemAlloc(static_cast<std::size_t>(size)));
 	if (data)
 	{
-		unsigned char actual[CC_SHA256_DIGEST_LENGTH];
-		if (std::fread(data, 1, size, result.file.get()) == size && std::fgetc(result.file.get()) == EOF &&
-		    CC_SHA256(data, static_cast<CC_LONG>(size), actual) && std::memcmp(actual, expected, sizeof(expected)) == 0)
+		const auto length = static_cast<std::size_t>(size);
+		if (std::fread(data, 1, length, result.file.get()) == length && (std::memcmp(data, "\x00\x01\x00\x00", 4) == 0 || std::memcmp(data, "true", 4) == 0))
 		{
-			return io.Fonts->AddFontFromMemoryTTF(data, static_cast<int>(size), fontsize, &fontCfg);
+			CGDataProviderRef provider = CGDataProviderCreateWithData(nullptr, data, length, nullptr);
+			CGFontRef validated = provider ? CGFontCreateWithDataProvider(provider) : nullptr;
+			if (validated) CGFontRelease(validated);
+			if (provider) CGDataProviderRelease(provider);
+
+			if (validated)
+            {
+				return io.Fonts->AddFontFromMemoryTTF(data, static_cast<int>(size), fontsize, &fontCfg, ranges);
+			}
 		}
+
 		ImGui::MemFree(data);
 	}
 
-	return io.Fonts->AddFontDefault(&fontCfg);
+	return nullptr;
 }
 
 void CFontRender::RenderText(ImVec2& posCur, ImU32 col, bool bOutline, const char* text_begin, const char* text_end)

@@ -99,7 +99,9 @@ extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (
     if (pthread_main_np() && renderTitleHookInstalled && CMultiPlayer::IsSampActive())
     {
         CMultiPlayer::m_bGameStarted = true;
-        if (CMultiPlayer::IsSampInit() && CMultiPlayer::GetActiveNetwork() && CGui::GetFontRender()) {
+
+        if (CMultiPlayer::IsSampInit() && CMultiPlayer::GetActiveNetwork() && CGui::GetFontRender())
+        {
             CGui::GetFontRender()->Render();
         }
     }
