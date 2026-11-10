@@ -1,4 +1,5 @@
 #import "MGFlutter.h"
+#import "MGStartupTickGate.h"
 
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
@@ -69,6 +70,10 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 @property(nonatomic) BOOL loadingFinished;
 @property(nonatomic, strong) NSDictionary* chatLayout;
 @property(nonatomic, strong) NSMutableArray<NSArray*>* keyboardEvents;
+@property(nonatomic, strong) NSMutableArray<NSArray*>* keyboardMainTicks;
+@property(nonatomic, strong) NSTimer* keyboardMainTimer;
+@property(nonatomic) CFTimeInterval keyboardMainLastTick;
+@property(nonatomic) BOOL keyboardProbeCommonModes;
 @property(nonatomic) long long keyboardProbeStartUs;
 @property(nonatomic) long long keyboardProbeWallUs;
 @property(nonatomic) CFTimeInterval keyboardProbeMediaTime;
@@ -77,6 +82,8 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 - (void)send:(NSString*)method value:(id)value;
 - (void)updateChatVisibility;
 - (BOOL)isChatInteractive;
+- (void)startKeyboardProbe:(long long)start;
+- (void)setChatInputActive:(BOOL)active;
 - (void)saveKeyboardProbe:(NSDictionary*)sample;
 @end
 
@@ -232,9 +239,7 @@ static NSString* MGChatColor(uint32_t rgba)
         NSDictionary* args = [call.arguments isKindOfClass:NSDictionary.class] ? call.arguments : nil;
         if ([call.method isEqualToString:@"keyboardProbeStart"] && [call.arguments isKindOfClass:NSNumber.class])
         {
-            screen.keyboardProbeMediaTime = CACurrentMediaTime();
-            screen.keyboardProbeWallUs = MGWallTimeUs();
-            screen.keyboardProbeStartUs = [call.arguments longLongValue];
+            [screen startKeyboardProbe:[call.arguments longLongValue]];
             result(@YES);
             return;
         }
@@ -255,7 +260,7 @@ static NSString* MGChatColor(uint32_t rgba)
         }
         if ([call.method isEqualToString:@"inputActive"] && [call.arguments isKindOfClass:NSNumber.class])
         {
-            screen.outsideChatTap.enabled = [screen isChatInteractive] && [call.arguments boolValue];
+            [screen setChatInputActive:[call.arguments boolValue]];
             result(@YES);
             return;
         }
@@ -307,7 +312,6 @@ static NSString* MGChatColor(uint32_t rgba)
     self.outsideChatTap.delaysTouchesEnded = NO;
     [parent.view addGestureRecognizer:self.outsideChatTap];
 
-    self.keyboardEvents = [NSMutableArray arrayWithCapacity:16];
     NSNotificationCenter* center = NSNotificationCenter.defaultCenter;
     for (NSNotificationName name in @[UIKeyboardWillShowNotification, UIKeyboardDidShowNotification,
                                      UIKeyboardWillChangeFrameNotification, UIKeyboardDidChangeFrameNotification])
@@ -334,11 +338,44 @@ static NSString* MGChatColor(uint32_t rgba)
     return YES;
 }
 
+- (void)startKeyboardProbe:(long long)start
+{
+    [self.keyboardMainTimer invalidate];
+    self.keyboardProbeMediaTime = CACurrentMediaTime();
+    self.keyboardProbeWallUs = MGWallTimeUs();
+    self.keyboardProbeStartUs = start;
+    self.keyboardProbeCommonModes = NO;
+    self.keyboardEvents = [NSMutableArray arrayWithCapacity:16];
+    self.keyboardMainTicks = [NSMutableArray arrayWithCapacity:160];
+    self.keyboardMainLastTick = self.keyboardProbeMediaTime;
+
+    // Sample main run loop delivery independently of GTA's display link.
+    __weak MGFlutter* weakSelf = self;
+    self.keyboardMainTimer = [NSTimer timerWithTimeInterval:1.0 / 60.0 repeats:YES block:^(NSTimer* timer) {
+        MGFlutter* screen = weakSelf;
+        const auto now = CACurrentMediaTime();
+        const auto elapsed = screen.keyboardProbeWallUs - start + std::llround((now - screen.keyboardProbeMediaTime) * 1000000.0);
+        if (!screen || elapsed > keyboardProbeWindowUs)
+        {
+            [timer invalidate];
+            return;
+        }
+
+        const auto gap = std::llround((now - screen.keyboardMainLastTick) * 1000000.0);
+        screen.keyboardMainLastTick = now;
+        NSString* mode = NSRunLoop.currentRunLoop.currentMode ?: @"unknown";
+        [screen.keyboardMainTicks addObject:@[@(elapsed), @(gap), mode]];
+    }];
+    [NSRunLoop.mainRunLoop addTimer:self.keyboardMainTimer forMode:NSRunLoopCommonModes];
+}
+
 - (void)recordKeyboardEvent:(NSNotification*)note
 {
-    if (self.keyboardEvents.count == 16) [self.keyboardEvents removeObjectAtIndex:0];
+    if (self.keyboardProbeStartUs <= 0 || self.keyboardEvents.count >= 32) return;
+    const auto now = MGWallTimeUs();
+    if (now - self.keyboardProbeStartUs > keyboardProbeWindowUs) return;
     NSNumber* duration = note.userInfo[UIKeyboardAnimationDurationUserInfoKey] ?: @0;
-    [self.keyboardEvents addObject:@[@(MGWallTimeUs()), note.name, duration]];
+    [self.keyboardEvents addObject:@[@(now), note.name, duration]];
 }
 
 - (void)saveKeyboardProbe:(NSDictionary*)sample
@@ -348,9 +385,11 @@ static NSString* MGChatColor(uint32_t rgba)
 
     const long long start = self.keyboardProbeStartUs;
     self.keyboardProbeStartUs = 0;
+    [self.keyboardMainTimer invalidate];
+    self.keyboardMainTimer = nil;
     NSMutableString* report = [NSMutableString stringWithFormat:@"[chat keyboard opening]\n"
-        "relative_to=flutter_tap_handler\nunits=us\nprobe_message=%lld\n",
-        self.keyboardProbeWallUs - start];
+        "relative_to=flutter_tap_handler\nunits=us\nprobe_message=%lld\nfocus_request_us=%@\ngta_common_modes=%d\n",
+        self.keyboardProbeWallUs - start, sample[@"focus"] ?: @"(none)", self.keyboardProbeCommonModes];
     [report appendString:@"keyboard_event: offset_us,notification,animation_us\n"];
     for (NSArray* event in self.keyboardEvents)
     {
@@ -359,6 +398,12 @@ static NSString* MGChatColor(uint32_t rgba)
         {
             [report appendFormat:@"%lld,%@,%lld\n", elapsed, event[1], std::llround([event[2] doubleValue] * 1000000.0)];
         }
+    }
+
+    [report appendString:@"main_run_loop: timer_us,gap_us,mode\n"];
+    for (NSArray* tick in self.keyboardMainTicks)
+    {
+        [report appendFormat:@"%@,%@,%@\n", tick[0], tick[1], tick[2]];
     }
 
     [report appendString:@"game_frames: end_us,gap_us\n"];
@@ -437,13 +482,20 @@ static NSString* MGChatColor(uint32_t rgba)
     return self.chatVisible && self.loadingFinished && !self.visible && !self.paused;
 }
 
+- (void)setChatInputActive:(BOOL)active
+{
+    self.outsideChatTap.enabled = active && [self isChatInteractive];
+    const bool commonModes = MGSetGtaChatInputActive(self.outsideChatTap.enabled);
+    if (commonModes && self.keyboardProbeStartUs > 0) self.keyboardProbeCommonModes = YES;
+}
+
 - (void)updateChatVisibility
 {
     const BOOL interactive = [self isChatInteractive];
     self.controller.viewIfLoaded.accessibilityElementsHidden = !interactive;
     if (!interactive) {
         self.overlay.chatArea = CGRectZero;
-        self.outsideChatTap.enabled = NO;
+        [self setChatInputActive:NO];
     }
     if (self.chatReady) {
         const BOOL show = self.chatVisible && self.loadingFinished && !self.visible;
@@ -453,6 +505,9 @@ static NSString* MGChatColor(uint32_t rgba)
 
 - (void)close
 {
+    [self setChatInputActive:NO];
+    [self.keyboardMainTimer invalidate];
+    self.keyboardMainTimer = nil;
     [NSNotificationCenter.defaultCenter removeObserver:self];
     [self.outsideChatTap.view removeGestureRecognizer:self.outsideChatTap];
     self.outsideChatTap = nil;

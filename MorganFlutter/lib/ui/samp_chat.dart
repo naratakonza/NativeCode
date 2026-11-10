@@ -41,7 +41,9 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
   bool isHolding = false;
   double chatPosValue = 16.0;
   double _radarRight = 0;
+  int _inputRequest = 0;
   int? _keyboardProbeStart;
+  int? _keyboardFocusUs;
   Timer? _keyboardProbeTimer;
   final List<List<int>> _keyboardFrames = [];
   final List<List<int>> _keyboardLayouts = [];
@@ -133,6 +135,7 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
 
   void hideInput() {
     if (!chatInputstatus) return;
+    _inputRequest++;
     setState(() {
       chatInputstatus = false;
       _showNewMessageButton.value = false;
@@ -142,9 +145,21 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
     _scrollToBottom();
   }
 
-  void showInput() {
+  Future<void> showInput() async {
+    final request = ++_inputRequest;
     _startKeyboardProbe();
     setState(() => chatInputstatus = true);
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      // Schedule GTA in the input tracking run loop before asking UIKit for the keyboard.
+      await SampChatController.notify('inputActive', true);
+      if (!mounted || request != _inputRequest) return;
+      final start = _keyboardProbeStart;
+      if (start != null && _keyboardFocusUs == null) {
+        _keyboardFocusUs = DateTime.now().microsecondsSinceEpoch - start;
+      }
+      _focusNode.requestFocus();
+      return;
+    }
     _focusNode.requestFocus();
     unawaited(SampChatController.notify('inputActive', true));
   }
@@ -154,6 +169,7 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
 
     final start = DateTime.now().microsecondsSinceEpoch;
     _keyboardProbeStart = start;
+    _keyboardFocusUs = null;
     _keyboardFrames.clear();
     _keyboardLayouts.clear();
     SchedulerBinding.instance.addTimingsCallback(_recordKeyboardFrames);
@@ -164,6 +180,7 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
       _keyboardProbeStart = null;
       unawaited(SampChatController.notify('keyboardProbeEnd', {
         'start': start,
+        'focus': _keyboardFocusUs,
         'frames': _keyboardFrames,
         'layouts': _keyboardLayouts,
       }));
@@ -359,7 +376,7 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
                     if (chatInputstatus) {
                       hideInput();
                     } else {
-                      showInput();
+                      unawaited(showInput());
                     }
                   },
                   onLongPressStart: (_) => _startHold(),

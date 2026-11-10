@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -87,8 +89,12 @@ void main() {
     const channel = SampChatController.channel;
     final calls = <MethodCall>[];
     final messenger = tester.binding.defaultBinaryMessenger;
+    var inputReady = Completer<bool>();
     messenger.setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
+      if (call.method == 'inputActive' && call.arguments == true) {
+        return inputReady.future;
+      }
       return true;
     });
     addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
@@ -103,12 +109,33 @@ void main() {
     await tester.tapAt(const Offset(250, 30));
     await tester.pump();
     final start = calls.singleWhere((call) => call.method == 'keyboardProbeStart');
+    expect(tester.testTextInput.isVisible, isFalse);
+    inputReady.complete(true);
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isTrue);
 
     tester.view.viewInsets = FakeViewPadding(bottom: 180 * tester.view.devicePixelRatio);
     await tester.pump();
     await tester.pump(const Duration(seconds: 4));
     final sample = calls.singleWhere((call) => call.method == 'keyboardProbeEnd').arguments as Map;
     expect(sample['start'], start.arguments);
+    expect(sample['focus'], isA<int>());
     expect((sample['layouts'] as List).map((row) => (row as List)[2]), containsAllInOrder([0, 1800]));
+
+    await tester.tapAt(const Offset(250, 30));
+    await tester.pump();
+    inputReady = Completer<bool>();
+    await tester.tapAt(const Offset(250, 30));
+    await tester.pump();
+    await messenger.handlePlatformMessage(
+      channel.name,
+      const StandardMethodCodec().encodeMethodCall(const MethodCall('HideInputChat')),
+      (_) {},
+    );
+    await tester.pump();
+    inputReady.complete(true);
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isFalse);
+    await tester.pumpWidget(const SizedBox.shrink());
   }, variant: const TargetPlatformVariant({TargetPlatform.iOS}));
 }
