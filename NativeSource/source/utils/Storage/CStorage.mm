@@ -27,6 +27,7 @@ namespace {
 
 struct StorageState {
     std::mutex importMutex;
+    bool sampLogStarted = false;
     std::shared_ptr<const AssetRoot> external;
     std::shared_ptr<const AssetRoot> active;
     std::shared_ptr<const storage::GroupInventory> groups;
@@ -58,7 +59,7 @@ int OpenRoot(NSString* path) noexcept {
     return ::open(name, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
 }
 
-FileDescriptor OpenStorage(bool create) {
+FileDescriptor OpenStorage(bool create, bool requireBackupExclusion = true) {
     NSFileManager* files = NSFileManager.defaultManager;
     NSURL* support = [files URLsForDirectory:NSApplicationSupportDirectory inDomains:NSUserDomainMask].firstObject;
     if (!support || (create && ![files createDirectoryAtURL:support withIntermediateDirectories:YES
@@ -69,7 +70,7 @@ FileDescriptor OpenStorage(bool create) {
     FileDescriptor root(OpenExactDirectoryAt(parent.get(), "MorganGame"));
     if (root.get() >= 0 && create) {
         NSURL* container = [support URLByAppendingPathComponent:@"MorganGame" isDirectory:YES];
-        if (![container setResourceValue:@YES forKey:NSURLIsExcludedFromBackupKey error:nullptr]) {
+        if (![container setResourceValue:@YES forKey:NSURLIsExcludedFromBackupKey error:nullptr] && requireBackupExclusion) {
             return FileDescriptor(-1);
         }
     }
@@ -263,13 +264,14 @@ bool CStorage::WriteSampSettings(std::string_view contents) noexcept
     }
 }
 
-bool CStorage::AppendSampLog(const char* message, bool truncate) noexcept
+bool CStorage::AppendSampLog(const char* message) noexcept
 {
     @autoreleasepool {
-        const std::unique_lock<std::mutex> lock(State().importMutex, std::try_to_lock);
+        auto& state = State();
+        const std::unique_lock<std::mutex> lock(state.importMutex, std::try_to_lock);
         if (!lock.owns_lock()) return false;
 
-        const auto root = OpenStorage(true);
+        const auto root = OpenStorage(true, false);
         if (root.get() < 0) return false;
         if (::mkdirat(root.get(), SampDirectory, 0700) != 0 && errno != EEXIST) return false;
 
@@ -278,18 +280,25 @@ bool CStorage::AppendSampLog(const char* message, bool truncate) noexcept
         FileDescriptor fd(::openat(samp.get(), storage::SampLogName, O_WRONLY | O_APPEND | O_CREAT | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC, 0600));
         struct stat info {};
         if (fd.get() < 0 || ::fstat(fd.get(), &info) != 0 || !S_ISREG(info.st_mode) || info.st_nlink != 1 || info.st_uid != ::geteuid()) return false;
-        if (truncate && ::ftruncate(fd.get(), 0) != 0) return false;
+        const bool firstEntry = !state.sampLogStarted;
+        if (firstEntry && ::ftruncate(fd.get(), 0) != 0) return false;
 
         File log(::fdopen(fd.get(), "a"));
         if (!log) return false;
         fd.release();
-        return std::fprintf(log.get(), "%s\n", message) >= 0 && std::fflush(log.get()) == 0;
+        if (firstEntry && std::fprintf(log.get(), "--- Morgan app launch %s ---\n",
+                                      NSDate.date.description.UTF8String) < 0) return false;
+        if (std::fprintf(log.get(), "%s\n", message) < 0 || std::fflush(log.get()) != 0) return false;
+        state.sampLogStarted = true;
+        return true;
     }
 }
 
 bool CStorage::CopySampLog(NSURL* destination) noexcept
 {
-    const std::lock_guard<std::mutex> lock(State().importMutex);
+    auto& state = State();
+    const std::lock_guard<std::mutex> lock(state.importMutex);
+    if (!state.sampLogStarted) return false;
     const auto root = OpenStorage(false);
     if (root.get() < 0) return false;
 
@@ -298,7 +307,7 @@ bool CStorage::CopySampLog(NSURL* destination) noexcept
 
     const auto input = OpenRegularFileAt(samp.get(), storage::SampLogName);
     struct stat info {};
-    if (!input.file || ::fstat(::fileno(input.file.get()), &info) != 0 || info.st_uid != ::geteuid()) return false;
+    if (!input.file || ::fstat(::fileno(input.file.get()), &info) != 0 || info.st_uid != ::geteuid() || info.st_size <= 0) return false;
 
     const char* path = destination.fileSystemRepresentation;
     if (!path) return false;

@@ -61,6 +61,27 @@ static UIButton *MGLauncherButton(NSString *title, NSString *identifier, id targ
     return self;
 }
 
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+    return UIInterfaceOrientationMaskLandscape;
+}
+
+- (UIInterfaceOrientation)preferredInterfaceOrientationForPresentation {
+    return UIInterfaceOrientationLandscapeRight;
+}
+
+- (void)viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    [self setNeedsUpdateOfSupportedInterfaceOrientations];
+    UIWindowScene* scene = self.view.window.windowScene;
+    if (scene && !UIInterfaceOrientationIsLandscape(scene.interfaceOrientation)) {
+        UIWindowSceneGeometryPreferencesIOS* landscape = [[UIWindowSceneGeometryPreferencesIOS alloc]
+            initWithInterfaceOrientations:UIInterfaceOrientationMaskLandscape];
+        [scene requestGeometryUpdateWithPreferences:landscape errorHandler:^(NSError* error) {
+            NSLog(@"[MorganLauncher] Landscape request failed: %@", error.localizedDescription);
+        }];
+    }
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = UIColor.blackColor;
@@ -109,6 +130,8 @@ static UIButton *MGLauncherButton(NSString *title, NSString *identifier, id targ
     UILayoutGuide *safeArea = self.view.safeAreaLayoutGuide;
     NSLayoutConstraint* center = [stack.centerYAnchor constraintEqualToAnchor:scroll.frameLayoutGuide.centerYAnchor];
     center.priority = UILayoutPriorityDefaultLow;
+    NSLayoutConstraint* top = [stack.topAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.topAnchor constant:12];
+    top.priority = UILayoutPriorityDefaultLow - 1;
     [NSLayoutConstraint activateConstraints:@[
         [scroll.topAnchor constraintEqualToAnchor:safeArea.topAnchor],
         [scroll.bottomAnchor constraintEqualToAnchor:safeArea.bottomAnchor],
@@ -120,6 +143,7 @@ static UIButton *MGLauncherButton(NSString *title, NSString *identifier, id targ
         [stack.topAnchor constraintGreaterThanOrEqualToAnchor:scroll.contentLayoutGuide.topAnchor constant:12],
         [stack.bottomAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.bottomAnchor constant:-12],
         center,
+        top,
     ]];
 
     _assetQueue = dispatch_queue_create("com.morgangame.asset-import", DISPATCH_QUEUE_SERIAL);
@@ -387,7 +411,7 @@ static UIButton *MGLauncherButton(NSString *title, NSString *identifier, id targ
     NSURL* directory = [temporaryRoot URLByAppendingPathComponent:identifier isDirectory:YES];
     NSString* name = [NSString stringWithFormat:@"Morgan-FileOpen-%@.txt", identifier];
     NSURL* url = [directory URLByAppendingPathComponent:name];
-    NSURL* logURL = [directory URLByAppendingPathComponent:@(morgan::fileio::storage::SampLogName)];
+    NSURL* logURL = [directory URLByAppendingPathComponent:[NSString stringWithFormat:@"Morgan-%@.log", identifier]];
     NSArray<NSString*>* events = [NSUserDefaults.standardUserDefaults stringArrayForKey:MGPickerDiagnosticsKey];
     NSString* pickerDiagnostics = events.count ? [events componentsJoinedByString:@"\n"] : @"(none)";
     NSString* report = [NSString stringWithFormat:@"%@\n[last document picker attempt]\n"
@@ -398,8 +422,10 @@ static UIButton *MGLauncherButton(NSString *title, NSString *identifier, id targ
     dispatch_async(_assetQueue, ^{
         NSFileManager* files = NSFileManager.defaultManager;
         const BOOL created = [files createDirectoryAtURL:directory withIntermediateDirectories:NO attributes:nil error:nullptr];
-        const BOOL reportWritten = created && [report writeToURL:url atomically:YES encoding:NSUTF8StringEncoding error:nullptr];
-        const BOOL logCopied = reportWritten && CStorage::CopySampLog(logURL);
+        const BOOL logCopied = created && CStorage::CopySampLog(logURL);
+        NSString* exportStatus = logCopied ? @"current_launch" : @"current_launch_log_unavailable";
+        NSString* exportReport = [report stringByAppendingFormat:@"\n[log export]\nmorgan_log=%@\n", exportStatus];
+        const BOOL reportWritten = created && [exportReport writeToURL:url atomically:YES encoding:NSUTF8StringEncoding error:nullptr];
         if (created && !reportWritten) [files removeItemAtURL:directory error:nullptr];
 
         dispatch_async(dispatch_get_main_queue(), ^{

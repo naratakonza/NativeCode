@@ -109,7 +109,7 @@ public:
 
     static std::error_code ReadSampSettings(std::string& contents);
     static bool WriteSampSettings(std::string_view contents) noexcept;
-    static bool AppendSampLog(const char* message, bool truncate) noexcept;
+    static bool AppendSampLog(const char* message) noexcept;
     static void ValidateExternalAssets() noexcept;
     static std::error_code SelectSampAssets(bool externalOnly = false) noexcept;
     static void UseOriginalAssets() noexcept;

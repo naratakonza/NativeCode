@@ -19,13 +19,8 @@ void CNecessary::Log(const char* fmt, ...)
     if (count >= 0)
     {
         static std::mutex logMutex;
-        static bool started = false;
         const std::lock_guard<std::mutex> lock(logMutex);
-        if (morgan::fileio::CStorage::AppendSampLog(buffer, !started))
-        {
-            started = true;
-        }
-
+        morgan::fileio::CStorage::AppendSampLog(buffer);
         std::fprintf(stderr, "[Morgan] %s\n", buffer);
     }
 

@@ -556,9 +556,6 @@ __attribute__((visibility("default")))
 @end
 
 @implementation MGLauncherOverlayWindow
-- (BOOL)canBecomeKeyWindow {
-    return self.allowsDocumentPickerKey;
-}
 @end
 
 __attribute__((visibility("default")))
@@ -632,7 +629,7 @@ __attribute__((visibility("default")))
         ? [[MGLauncherOverlayWindow alloc] initWithWindowScene:scene]
         : [[MGLauncherOverlayWindow alloc] initWithFrame:gameWindow.frame];
 
-    // Keep game ownership and key-window state intact while intercepting app touches.
+    // The launcher owns interface rotation while it is visible.
     window.windowLevel = MAX(gameWindow.windowLevel, UIWindowLevelAlert) + 1;
     MGLauncherViewController *launcher = [[MGLauncherViewController alloc] initWithDelegate:self];
     window.rootViewController = launcher;
@@ -643,7 +640,7 @@ __attribute__((visibility("default")))
     self.launcher = launcher;
     self.state = MGLauncherStatePresented;
     [[NSNotificationCenter defaultCenter] removeObserver:self];
-    window.hidden = NO;
+    [window makeKeyAndVisible];
     GameStartupTrace().Note(StartupPhase::LauncherPresented);
     NSLog(@"[MorganLauncher] Launcher presented");
 }
@@ -652,6 +649,7 @@ __attribute__((visibility("default")))
     if (![NSThread isMainThread] || self.state != MGLauncherStatePresented || launcher != self.launcher ||
         !self.launcherWindow || self.launcherWindow.hidden || self.launcherWindow.allowsDocumentPickerKey) return NO;
     UIWindow *window = self.launcherWindow;
+    if (window.isKeyWindow) return YES;
     UIWindow *previous = window.windowScene.keyWindow ?: self.gameWindow;
     if (!previous || previous == window || previous.hidden || previous.windowScene != window.windowScene) return NO;
     self.keyWindowBeforePicker = previous;
@@ -691,6 +689,7 @@ __attribute__((visibility("default")))
     }
     self.state = MGLauncherStateStarted;
     self.launcherWindow.hidden = YES;
+    [self.gameWindow makeKeyWindow];
     self.launcherWindow.rootViewController = nil;
     self.launcherWindow = nil;
     self.launcher = nil;
