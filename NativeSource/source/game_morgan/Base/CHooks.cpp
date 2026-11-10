@@ -1,4 +1,5 @@
 #include "../../../Main.h"
+#include "../../../Launcher/MGFlutter.h"
 #include "CHooks.h"
 #include "../CTimer.h"
 #include "../Models/CModelInfo.h"
@@ -90,6 +91,7 @@ extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (
     const bool renderSamp = pthread_main_np() && renderTitleHookInstalled;
     if (renderSamp)
     {
+        MGRecordChatGameFrame();
         CMultiPlayer::m_bGameStarted = true;
     }
 

@@ -81,4 +81,34 @@ void main() {
     expect(hitRegion()['width'], 0);
     messenger.setMockMethodCallHandler(channel, null);
   });
+
+  testWidgets('captures chat builds before and after the iOS keyboard inset changes', (tester) async {
+    addTearDown(tester.view.resetViewInsets);
+    const channel = SampChatController.channel;
+    final calls = <MethodCall>[];
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return true;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
+    await tester.pumpWidget(const MaterialApp(home: SampChat()));
+    await messenger.handlePlatformMessage(
+      channel.name,
+      const StandardMethodCodec().encodeMethodCall(const MethodCall('show')),
+      (_) {},
+    );
+    await tester.pump();
+    await tester.tapAt(const Offset(250, 30));
+    await tester.pump();
+    final start = calls.singleWhere((call) => call.method == 'keyboardProbeStart');
+
+    tester.view.viewInsets = FakeViewPadding(bottom: 180 * tester.view.devicePixelRatio);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 4));
+    final sample = calls.singleWhere((call) => call.method == 'keyboardProbeEnd').arguments as Map;
+    expect(sample['start'], start.arguments);
+    expect((sample['layouts'] as List).map((row) => (row as List)[2]), containsAllInOrder([0, 1800]));
+  }, variant: const TargetPlatformVariant({TargetPlatform.iOS}));
 }

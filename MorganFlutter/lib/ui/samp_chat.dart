@@ -1,5 +1,8 @@
 import 'dart:math' as math;
+import 'dart:ui' show FramePhase, FrameTiming;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 
@@ -20,6 +23,7 @@ class SampChat extends StatefulWidget {
 }
 
 class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin {
+  static const _keyboardProbeWindowUs = 2400000;
   final List<_ChatMessage> _messages = [];
   final ScrollController _scrollController = ScrollController();
   bool chatstatus = false;
@@ -37,6 +41,10 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
   bool isHolding = false;
   double chatPosValue = 16.0;
   double _radarRight = 0;
+  int? _keyboardProbeStart;
+  Timer? _keyboardProbeTimer;
+  final List<List<int>> _keyboardFrames = [];
+  final List<List<int>> _keyboardLayouts = [];
 
   final ValueNotifier<bool> _isScrollUIActive = ValueNotifier(false);
 
@@ -70,6 +78,10 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
 
   @override
   void dispose() {
+    if (_keyboardProbeTimer != null) {
+      _keyboardProbeTimer!.cancel();
+      SchedulerBinding.instance.removeTimingsCallback(_recordKeyboardFrames);
+    }
     _borderController.dispose();
     _scrollController.dispose();
     _controller.dispose();
@@ -131,9 +143,61 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
   }
 
   void showInput() {
+    _startKeyboardProbe();
     setState(() => chatInputstatus = true);
     _focusNode.requestFocus();
     unawaited(SampChatController.notify('inputActive', true));
+  }
+
+  void _startKeyboardProbe() {
+    if (defaultTargetPlatform != TargetPlatform.iOS || _keyboardProbeTimer != null) return;
+
+    final start = DateTime.now().microsecondsSinceEpoch;
+    _keyboardProbeStart = start;
+    _keyboardFrames.clear();
+    _keyboardLayouts.clear();
+    SchedulerBinding.instance.addTimingsCallback(_recordKeyboardFrames);
+    unawaited(SampChatController.notify('keyboardProbeStart', start));
+    _keyboardProbeTimer = Timer(const Duration(seconds: 4), () {
+      SchedulerBinding.instance.removeTimingsCallback(_recordKeyboardFrames);
+      _keyboardProbeTimer = null;
+      _keyboardProbeStart = null;
+      unawaited(SampChatController.notify('keyboardProbeEnd', {
+        'start': start,
+        'frames': _keyboardFrames,
+        'layouts': _keyboardLayouts,
+      }));
+    });
+  }
+
+  void _recordKeyboardFrames(List<FrameTiming> timings) {
+    final start = _keyboardProbeStart;
+    if (start == null) return;
+    for (final frame in timings) {
+      if (_keyboardFrames.length == 120) break;
+      final finish = frame.timestampInMicroseconds(FramePhase.rasterFinish);
+      final wallFinish = frame.timestampInMicroseconds(FramePhase.rasterFinishWallTime);
+      final wallBuild = wallFinish - (finish - frame.timestampInMicroseconds(FramePhase.buildStart));
+      if (wallBuild < start || wallBuild > start + _keyboardProbeWindowUs) continue;
+      _keyboardFrames.add([
+        wallBuild - start,
+        frame.buildDuration.inMicroseconds,
+        wallFinish - frame.rasterDuration.inMicroseconds - start,
+        frame.rasterDuration.inMicroseconds,
+      ]);
+    }
+  }
+
+  void _recordKeyboardLayout(double bottomInset) {
+    final start = _keyboardProbeStart;
+    if (start == null || _keyboardLayouts.length == 120) return;
+    final elapsed = DateTime.now().microsecondsSinceEpoch - start;
+    if (elapsed < 0 || elapsed > _keyboardProbeWindowUs) return;
+    final inset = (bottomInset * 10).round();
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (_keyboardProbeStart != start || _keyboardLayouts.length == 120) return;
+      _keyboardLayouts.add([elapsed, DateTime.now().microsecondsSinceEpoch - start, inset]);
+    });
   }
 
   void _onHoldComplete() {
@@ -236,9 +300,9 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
     final TextStyle baseTextStyle = const TextStyle(fontFamily: "NotoSans");
 
     final safe = MediaQuery.viewPaddingOf(context);
-    final bottom = chatInputstatus
-        ? math.max(safe.bottom, MediaQuery.viewInsetsOf(context).bottom)
-        : safe.bottom;
+    final keyboardInset = chatInputstatus ? MediaQuery.viewInsetsOf(context).bottom : 0.0;
+    _recordKeyboardLayout(keyboardInset);
+    final bottom = math.max(safe.bottom, keyboardInset);
     final double defaultLeft = isLandscape ? screenWidth * 0.15 : 20.0;
     final double percent = chatPosValue.clamp(0.0, 16.0) / 16.0;
     double leftPos = math.max(safe.left + 4, percent * defaultLeft);
