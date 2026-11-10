@@ -92,7 +92,7 @@ void CHooks::InstallNecessary()
     }
 }
 
-extern "C" __attribute__((visibility("default"))) void RenderTitleEndFrame_hook(void (*EndFrame2D)())
+extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (*EndFrame2D)())
 {
     EndFrame2D();
 
