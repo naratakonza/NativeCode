@@ -1,5 +1,4 @@
 #include "../../Main.h"
-#include "Enums/eLanguage.h"
 #include "../utils/Storage/CStorage.h"
 #include "../utils/Storage/CStorageSettings.h"
 
@@ -108,7 +107,7 @@ void CSetting::InitDefault()
 
     CSetting::m_Settings.port = 7777;
     CSetting::m_Settings.sampVersion = 0;
-    CSetting::m_Settings.iLanguage = eLanguage::LANGUAGE_TH;
+    CSetting::m_Settings.iLanguage = 1;
     CSetting::m_Settings.fFontSize = 30.0f;
     CSetting::m_Settings.iFontOutline = 2;
     CSetting::m_Settings.fChatPosX = 300.0f;
@@ -219,7 +218,7 @@ void CSetting::CreateDefault(Document& doc)
     gui.AddMember("keyf4", false, allocator);
     gui.AddMember("keyupdown", true, allocator);
     gui.AddMember("keyleftright", true, allocator);
-    gui.AddMember("language", static_cast<int>(eLanguage::LANGUAGE_TH), allocator);
+    gui.AddMember("language", 1, allocator);
     doc.AddMember("gui", gui, allocator);
 
     Value game(kObjectType);

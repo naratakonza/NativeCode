@@ -19,6 +19,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <strings.h>
 
 #include "source/game_morgan/Header/Common.h"
 #include "source/game_morgan/RenderWare/RenderWare.h"

@@ -3,9 +3,6 @@
 #include "../CMultiPlayer.h"
 #include "../CNetGame.h"
 
-#include <raknet/BitStream.h>
-#include <raknet/SAMP/SAMPRPC.h>
-
 void CMultiPlayerPacket::SendChatCommand(const char* szCommand)
 {
 	if (!CMultiPlayer::GetActiveNetwork() || !CMultiPlayer::GetActiveNetwork()->GetRakClient() || CMultiPlayer::GetActiveNetwork()->GetNetworkState() != eNetworkState::GAMESTATE_CONNECTED) {

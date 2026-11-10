@@ -3,8 +3,6 @@
 #include "../CMultiPlayer.h"
 #include "../CNetGame.h"
 
-#include <strings.h>
-
 std::vector<ChatCommand> CCommand::commandList;
 
 void CCommand::Initialise()
