@@ -8,7 +8,6 @@
 #include "../../utils/Storage/CStorage.h"
 #include "../Multiplayer/CMultiPlayer.h"
 #include "../Multiplayer/Guis/CGui.h"
-#include "../../vendor/imgui/imgui_impl_renderware.h"
 
 static bool gameProcessHookInstalled = false;
 static bool renderTitleHookInstalled = false;
@@ -45,6 +44,8 @@ extern "C" __attribute__((visibility("default"))) void InitialiseRenderWare_hook
     {
         load(OBFUSCATE("cutscene"), false, DF_Default);
     }
+
+    CGui::InitialiseFont();
 }
 
 extern "C" __attribute__((visibility("default"))) int DrawMoney_Sprintf_hook(char* buffer, int amount)
@@ -113,7 +114,7 @@ void CHooks::InstallMenu()
         CExceptions::Print(OBFUSCATE("CHooks InstallMenu"), OBFUSCATE("CGame Process bridge unavailable"));
     }
 
-    renderTitleHookInstalled = CMemory::HasMappedInstruction(SA_ADDR(0x159B5C), "\xFD\x7B\xBF\xA9") && CMemory::HasMappedInstruction(SA_ADDR(0x15A468), "\x41\xF3\x0C\x94") && ImGui_ImplRenderWare_Init();
+    renderTitleHookInstalled = CMemory::HasMappedInstruction(SA_ADDR(0x159B5C), "\xFD\x7B\xBF\xA9") && CMemory::HasMappedInstruction(SA_ADDR(0x15A468), "\x41\xF3\x0C\x94");
     if (!renderTitleHookInstalled) {
         CExceptions::Print(OBFUSCATE("CHooks InstallMenu"), OBFUSCATE("Render2dStuff title bridge unavailable"));
     }

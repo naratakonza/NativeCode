@@ -18,7 +18,6 @@ void CMultiPlayer::Initialise()
 {
 	CNecessary::Log(OBFUSCATE("CMultiPlayer Initialise"));
 
-    CGui::Initialise();
 	CMultiPlayer::SetThread(eThreadType::THREAD_TYPE_ONLOAD);
 }
 
@@ -74,6 +73,7 @@ void CMultiPlayer::StartSAMP()
     CScripting::Init();
 
     CMultiPlayer::SetThread(eThreadType::THREAD_TYPE_START);
+    CGui::Initialise();
 
     CMultiPlayer::m_bPlaySAMP = true;
 }

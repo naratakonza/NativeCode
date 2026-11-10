@@ -7,9 +7,16 @@ class CGui
 {
 public:
     static void Initialise();
+    static void InitialiseFont();
     static void Uninitialise();
-    static CDebugInfo* GetDebug();
-    static CFontRender* GetFontRender();
+
+    static CDebugInfo* GetDebug() {
+        return pDebug;
+    }
+
+    static CFontRender* GetFontRender() {
+        return pFontRender;
+    }
 
 private:
     static CDebugInfo* pDebug;

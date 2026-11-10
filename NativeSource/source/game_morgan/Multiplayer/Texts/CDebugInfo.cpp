@@ -23,6 +23,6 @@ void CDebugInfo::RenderTitle()
 
     ImGuiIO& io = ImGui::GetIO();
     const float textWidth = ImGui::CalcTextSize(m_szTitle).x;
-    const ImVec2 pos(io.DisplaySize.x - textWidth - io.DisplaySize.x * (10.0f / 1920.0f), io.DisplaySize.y * (1047.0f / 1080.0f));
+    ImVec2 pos(io.DisplaySize.x - textWidth - io.DisplaySize.x * (10.0f / 1920.0f), io.DisplaySize.y * (1047.0f / 1080.0f));
     CGui::GetFontRender()->RenderText(pos, 0xFFC8C8C8, true, m_szTitle);
 }
