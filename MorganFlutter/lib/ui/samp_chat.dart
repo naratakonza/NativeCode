@@ -28,6 +28,7 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
   final FocusNode _focusNode = FocusNode();
   bool _isAtBottom = true;
   bool _visible = false;
+  bool _paused = false;
   bool _sending = false;
   Rect? _hitRegion;
   List<String> history = [];
@@ -80,8 +81,15 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
   }
 
   void setVisible(bool visible) {
+    if (_visible == visible) return;
     if (!visible) hideInput();
     setState(() => _visible = visible);
+  }
+
+  void setPauseState(bool paused) {
+    if (_paused == paused) return;
+    if (paused) hideInput();
+    setState(() => _paused = paused);
   }
 
   void _updateHitRegion(Rect area) {
@@ -208,7 +216,7 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
 
   @override
   Widget build(BuildContext context) {
-    if (!_visible) {
+    if (!_visible || _paused) {
       _updateHitRegion(Rect.zero);
       return const SizedBox.shrink();
     }
@@ -842,6 +850,9 @@ class SampChatController {
           break;
         case 'hide':
           state.setVisible(false);
+          break;
+        case 'setPauseState':
+          state.setPauseState(call.arguments as bool);
           break;
         case 'addMessage':
           final args = call.arguments as Map<Object?, Object?>;

@@ -11,6 +11,7 @@ void MGPrepareLoadingScreen(UIViewController* parent);
 void MGSetLoadingScreenVisible(bool visible);
 void MGUpdateLoadingScreenPercent(int percent);
 void MGUpdateLoadingScreenList(const char* text);
+void MGSetFlutterPauseState(bool paused);
 void MGSetFlutterChatVisible(bool visible);
 void MGSetFlutterChatPosition(int position, float radarRight);
 void MGCloseFlutterChat();

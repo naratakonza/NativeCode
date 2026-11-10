@@ -61,12 +61,14 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 @property(nonatomic) BOOL visible;
 @property(nonatomic) BOOL chatReady;
 @property(nonatomic) BOOL chatVisible;
+@property(nonatomic) BOOL paused;
 @property(nonatomic) BOOL loadingFinished;
 @property(nonatomic, strong) NSDictionary* chatLayout;
 - (BOOL)attachTo:(UIViewController*)parent;
 - (void)close;
 - (void)send:(NSString*)method value:(id)value;
 - (void)updateChatVisibility;
+- (BOOL)isChatInteractive;
 @end
 
 static MGFlutter* flutter;
@@ -188,13 +190,14 @@ static NSString* MGChatColor(uint32_t rgba)
             if (screen.chatLayout) {
                 [screen.chatChannel invokeMethod:@"ChatPosition" arguments:screen.chatLayout];
             }
+            [screen.chatChannel invokeMethod:@"setPauseState" arguments:@(screen.paused)];
             [screen updateChatVisibility];
             result(@YES);
             return;
         }
 
         NSDictionary* args = [call.arguments isKindOfClass:NSDictionary.class] ? call.arguments : nil;
-        if ([call.method isEqualToString:@"sendText"] && screen.chatVisible && screen.loadingFinished)
+        if ([call.method isEqualToString:@"sendText"] && [screen isChatInteractive])
         {
             NSString* text = [args[@"text"] isKindOfClass:NSString.class] ? args[@"text"] : nil;
             static const NSStringEncoding thaiEncoding = CFStringConvertEncodingToNSStringEncoding(CFStringConvertIANACharSetNameToEncoding(CFSTR("windows-874")));
@@ -206,7 +209,7 @@ static NSString* MGChatColor(uint32_t rgba)
         if ([call.method isEqualToString:@"hitRegion"])
         {
             CGRect area = CGRectZero;
-            if (screen.chatVisible && screen.loadingFinished && [args[@"x"] isKindOfClass:NSNumber.class] && [args[@"y"] isKindOfClass:NSNumber.class] &&
+            if ([screen isChatInteractive] && [args[@"x"] isKindOfClass:NSNumber.class] && [args[@"y"] isKindOfClass:NSNumber.class] &&
                 [args[@"width"] isKindOfClass:NSNumber.class] && [args[@"height"] isKindOfClass:NSNumber.class])
             {
                 const auto x = [args[@"x"] doubleValue];
@@ -270,14 +273,20 @@ static NSString* MGChatColor(uint32_t rgba)
     }
 }
 
+- (BOOL)isChatInteractive
+{
+    return self.chatVisible && self.loadingFinished && !self.visible && !self.paused;
+}
+
 - (void)updateChatVisibility
 {
-    const BOOL show = self.chatVisible && self.loadingFinished && !self.visible;
-    self.controller.viewIfLoaded.accessibilityElementsHidden = !show;
-    if (!show) {
+    const BOOL interactive = [self isChatInteractive];
+    self.controller.viewIfLoaded.accessibilityElementsHidden = !interactive;
+    if (!interactive) {
         self.overlay.chatArea = CGRectZero;
     }
     if (self.chatReady) {
+        const BOOL show = self.chatVisible && self.loadingFinished && !self.visible;
         [self.chatChannel invokeMethod:show ? @"show" : @"hide" arguments:nil];
     }
 }
@@ -352,6 +361,21 @@ void MGSetLoadingScreenVisible(bool visible)
                     [pending updateChatVisibility];
                 }
             });
+        }
+    });
+}
+
+void MGSetFlutterPauseState(bool paused)
+{
+    MGRunLoadingOnMain(^{
+        MGFlutter* screen = flutter;
+        if (screen && screen.paused != paused)
+        {
+            screen.paused = paused;
+            if (screen.chatReady) {
+                [screen.chatChannel invokeMethod:@"setPauseState" arguments:@(paused)];
+            }
+            [screen updateChatVisibility];
         }
     });
 }

@@ -58,14 +58,18 @@ void main() {
     await tester.tapAt(chatPoint);
     await tester.pump();
     expect(tester.testTextInput.isVisible, isTrue);
-    await native('hide');
+    await native('setPauseState', true);
     expect(tester.testTextInput.isVisible, isFalse);
     expect(find.byType(TextField), findsNothing);
     expect(hitRegion()['width'], 0);
-    await native('ChatPosition', {'position': 0, 'radarRight': -1000});
     await native('show');
+    expect(hitRegion()['width'], 0);
+    await native('ChatPosition', {'position': 0, 'radarRight': -1000});
+    await native('setPauseState', false);
     expect(hitRegion()['x'], lessThan(40));
     expect(find.textContaining('Welcome', findRichText: true), findsWidgets);
+    await native('hide');
+    expect(hitRegion()['width'], 0);
     messenger.setMockMethodCallHandler(channel, null);
   });
 }

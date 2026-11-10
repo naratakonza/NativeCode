@@ -70,7 +70,7 @@ xcodebuild -version
 xcrun --sdk iphoneos clang++ --version
 mkdir "$out/fileio-objects"
 for source in \
-    "$native/source/game_morgan/CStreaming.cpp" "$native/source/game_morgan/CClock.cpp" "$native/source/game_morgan/COptimizeDistance.cpp" "$native/source/game_morgan/CGame.cpp" "$native/source/game_morgan/Models/CModelInfo.cpp" "$native/source/game_morgan/CPools.cpp" "$native/source/game_morgan/CSetting.cpp" "$multiplayer/CServer.cpp" "$multiplayer/CNetGame.cpp" "$native/source/game_morgan/CTheZones.cpp" "$native/source/game_morgan/CWeather.cpp" "$native/source/game_morgan/CCamera.cpp" "$hooks/CPad.cpp" \
+    "$native/source/game_morgan/CStreaming.cpp" "$native/source/game_morgan/CClock.cpp" "$native/source/game_morgan/CTimer.cpp" "$native/source/game_morgan/COptimizeDistance.cpp" "$native/source/game_morgan/CGame.cpp" "$native/source/game_morgan/Models/CModelInfo.cpp" "$native/source/game_morgan/CPools.cpp" "$native/source/game_morgan/CSetting.cpp" "$multiplayer/CServer.cpp" "$multiplayer/CNetGame.cpp" "$native/source/game_morgan/CTheZones.cpp" "$native/source/game_morgan/CWeather.cpp" "$native/source/game_morgan/CCamera.cpp" "$hooks/CPad.cpp" \
     "$scripts/CScripting.cpp" "$scripts/CRunningScript.cpp" "$native/source/utils/Exceptions/CExceptions.cpp" \
     "$radar/CTiltedRadar.cpp" "$radar/CTiltedCameraController.cpp" "$radar/CTiltedRadarGeometry.cpp" "$radar/CTiltedRadarMath.cpp" \
     "$native/Main.cpp" "$native/source/game_morgan/RenderWare/RenderWare.cpp" "$multiplayer/CMultiPlayer.cpp" "$native/source/utils/Necessary/CNecessary.cpp" \
@@ -114,7 +114,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "-Wl,-install_name,$install_name" -Wl,-undefined,error ${link_flags[@]+"${link_flags[@]}"} \
     "$out/fileio-objects/MGLauncherViewController.o" "$out/fileio-objects/MGLauncherRuntime.o" \
     "$out/fileio-objects/MGStartupKeychain.o" "$out/fileio-objects/MGStartupTickGate.o" "$out/fileio-objects/CMainMenuScreen.o" "$out/fileio-objects/CStartGameScreen.o" "$out/fileio-objects/CLoadingScreen.o" "$out/fileio-objects/MGFlutter.o" \
-    "$out/fileio-objects/CStreaming.o" "$out/fileio-objects/CClock.o" "$out/fileio-objects/COptimizeDistance.o" "$out/fileio-objects/CGame.o" "$out/fileio-objects/CModelInfo.o" "$out/fileio-objects/CPools.o" "$out/fileio-objects/CSetting.o" "$out/fileio-objects/CServer.o" "$out/fileio-objects/CNetGame.o" "$out/fileio-objects/CTheZones.o" "$out/fileio-objects/CWeather.o" "$out/fileio-objects/CCamera.o" "$out/fileio-objects/CPad.o" "${raknet_objects[@]}" \
+    "$out/fileio-objects/CStreaming.o" "$out/fileio-objects/CClock.o" "$out/fileio-objects/CTimer.o" "$out/fileio-objects/COptimizeDistance.o" "$out/fileio-objects/CGame.o" "$out/fileio-objects/CModelInfo.o" "$out/fileio-objects/CPools.o" "$out/fileio-objects/CSetting.o" "$out/fileio-objects/CServer.o" "$out/fileio-objects/CNetGame.o" "$out/fileio-objects/CTheZones.o" "$out/fileio-objects/CWeather.o" "$out/fileio-objects/CCamera.o" "$out/fileio-objects/CPad.o" "${raknet_objects[@]}" \
     "$out/fileio-objects/CScripting.o" "$out/fileio-objects/CRunningScript.o" "$out/fileio-objects/CExceptions.o" \
     "$out/fileio-objects/CTiltedRadar.o" "$out/fileio-objects/CTiltedCameraController.o" "$out/fileio-objects/CTiltedRadarGeometry.o" "$out/fileio-objects/CTiltedRadarMath.o" \
     "$out/fileio-objects/CDebugInfo.o" "$out/fileio-objects/CGui.o" "$out/fileio-objects/CFontRender.o" \

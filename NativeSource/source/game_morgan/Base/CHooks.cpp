@@ -1,6 +1,6 @@
 #include "../../../Main.h"
-#include "../../../Launcher/MGFlutter.h"
 #include "CHooks.h"
+#include "../CTimer.h"
 #include "../Models/CModelInfo.h"
 #include "../CPools.h"
 #include "../CStreaming.h"
@@ -87,27 +87,31 @@ extern "C" __attribute__((visibility("default"))) void CGame_Process_hook(void (
 
 extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (*EndFrame2D)())
 {
-    EndFrame2D();
-
-    if (pthread_main_np() && renderTitleHookInstalled && CMultiPlayer::IsSampActive())
+    const bool renderSamp = pthread_main_np() && renderTitleHookInstalled && CMultiPlayer::IsSampActive();
+    if (renderSamp)
     {
         CMultiPlayer::m_bGameStarted = true;
+    }
 
-        const bool gameReady = CMultiPlayer::GetActiveNetwork() && CMultiPlayer::IsSampInit() && CMultiPlayer::IsGameActive();
-        if (!gameReady || CGame::IsPauseMenuActive() || CGame::IsDrawingBigMap())
-        {
-            MGSetFlutterChatVisible(false);
-            return;
-        }
+    EndFrame2D();
+    if (!renderSamp) {
+        return;
+    }
 
-        if (CGui::GetChat())
+    const bool paused = CTimer::UpdatePauseState();
+    if (CMultiPlayer::GetActiveNetwork())
+    {
+        if (CMultiPlayer::IsSampInit() && CMultiPlayer::IsGameActive())
         {
-            CGui::GetChat()->Render();
-        }
+            if (CGui::GetChat())
+            {
+                CGui::GetChat()->Render();
+            }
 
-        if (CGui::GetFontRender())
-        {
-            CGui::GetFontRender()->Render();
+            if (!paused && CGui::GetFontRender())
+            {
+                CGui::GetFontRender()->Render();
+            }
         }
     }
 }
