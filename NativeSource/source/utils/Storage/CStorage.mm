@@ -25,6 +25,11 @@ struct AssetRoot {
 
 namespace {
 
+constexpr char PreviousSampLogName[] = "Morgan-LastGame.log";
+constexpr char SampLaunchLogHeader[] = "--- Morgan app launch ";
+constexpr char SampGameLogHeader[] = "--- Morgan GTA launch ";
+static_assert(sizeof(SampLaunchLogHeader) == sizeof(SampGameLogHeader));
+
 struct StorageState {
     std::mutex importMutex;
     bool sampLogStarted = false;
@@ -75,6 +80,29 @@ FileDescriptor OpenStorage(bool create, bool requireBackupExclusion = true) {
         }
     }
     return root;
+}
+
+bool IsOwnedSampLog(int descriptor, struct stat& info) noexcept
+{
+    return descriptor >= 0 && ::fstat(descriptor, &info) == 0 &&
+           S_ISREG(info.st_mode) && info.st_nlink == 1 && info.st_uid == ::geteuid();
+}
+
+bool PreserveLastGameLog(int root, int samp, int log, const struct stat& info) noexcept
+{
+    if (info.st_size == 0) return true;
+
+    char header[sizeof(SampGameLogHeader) - 1];
+    const auto count = ::pread(log, header, sizeof(header), 0);
+    if (count < 0) return false;
+    const bool startedGame = count == static_cast<ssize_t>(sizeof(header)) &&
+                             std::memcmp(header, SampGameLogHeader, sizeof(header)) == 0;
+    // Keep the previous log once when upgrading from builds without a GTA header.
+    struct stat previous {};
+    const bool missingArchive = ::fstatat(root, PreviousSampLogName, &previous, AT_SYMLINK_NOFOLLOW) != 0 &&
+                                errno == ENOENT;
+    if (!startedGame && !missingArchive) return true;
+    return ::renameat(samp, storage::SampLogName, root, PreviousSampLogName) == 0;
 }
 
 const std::array<bool, storage::GroupCount>& BundleGroups() noexcept {
@@ -277,16 +305,22 @@ bool CStorage::AppendSampLog(const char* message) noexcept
 
         const FileDescriptor samp(OpenExactDirectoryAt(root.get(), SampDirectory));
         if (samp.get() < 0) return false;
-        FileDescriptor fd(::openat(samp.get(), storage::SampLogName, O_WRONLY | O_APPEND | O_CREAT | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC, 0600));
+        constexpr int flags = O_RDWR | O_APPEND | O_CREAT | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC;
+        FileDescriptor fd(::openat(samp.get(), storage::SampLogName, flags, 0600));
         struct stat info {};
-        if (fd.get() < 0 || ::fstat(fd.get(), &info) != 0 || !S_ISREG(info.st_mode) || info.st_nlink != 1 || info.st_uid != ::geteuid()) return false;
+        if (!IsOwnedSampLog(fd.get(), info)) return false;
         const bool firstEntry = !state.sampLogStarted;
-        if (firstEntry && ::ftruncate(fd.get(), 0) != 0) return false;
+        if (firstEntry) {
+            if (!PreserveLastGameLog(root.get(), samp.get(), fd.get(), info)) return false;
+            // Reopen the current path after archiving its previous inode.
+            fd.reset(::openat(samp.get(), storage::SampLogName, flags, 0600));
+            if (!IsOwnedSampLog(fd.get(), info) || ::ftruncate(fd.get(), 0) != 0) return false;
+        }
 
         File log(::fdopen(fd.get(), "a"));
         if (!log) return false;
         fd.release();
-        if (firstEntry && std::fprintf(log.get(), "--- Morgan app launch %s ---\n",
+        if (firstEntry && std::fprintf(log.get(), "%s%s ---\n", SampLaunchLogHeader,
                                       NSDate.date.description.UTF8String) < 0) return false;
         if (std::fprintf(log.get(), "%s\n", message) < 0 || std::fflush(log.get()) != 0) return false;
         state.sampLogStarted = true;
@@ -294,20 +328,44 @@ bool CStorage::AppendSampLog(const char* message) noexcept
     }
 }
 
-bool CStorage::CopySampLog(NSURL* destination) noexcept
+void CStorage::MarkSampLogGameStarted() noexcept
+{
+    @autoreleasepool {
+        auto& state = State();
+        const std::lock_guard<std::mutex> lock(state.importMutex);
+        if (!state.sampLogStarted) return;
+        const auto root = OpenStorage(false);
+        if (root.get() < 0) return;
+        const FileDescriptor samp(OpenExactDirectoryAt(root.get(), SampDirectory));
+        if (samp.get() < 0) return;
+        const FileDescriptor log(::openat(samp.get(), storage::SampLogName, O_WRONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC));
+        struct stat info {};
+        if (!IsOwnedSampLog(log.get(), info) || info.st_size < static_cast<off_t>(sizeof(SampGameLogHeader) - 1)) return;
+        if (::pwrite(log.get(), SampGameLogHeader, sizeof(SampGameLogHeader) - 1, 0) !=
+            static_cast<ssize_t>(sizeof(SampGameLogHeader) - 1)) {
+            NSLog(@"[MorganLauncher] Could not mark game session in Morgan.log");
+        }
+    }
+}
+
+bool CStorage::CopySampLog(NSURL* destination, bool previousGame) noexcept
 {
     auto& state = State();
     const std::lock_guard<std::mutex> lock(state.importMutex);
-    if (!state.sampLogStarted) return false;
+    if (!previousGame && !state.sampLogStarted) return false;
     const auto root = OpenStorage(false);
     if (root.get() < 0) return false;
 
-    const FileDescriptor samp(OpenExactDirectoryAt(root.get(), SampDirectory));
-    if (samp.get() < 0) return false;
+    FileDescriptor samp(-1);
+    if (!previousGame) {
+        samp.reset(OpenExactDirectoryAt(root.get(), SampDirectory));
+        if (samp.get() < 0) return false;
+    }
 
-    const auto input = OpenRegularFileAt(samp.get(), storage::SampLogName);
+    const auto input = previousGame ? OpenRegularFileAt(root.get(), PreviousSampLogName)
+                                    : OpenRegularFileAt(samp.get(), storage::SampLogName);
     struct stat info {};
-    if (!input.file || ::fstat(::fileno(input.file.get()), &info) != 0 || info.st_uid != ::geteuid() || info.st_size <= 0) return false;
+    if (!input.file || !IsOwnedSampLog(::fileno(input.file.get()), info) || info.st_size <= 0) return false;
 
     const char* path = destination.fileSystemRepresentation;
     if (!path) return false;

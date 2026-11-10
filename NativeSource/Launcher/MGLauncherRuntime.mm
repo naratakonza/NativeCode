@@ -682,6 +682,8 @@ __attribute__((visibility("default")))
 }
 
 - (void)revealGameWithLoadingScreen:(BOOL)showLoading {
+    morgan::fileio::CStorage::MarkSampLogGameStarted();
+    CNecessary::Log(OBFUSCATE("Launcher handoff to GTA"));
     if (showLoading) {
         MGPrepareLoadingScreen(self.gameWindow.rootViewController);
         CLoadingScreen::SetInterface(true);

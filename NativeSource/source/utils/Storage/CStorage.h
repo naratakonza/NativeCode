@@ -120,7 +120,8 @@ public:
     // Call on a background queue. The scope and coordinated read live until this method returns.
     static NSString* ImportZip(NSURL* url, void (^progress)(double), void (^onReadable)(void),
                                bool (^cancelled)(void));
-    static bool CopySampLog(NSURL* destination) noexcept;
+    static void MarkSampLogGameStarted() noexcept;
+    static bool CopySampLog(NSURL* destination, bool previousGame = false) noexcept;
     static NSString* LaunchBlocker(bool samp, bool externalOnly = false);
 #endif
 

@@ -411,7 +411,8 @@ static UIButton *MGLauncherButton(NSString *title, NSString *identifier, id targ
     NSURL* directory = [temporaryRoot URLByAppendingPathComponent:identifier isDirectory:YES];
     NSString* name = [NSString stringWithFormat:@"Morgan-FileOpen-%@.txt", identifier];
     NSURL* url = [directory URLByAppendingPathComponent:name];
-    NSURL* logURL = [directory URLByAppendingPathComponent:[NSString stringWithFormat:@"Morgan-%@.log", identifier]];
+    NSURL* logURL = [directory URLByAppendingPathComponent:[NSString stringWithFormat:@"Morgan-Current-%@.log", identifier]];
+    NSURL* gameLogURL = [directory URLByAppendingPathComponent:[NSString stringWithFormat:@"Morgan-LastGame-%@.log", identifier]];
     NSArray<NSString*>* events = [NSUserDefaults.standardUserDefaults stringArrayForKey:MGPickerDiagnosticsKey];
     NSString* pickerDiagnostics = events.count ? [events componentsJoinedByString:@"\n"] : @"(none)";
     NSString* report = [NSString stringWithFormat:@"%@\n[last document picker attempt]\n"
@@ -423,8 +424,10 @@ static UIButton *MGLauncherButton(NSString *title, NSString *identifier, id targ
         NSFileManager* files = NSFileManager.defaultManager;
         const BOOL created = [files createDirectoryAtURL:directory withIntermediateDirectories:NO attributes:nil error:nullptr];
         const BOOL logCopied = created && CStorage::CopySampLog(logURL);
+        const BOOL gameLogCopied = created && CStorage::CopySampLog(gameLogURL, true);
         NSString* exportStatus = logCopied ? @"current_launch" : @"current_launch_log_unavailable";
-        NSString* exportReport = [report stringByAppendingFormat:@"\n[log export]\nmorgan_log=%@\n", exportStatus];
+        NSString* exportReport = [report stringByAppendingFormat:@"\n[log export]\nmorgan_log=%@\nmorgan_last_game_log=%@\n",
+            exportStatus, gameLogCopied ? @"available" : @"unavailable"];
         const BOOL reportWritten = created && [exportReport writeToURL:url atomically:YES encoding:NSUTF8StringEncoding error:nullptr];
         if (created && !reportWritten) [files removeItemAtURL:directory error:nullptr];
 
@@ -439,7 +442,9 @@ static UIButton *MGLauncherButton(NSString *title, NSString *identifier, id targ
                 return;
             }
 
-            NSArray<NSURL*>* items = logCopied ? @[url, logURL] : @[url];
+            NSMutableArray<NSURL*>* items = [NSMutableArray arrayWithObject:url];
+            if (gameLogCopied) [items addObject:gameLogURL];
+            if (logCopied) [items addObject:logURL];
             UIActivityViewController* share = [[UIActivityViewController alloc] initWithActivityItems:items applicationActivities:nil];
             share.popoverPresentationController.sourceView = sender;
             share.popoverPresentationController.sourceRect = sender.bounds;
