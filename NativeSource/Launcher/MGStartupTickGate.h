@@ -5,4 +5,3 @@ void MGObserveBundledSampMenu();
 bool MGOwnsDeferredTick();
 bool MGReleaseDeferredTick();
 bool MGSetGtaFramerate(int fps);
-bool MGSetGtaChatInputActive(bool active);

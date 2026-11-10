@@ -675,11 +675,10 @@ __attribute__((visibility("default")))
 
 - (NSString *)diagnosticsForLauncher:(MGLauncherViewController *)launcher {
     return [NSString stringWithFormat:@"[current launch]\n%@%@\nlast_completed_startup_checkpoint=%@\n"
-        "[previous saved checkpoint]\n%@\n[failure-only journal]\ncurrent_status=%@\n%@\n[chat keyboard timings]\n%@",
+        "[previous saved checkpoint]\n%@\n[failure-only journal]\ncurrent_status=%@\n%@",
         MGStartupText(GameStartupTrace().Snapshot()), MGDiagnosticsText(self.sessionID, self.modeNote),
         MGCheckpoint.lastSavedPhase ?: @"none", MGCheckpoint.previous ?: @"(none)",
-        MGCheckpoint.failureJournalStatus ?: @"not_armed", MGCheckpoint.previousFailures ?: @"(none)",
-        MGKeyboardProbeReport()];
+        MGCheckpoint.failureJournalStatus ?: @"not_armed", MGCheckpoint.previousFailures ?: @"(none)"];
 }
 
 - (void)revealGameWithLoadingScreen:(BOOL)showLoading {

@@ -1,11 +1,8 @@
 #import "MGFlutter.h"
-#import "MGStartupTickGate.h"
 
 #import <UIKit/UIKit.h>
-#import <QuartzCore/QuartzCore.h>
 #import <dispatch/dispatch.h>
 
-#include <array>
 #include "../Main.h"
 #include "../source/game_morgan/CTimer.h"
 #include "../source/game_morgan/Multiplayer/Guis/CChat.h"
@@ -69,49 +66,15 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 @property(nonatomic) BOOL paused;
 @property(nonatomic) BOOL loadingFinished;
 @property(nonatomic, strong) NSDictionary* chatLayout;
-@property(nonatomic, strong) NSMutableArray<NSArray*>* keyboardEvents;
-@property(nonatomic, strong) NSMutableArray<NSArray*>* keyboardMainTicks;
-@property(nonatomic, strong) NSTimer* keyboardMainTimer;
-@property(nonatomic) CFTimeInterval keyboardMainLastTick;
-@property(nonatomic) BOOL keyboardProbeCommonModes;
-@property(nonatomic) long long keyboardProbeStartUs;
-@property(nonatomic) long long keyboardProbeWallUs;
-@property(nonatomic) CFTimeInterval keyboardProbeMediaTime;
 - (BOOL)attachTo:(UIViewController*)parent;
 - (void)close;
 - (void)send:(NSString*)method value:(id)value;
 - (void)updateChatVisibility;
 - (BOOL)isChatInteractive;
-- (void)startKeyboardProbe:(long long)start;
-- (void)setChatInputActive:(BOOL)active;
-- (void)saveKeyboardProbe:(NSDictionary*)sample;
 @end
 
 static MGFlutter* flutter;
 static NSString* const flutterEngineRevision = @"55eae6864b296dd9f43b2cc7577ec256e5c32a8d";
-static NSString* const keyboardProbeKey = @"MorganChatKeyboardProbe";
-static constexpr long long keyboardProbeWindowUs = 2400000;
-static std::array<CFTimeInterval, 1024> gameFrameTimes{};
-static std::size_t gameFrameIndex;
-static std::size_t gameFrameCount;
-
-void MGRecordChatGameFrame()
-{
-    gameFrameTimes[gameFrameIndex] = CACurrentMediaTime();
-    gameFrameIndex = (gameFrameIndex + 1) % gameFrameTimes.size();
-    gameFrameCount = std::min(gameFrameCount + 1, gameFrameTimes.size());
-}
-
-static long long MGWallTimeUs()
-{
-    return std::llround(NSDate.date.timeIntervalSince1970 * 1000000.0);
-}
-
-NSString* MGKeyboardProbeReport()
-{
-    NSArray<NSString*>* reports = [NSUserDefaults.standardUserDefaults stringArrayForKey:keyboardProbeKey];
-    return reports.count ? [reports componentsJoinedByString:@"\n"] : @"(none)";
-}
 
 static void MGRunLoadingOnMain(dispatch_block_t work)
 {
@@ -237,18 +200,6 @@ static NSString* MGChatColor(uint32_t rgba)
         }
 
         NSDictionary* args = [call.arguments isKindOfClass:NSDictionary.class] ? call.arguments : nil;
-        if ([call.method isEqualToString:@"keyboardProbeStart"] && [call.arguments isKindOfClass:NSNumber.class])
-        {
-            [screen startKeyboardProbe:[call.arguments longLongValue]];
-            result(@YES);
-            return;
-        }
-        if ([call.method isEqualToString:@"keyboardProbeEnd"] && args)
-        {
-            [screen saveKeyboardProbe:args];
-            result(@YES);
-            return;
-        }
         if ([call.method isEqualToString:@"sendText"] && [screen isChatInteractive])
         {
             NSString* text = [args[@"text"] isKindOfClass:NSString.class] ? args[@"text"] : nil;
@@ -260,7 +211,7 @@ static NSString* MGChatColor(uint32_t rgba)
         }
         if ([call.method isEqualToString:@"inputActive"] && [call.arguments isKindOfClass:NSNumber.class])
         {
-            [screen setChatInputActive:[call.arguments boolValue]];
+            screen.outsideChatTap.enabled = [screen isChatInteractive] && [call.arguments boolValue];
             result(@YES);
             return;
         }
@@ -312,13 +263,6 @@ static NSString* MGChatColor(uint32_t rgba)
     self.outsideChatTap.delaysTouchesEnded = NO;
     [parent.view addGestureRecognizer:self.outsideChatTap];
 
-    NSNotificationCenter* center = NSNotificationCenter.defaultCenter;
-    for (NSNotificationName name in @[UIKeyboardWillShowNotification, UIKeyboardDidShowNotification,
-                                     UIKeyboardWillChangeFrameNotification, UIKeyboardDidChangeFrameNotification])
-    {
-        [center addObserver:self selector:@selector(recordKeyboardEvent:) name:name object:nil];
-    }
-
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 8 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
         MGFlutter* screen = weakSelf;
         if (screen && screen == flutter && !screen.ready)
@@ -336,117 +280,6 @@ static NSString* MGChatColor(uint32_t rgba)
         }
     });
     return YES;
-}
-
-- (void)startKeyboardProbe:(long long)start
-{
-    [self.keyboardMainTimer invalidate];
-    self.keyboardProbeMediaTime = CACurrentMediaTime();
-    self.keyboardProbeWallUs = MGWallTimeUs();
-    self.keyboardProbeStartUs = start;
-    self.keyboardProbeCommonModes = NO;
-    self.keyboardEvents = [NSMutableArray arrayWithCapacity:16];
-    self.keyboardMainTicks = [NSMutableArray arrayWithCapacity:160];
-    self.keyboardMainLastTick = self.keyboardProbeMediaTime;
-
-    // Sample main run loop delivery independently of GTA's display link.
-    __weak MGFlutter* weakSelf = self;
-    self.keyboardMainTimer = [NSTimer timerWithTimeInterval:1.0 / 60.0 repeats:YES block:^(NSTimer* timer) {
-        MGFlutter* screen = weakSelf;
-        const auto now = CACurrentMediaTime();
-        const auto elapsed = screen.keyboardProbeWallUs - start + std::llround((now - screen.keyboardProbeMediaTime) * 1000000.0);
-        if (!screen || elapsed > keyboardProbeWindowUs)
-        {
-            [timer invalidate];
-            return;
-        }
-
-        const auto gap = std::llround((now - screen.keyboardMainLastTick) * 1000000.0);
-        screen.keyboardMainLastTick = now;
-        NSString* mode = NSRunLoop.currentRunLoop.currentMode ?: @"unknown";
-        [screen.keyboardMainTicks addObject:@[@(elapsed), @(gap), mode]];
-    }];
-    [NSRunLoop.mainRunLoop addTimer:self.keyboardMainTimer forMode:NSRunLoopCommonModes];
-}
-
-- (void)recordKeyboardEvent:(NSNotification*)note
-{
-    if (self.keyboardProbeStartUs <= 0 || self.keyboardEvents.count >= 32) return;
-    const auto now = MGWallTimeUs();
-    if (now - self.keyboardProbeStartUs > keyboardProbeWindowUs) return;
-    NSNumber* duration = note.userInfo[UIKeyboardAnimationDurationUserInfoKey] ?: @0;
-    [self.keyboardEvents addObject:@[@(now), note.name, duration]];
-}
-
-- (void)saveKeyboardProbe:(NSDictionary*)sample
-{
-    if (![sample[@"start"] isKindOfClass:NSNumber.class] ||
-        [sample[@"start"] longLongValue] != self.keyboardProbeStartUs || self.keyboardProbeStartUs <= 0) return;
-
-    const long long start = self.keyboardProbeStartUs;
-    self.keyboardProbeStartUs = 0;
-    [self.keyboardMainTimer invalidate];
-    self.keyboardMainTimer = nil;
-    NSMutableString* report = [NSMutableString stringWithFormat:@"[chat keyboard opening]\n"
-        "relative_to=flutter_tap_handler\nunits=us\nprobe_message=%lld\nfocus_request_us=%@\ngta_common_modes=%d\n",
-        self.keyboardProbeWallUs - start, sample[@"focus"] ?: @"(none)", self.keyboardProbeCommonModes];
-    [report appendString:@"keyboard_event: offset_us,notification,animation_us\n"];
-    for (NSArray* event in self.keyboardEvents)
-    {
-        const long long elapsed = [event[0] longLongValue] - start;
-        if (elapsed >= 0 && elapsed <= keyboardProbeWindowUs)
-        {
-            [report appendFormat:@"%lld,%@,%lld\n", elapsed, event[1], std::llround([event[2] doubleValue] * 1000000.0)];
-        }
-    }
-
-    [report appendString:@"main_run_loop: timer_us,gap_us,mode\n"];
-    for (NSArray* tick in self.keyboardMainTicks)
-    {
-        [report appendFormat:@"%@,%@,%@\n", tick[0], tick[1], tick[2]];
-    }
-
-    [report appendString:@"game_frames: end_us,gap_us\n"];
-    const std::size_t first = (gameFrameIndex + gameFrameTimes.size() - gameFrameCount) % gameFrameTimes.size();
-    for (std::size_t i = 1; i < gameFrameCount; ++i)
-    {
-        const auto previous = gameFrameTimes[(first + i - 1) % gameFrameTimes.size()];
-        const auto current = gameFrameTimes[(first + i) % gameFrameTimes.size()];
-        const auto elapsed = self.keyboardProbeWallUs - start + std::llround((current - self.keyboardProbeMediaTime) * 1000000.0);
-        if (elapsed >= -350000 && elapsed <= keyboardProbeWindowUs)
-        {
-            [report appendFormat:@"%lld,%lld\n", elapsed, std::llround((current - previous) * 1000000.0)];
-        }
-    }
-
-    [report appendString:@"flutter_frames: build_start_us,build_duration_us,raster_start_us,raster_duration_us\n"];
-    if ([sample[@"frames"] isKindOfClass:NSArray.class])
-    {
-        for (NSArray* frame in sample[@"frames"])
-        {
-            if ([frame isKindOfClass:NSArray.class] && frame.count == 4)
-            {
-                [report appendFormat:@"%@,%@,%@,%@\n", frame[0], frame[1], frame[2], frame[3]];
-            }
-        }
-    }
-    [report appendString:@"chat_layout: build_us,post_frame_us,keyboard_inset_tenths_of_point\n"];
-    if ([sample[@"layouts"] isKindOfClass:NSArray.class])
-    {
-        for (NSArray* layout in sample[@"layouts"])
-        {
-            if ([layout isKindOfClass:NSArray.class] && layout.count == 3)
-            {
-                [report appendFormat:@"%@,%@,%@\n", layout[0], layout[1], layout[2]];
-            }
-        }
-    }
-
-    NSUserDefaults* defaults = NSUserDefaults.standardUserDefaults;
-    NSMutableArray<NSString*>* reports = [[defaults stringArrayForKey:keyboardProbeKey] mutableCopy] ?: [NSMutableArray array];
-    if (reports.count >= 4) [reports removeObjectAtIndex:0];
-    [reports addObject:report];
-    [defaults setObject:reports forKey:keyboardProbeKey];
 }
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer*)recognizer shouldReceiveTouch:(UITouch*)touch
@@ -482,20 +315,13 @@ static NSString* MGChatColor(uint32_t rgba)
     return self.chatVisible && self.loadingFinished && !self.visible && !self.paused;
 }
 
-- (void)setChatInputActive:(BOOL)active
-{
-    self.outsideChatTap.enabled = active && [self isChatInteractive];
-    const bool commonModes = MGSetGtaChatInputActive(self.outsideChatTap.enabled);
-    if (commonModes && self.keyboardProbeStartUs > 0) self.keyboardProbeCommonModes = YES;
-}
-
 - (void)updateChatVisibility
 {
     const BOOL interactive = [self isChatInteractive];
     self.controller.viewIfLoaded.accessibilityElementsHidden = !interactive;
     if (!interactive) {
         self.overlay.chatArea = CGRectZero;
-        [self setChatInputActive:NO];
+        self.outsideChatTap.enabled = NO;
     }
     if (self.chatReady) {
         const BOOL show = self.chatVisible && self.loadingFinished && !self.visible;
@@ -505,10 +331,6 @@ static NSString* MGChatColor(uint32_t rgba)
 
 - (void)close
 {
-    [self setChatInputActive:NO];
-    [self.keyboardMainTimer invalidate];
-    self.keyboardMainTimer = nil;
-    [NSNotificationCenter.defaultCenter removeObserver:self];
     [self.outsideChatTap.view removeGestureRecognizer:self.outsideChatTap];
     self.outsideChatTap = nil;
     [self.chatChannel setMethodCallHandler:nil];

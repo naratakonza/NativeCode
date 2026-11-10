@@ -4,13 +4,10 @@
 
 #ifdef __OBJC__
 @class UIViewController;
-@class NSString;
 
 void MGPrepareLoadingScreen(UIViewController* parent);
-NSString* MGKeyboardProbeReport();
 #endif
 
-void MGRecordChatGameFrame();
 void MGSetLoadingScreenVisible(bool visible);
 void MGUpdateLoadingScreenPercent(int percent);
 void MGUpdateLoadingScreenList(const char* text);

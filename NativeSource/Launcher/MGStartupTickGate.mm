@@ -391,50 +391,25 @@ void MGObserveFirstGtaTick(id controller, SEL selector) {
 using StartAnimation = void (*)(id, SEL);
 StartAnimation originalStartAnimation = nullptr;
 int preferredGtaFramerate = 0;
-bool chatInputActive = false;
-__weak CADisplayLink* chatDisplayLink = nil;
 
-CADisplayLink* MGGetGtaDisplayLink()
+void MGApplyGtaFramerate()
 {
     // IOSViewController::startAnimation owns this CADisplayLink and replaces it on resume.
     const auto address = SA_ADDR(0x4EB3A0) + _dyld_get_image_vmaddr_slide(0);
     const void* value = nullptr;
     std::memcpy(&value, reinterpret_cast<const void*>(address), sizeof(value));
     CADisplayLink* link = (__bridge CADisplayLink*)value;
-    return [link isKindOfClass:CADisplayLink.class] ? link : nil;
-}
-
-bool MGApplyGtaChatInputMode(CADisplayLink* link)
-{
-    if (!link) return false;
-
-    const bool usingCommonModes = link == chatDisplayLink;
-    if (usingCommonModes == chatInputActive) return usingCommonModes;
-
-    // The verified GTA startAnimation registers the link in default mode.
-    // Replace that registration while chat is editing so input tracking can still tick GTA.
-    NSRunLoop* runLoop = NSRunLoop.mainRunLoop;
-    [link removeFromRunLoop:runLoop forMode:usingCommonModes ? NSRunLoopCommonModes : NSDefaultRunLoopMode];
-    [link addToRunLoop:runLoop forMode:chatInputActive ? NSRunLoopCommonModes : NSDefaultRunLoopMode];
-    chatDisplayLink = chatInputActive ? link : nil;
-    return chatInputActive;
-}
-
-void MGApplyGtaDisplayLinkSettings()
-{
-    CADisplayLink* link = MGGetGtaDisplayLink();
-    if (link)
+    if ([link isKindOfClass:CADisplayLink.class])
     {
         const auto fps = static_cast<float>(preferredGtaFramerate);
         link.preferredFrameRateRange = CAFrameRateRangeMake(30.0f, fps, fps);
-        MGApplyGtaChatInputMode(link);
     }
 }
 
 void MGStartGtaAnimation(id controller, SEL selector)
 {
     originalStartAnimation(controller, selector);
-    MGApplyGtaDisplayLinkSettings();
+    MGApplyGtaFramerate();
 }
 } // namespace
 
@@ -459,16 +434,8 @@ bool MGSetGtaFramerate(int fps)
     }
 
     preferredGtaFramerate = fps;
-    MGApplyGtaDisplayLinkSettings();
+    MGApplyGtaFramerate();
     return true;
-}
-
-bool MGSetGtaChatInputActive(bool active)
-{
-    if (!NSThread.isMainThread || !originalStartAnimation) return false;
-
-    chatInputActive = active;
-    return MGApplyGtaChatInputMode(MGGetGtaDisplayLink());
 }
 
 void MGObserveBundledSampMenu() {
