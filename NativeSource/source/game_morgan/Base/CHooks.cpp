@@ -93,7 +93,8 @@ extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (
     {
         CMultiPlayer::m_bGameStarted = true;
 
-        if (CGame::IsPauseMenuActive() || CGame::IsDrawingBigMap())
+        const bool gameReady = CMultiPlayer::GetActiveNetwork() && CMultiPlayer::IsSampInit() && CMultiPlayer::IsGameActive();
+        if (!gameReady || CGame::IsPauseMenuActive() || CGame::IsDrawingBigMap())
         {
             MGSetFlutterChatVisible(false);
             return;
@@ -104,7 +105,7 @@ extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (
             CGui::GetChat()->Render();
         }
 
-        if (CMultiPlayer::IsSampInit() && CMultiPlayer::GetActiveNetwork() && CGui::GetFontRender())
+        if (CGui::GetFontRender())
         {
             CGui::GetFontRender()->Render();
         }
