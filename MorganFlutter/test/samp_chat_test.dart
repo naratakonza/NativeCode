@@ -25,7 +25,13 @@ void main() {
 
     await tester.pumpWidget(const MaterialApp(home: SampChat()));
     expect(calls.any((call) => call.method == 'ready'), isTrue);
+    await native('ChatPosition', {'position': 0, 'radarRight': 280});
     await native('show');
+    Map<Object?, Object?> hitRegion() =>
+        calls.lastWhere((call) => call.method == 'hitRegion').arguments as Map<Object?, Object?>;
+    final area = hitRegion();
+    expect(area['x'], greaterThan(224));
+    expect((area['x'] as num) + (area['width'] as num), lessThanOrEqualTo(796));
     await native('addMessage', {'message': 'Welcome {FFCC00}Morgan', 'color': '{FFFFFF}', 'type': 0});
     expect(find.textContaining('Welcome', findRichText: true), findsWidgets);
     final colored = tester.widgetList<RichText>(find.byType(RichText)).any((widget) {
@@ -38,20 +44,28 @@ void main() {
     });
     expect(colored, isTrue);
 
-    await tester.tapAt(const Offset(140, 30));
+    final chatPoint = Offset((area['x'] as num).toDouble() + 20, 30);
+    await tester.tapAt(chatPoint);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.testTextInput.isVisible, isTrue);
     await tester.enterText(find.byType(TextField), '/rec');
     await tester.tap(find.byTooltip('ส่ง'));
     await tester.pump();
     final submission = calls.singleWhere((call) => call.method == 'sendText');
     expect(submission.arguments, {'text': '/rec'});
-    expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
-
-    await native('hide');
     expect(find.byType(TextField), findsNothing);
-    final region = calls.lastWhere((call) => call.method == 'hitRegion');
-    expect((region.arguments as Map)['width'], 0);
+
+    await tester.tapAt(chatPoint);
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isTrue);
+    await native('hide');
+    expect(tester.testTextInput.isVisible, isFalse);
+    expect(find.byType(TextField), findsNothing);
+    expect(hitRegion()['width'], 0);
+    await native('ChatPosition', {'position': 0, 'radarRight': -1000});
+    await native('show');
+    expect(hitRegion()['x'], lessThan(40));
+    expect(find.textContaining('Welcome', findRichText: true), findsWidgets);
     messenger.setMockMethodCallHandler(channel, null);
   });
 }

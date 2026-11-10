@@ -6,7 +6,8 @@
 #include "../Core/CMultiPlayerPacket.h"
 #include "../../Base/CPad.h"
 #include "../../CUtil.h"
-#include "../../../../Launcher/MGFlutterLoadingScreen.h"
+#include "../../RadarMod/CTiltedRadar.h"
+#include "../../../../Launcher/MGFlutter.h"
 #include <queue>
 
 static std::queue<std::string> m_ChatInputQueue;
@@ -106,17 +107,21 @@ void CChat::Render()
     //     return;
     // }
 
-    MGSetFlutterChatVisible(true);
+    const bool radarHidden = CGame::IsRadarActive();
+    const float radarRight = radarHidden ? -1.0f : CTiltedRadar::GetWidgetRightFraction();
 
-    if (CPad::IsActiveWidgets() || CGame::IsRadarActive() /* || CRadar::GetAlpha() <= 0 || CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsSpectating()*/)
+    if (CPad::IsActiveWidgets() || radarHidden /* || CRadar::GetAlpha() <= 0 || CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsSpectating()*/)
     {
-        MGSetFlutterChatPosition(0);
+        MGSetFlutterChatPosition(0, radarRight);
     }
-    else if (auto* settings = CSetting::GetConfig())
+    else
     {
-        const float position = settings->GetFloatValue(OBFUSCATE("JavaChatPosX"));
-        MGSetFlutterChatPosition(std::isfinite(position) ? static_cast<int>(std::clamp(position, 0.0f, 16.0f)) : 16);
+        auto* settings = CSetting::GetConfig();
+        const float position = settings ? settings->GetFloatValue(OBFUSCATE("JavaChatPosX")) : 16.0f;
+        MGSetFlutterChatPosition(std::isfinite(position) ? static_cast<int>(std::clamp(position, 0.0f, 16.0f)) : 16, radarRight);
     }
+
+    MGSetFlutterChatVisible(true);
 }
 
 void CChat::AddChatMessage(const char* szNick, uint32_t dwNickColor, const char* szMessage)
@@ -198,7 +203,7 @@ void CChat::AddToChatWindowBuffer(eChatMessageType type, const char* szString, c
     char utf8Nick[eMaxItem::MAX_PLAYER_NAME * 3 + 1]{};
     CNecessary::ConvertLocalizedEncodingToUTF8(utf8Nick, entry.szNick, sizeof(utf8Nick));
 
-    MGAddFlutterChatMessage(entry.eType == CHAT_TYPE_DEBUG ? alerttype : 0, entry.dwTextColor, entry.dwNickColor, utf8Nick, entry.utf8Message);
+    MGAddFlutterChatMessage(entry.eType == eChatMessageType::CHAT_TYPE_DEBUG ? alerttype : 0, entry.dwTextColor, entry.dwNickColor, utf8Nick, entry.utf8Message);
 }
 
 void CChat::FilterInvalidChars(char *szString)

@@ -1,4 +1,5 @@
 #include "../../../Main.h"
+#include "../../../Launcher/MGFlutter.h"
 #include "CHooks.h"
 #include "../Models/CModelInfo.h"
 #include "../CPools.h"
@@ -91,6 +92,12 @@ extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (
     if (pthread_main_np() && renderTitleHookInstalled && CMultiPlayer::IsSampActive())
     {
         CMultiPlayer::m_bGameStarted = true;
+
+        if (CGame::IsPauseMenuActive() || CGame::IsDrawingBigMap())
+        {
+            MGSetFlutterChatVisible(false);
+            return;
+        }
 
         if (CGui::GetChat())
         {

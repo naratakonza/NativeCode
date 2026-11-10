@@ -96,6 +96,18 @@ bool CGame::IsDrawingBigMap()
     return *reinterpret_cast<const std::uint8_t*>(SA_ADDR(0x790E74) + slide) != 0;
 }
 
+bool CGame::IsPauseMenuActive()
+{
+    static const bool verified = CMemory::HasMappedInstruction(SA_ADDR(0x15A058), "\xB8\x31\x00\xD0") && CMemory::HasMappedInstruction(SA_ADDR(0x15A05C), "\x18\xA3\x37\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x15A260), "\x08\x27\x40\xB9") && CMemory::HasMappedInstruction(SA_ADDR(0x15A268), "\x08\x1B\x40\xF9");
+    if (!verified) {
+        return true;
+    }
+
+    // GTA's frame renderer selects the frontend when either of these fields is set.
+    const auto slide = _dyld_get_image_vmaddr_slide(0);
+    return *reinterpret_cast<const std::uint32_t*>(SA_ADDR(0x790E0C) + slide) != 0 || *reinterpret_cast<const std::uintptr_t*>(SA_ADDR(0x790E18) + slide) != 0;
+}
+
 void CGame::SetPlayerStatsLocked(bool locked)
 {
     const bool verified = CMemory::HasMappedInstruction(SA_ADDR(0x175340), "\x62\x87\x0C\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x4970C8), "\x10\x0F\x00\x90", "__mg_gameproc") && CMemory::HasMappedInstruction(SA_ADDR(0x4970CC), "\x10\xE2\x49\x39", "__mg_gameproc") && CMemory::HasMappedInstruction(SA_ADDR(0x4970D4), "\xC0\x03\x5F\xD6", "__mg_gameproc");

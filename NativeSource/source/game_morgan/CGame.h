@@ -19,6 +19,7 @@ public:
     static void LoadAnimationsAndModels();
     static std::uint8_t GetActiveInterior();
     static bool IsDrawingBigMap();
+    static bool IsPauseMenuActive();
     static void MenuSwitchOff();
     static void SetPlayerMaxStats();
     static void SetPlayerStatsLocked(bool locked);

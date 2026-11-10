@@ -1,5 +1,5 @@
 #include "CLoadingScreen.h"
-#include "../../Launcher/MGFlutterLoadingScreen.h"
+#include "../../Launcher/MGFlutter.h"
 
 void CLoadingScreen::SetInterface(bool state)
 {

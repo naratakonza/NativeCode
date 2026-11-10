@@ -1,7 +1,7 @@
 #import "MGLauncherViewController.h"
 #import "MGStartupTickGate.h"
 #import "MGStartupKeychain.h"
-#import "MGFlutterLoadingScreen.h"
+#import "MGFlutter.h"
 
 #import <dispatch/dispatch.h>
 

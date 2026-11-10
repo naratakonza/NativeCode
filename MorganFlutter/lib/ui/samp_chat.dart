@@ -35,6 +35,7 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
   late AnimationController _borderController;
   bool isHolding = false;
   double chatPosValue = 16.0;
+  double _radarRight = 0;
 
   final ValueNotifier<bool> _isScrollUIActive = ValueNotifier(false);
 
@@ -95,9 +96,11 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
     });
   }
 
-  void updateChatPosition(double value) {
+  void updateChatPosition(double value, double radarRight) {
+    if (chatPosValue == value && _radarRight == radarRight) return;
     setState(() {
       chatPosValue = value;
+      _radarRight = radarRight;
     });
   }
 
@@ -119,15 +122,12 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
   }
 
   void showInput() {
-    setState(() {
-      chatInputstatus = true;
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && chatInputstatus) _focusNode.requestFocus();
-    });
+    setState(() => chatInputstatus = true);
+    _focusNode.requestFocus();
   }
 
   void _onHoldComplete() {
+    hideInput();
     setState(() {
       isHolding = false;
       chatstatus = true;
@@ -225,24 +225,28 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
     // ✅ Optimization: ดึง Font Style ออกมาเตรียมไว้ครั้งเดียว ไม่ต้องเรียกซ้ำในทุกบรรทัดแชท (ประหยัด CPU)
     final TextStyle baseTextStyle = const TextStyle(fontFamily: "NotoSans");
 
-    // คืนค่าความกว้างของแชทดั้งเดิมของโครงการ (60% แนวนอน, 90% แนวตั้ง)
     final safe = MediaQuery.viewPaddingOf(context);
-    final bottom = math.max(safe.bottom, MediaQuery.viewInsetsOf(context).bottom);
-    final double chatWidth = math.min(isLandscape ? screenWidth * 0.6 : screenWidth * 0.9,
-        screenWidth - safe.left - safe.right - 8);
-
-    // คืนค่าระยะเริ่มขอบซ้ายดั้งเดิมของโครงการ (15% แนวนอน, 20dp แนวตั้ง)
+    final bottom = chatInputstatus
+        ? math.max(safe.bottom, MediaQuery.viewInsetsOf(context).bottom)
+        : safe.bottom;
     final double defaultLeft = isLandscape ? screenWidth * 0.15 : 20.0;
     final double percent = chatPosValue.clamp(0.0, 16.0) / 16.0;
-    double leftPos = percent * defaultLeft;
-    leftPos = leftPos.clamp(safe.left + 4, math.max(safe.left + 4, screenWidth - safe.right - chatWidth));
+    double leftPos = math.max(safe.left + 4, percent * defaultLeft);
+    if (_radarRight >= 0) {
+      final radarEdge = _radarRight > 0
+          ? screenWidth * _radarRight
+          : safe.left + screenWidth * (isLandscape ? 0.24 : 0.35);
+      leftPos = math.max(leftPos, radarEdge + 8 * scale);
+    }
+    final double chatWidth = math.min(isLandscape ? screenWidth * 0.6 : screenWidth * 0.9,
+        screenWidth - safe.right - 4 - leftPos);
     final double top = safe.top + 4.0 * scale;
     final double inputHeight = chatInputstatus ? 40.0 * scale : 0;
     final double messageHeight = math.max(0.0, math.min(
       (isLandscape ? 175.0 : 190.0) * scale,
       screenHeight - top - bottom - inputHeight,
     ));
-    if (chatWidth <= 0 || messageHeight <= 0) {
+    if (chatWidth < 48 || (messageHeight <= 0 && !chatInputstatus)) {
       _updateHitRegion(Rect.zero);
       return const SizedBox.shrink();
     }
@@ -268,8 +272,7 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
           ),
 
         if (!chatstatus)
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 200),
+          Positioned(
             top: top,
             left: leftPos,
             width: chatWidth,
@@ -289,9 +292,7 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
                   onLongPressEnd: (_) => _cancelHold(),
                   child: Stack(
                     children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeOutCubic,
+                      Container(
                         // คืนค่าระดับความสูงแชทตามอัตราส่วนแนวตั้ง/แนวนอน
                         height: messageHeight,
                         padding: EdgeInsets.all(6.0 * scale),
@@ -388,24 +389,12 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
                   ),
                 ),
 
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  height: chatInputstatus ? 36.0 * scale : 0.0,
-                  margin: EdgeInsets.only(top: chatInputstatus ? 4.0 * scale : 0.0),
-                  child: ClipRect(
-                    child: OverflowBox(
-                      alignment: Alignment.topCenter,
-                      maxHeight: 36.0 * scale,
-                      child: AnimatedOpacity(
-                        opacity: chatInputstatus ? 1.0 : 0.0,
-                        duration: const Duration(milliseconds: 200),
-                        child: IgnorePointer(
-                           ignoring: !chatInputstatus,
-                          child: _buildChatInput(chatWidth, scale),
-                        ),
-                      ),
-                    ),
+                Visibility(
+                  visible: chatInputstatus,
+                  maintainState: true,
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 4.0 * scale),
+                    child: _buildChatInput(chatWidth, scale),
                   ),
                 ),
               ],
@@ -596,7 +585,6 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
             child: TextField(
               controller: _controller,
               focusNode: _focusNode,
-              enabled: chatInputstatus,
               textInputAction: TextInputAction.send,
               onChanged: (value) {},
               enableInteractiveSelection: true,
@@ -863,7 +851,8 @@ class SampChatController {
           }
           break;
         case 'ChatPosition':
-          state.updateChatPosition((call.arguments as num).toDouble());
+          final args = call.arguments as Map<Object?, Object?>;
+          state.updateChatPosition((args['position'] as num).toDouble(), (args['radarRight'] as num) / 1000);
           break;
         case 'HideInputChat':
           state.hideInput();

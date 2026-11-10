@@ -95,7 +95,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
     -std=c++17 "${fileio_flags[@]}" -Wall -Wextra -Werror -fstack-protector-strong \
         -fvisibility=hidden -fvisibility-inlines-hidden -fobjc-arc \
     -c "$storage/CStorage.mm" -o "$out/fileio-objects/CStorage.o"
-for source in MGLauncherViewController MGLauncherRuntime MGStartupTickGate MGStartupKeychain MGFlutterLoadingScreen; do
+for source in MGLauncherViewController MGLauncherRuntime MGStartupTickGate MGStartupKeychain MGFlutter; do
     xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
         -std=c++17 "${launcher_flags[@]}" -fobjc-arc -fvisibility=hidden -fvisibility-inlines-hidden \
         -c "$launcher/$source.mm" -o "$out/fileio-objects/$source.o"
@@ -113,7 +113,7 @@ done
 xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynamiclib \
     "-Wl,-install_name,$install_name" -Wl,-undefined,error ${link_flags[@]+"${link_flags[@]}"} \
     "$out/fileio-objects/MGLauncherViewController.o" "$out/fileio-objects/MGLauncherRuntime.o" \
-    "$out/fileio-objects/MGStartupKeychain.o" "$out/fileio-objects/MGStartupTickGate.o" "$out/fileio-objects/CMainMenuScreen.o" "$out/fileio-objects/CStartGameScreen.o" "$out/fileio-objects/CLoadingScreen.o" "$out/fileio-objects/MGFlutterLoadingScreen.o" \
+    "$out/fileio-objects/MGStartupKeychain.o" "$out/fileio-objects/MGStartupTickGate.o" "$out/fileio-objects/CMainMenuScreen.o" "$out/fileio-objects/CStartGameScreen.o" "$out/fileio-objects/CLoadingScreen.o" "$out/fileio-objects/MGFlutter.o" \
     "$out/fileio-objects/CStreaming.o" "$out/fileio-objects/CClock.o" "$out/fileio-objects/COptimizeDistance.o" "$out/fileio-objects/CGame.o" "$out/fileio-objects/CModelInfo.o" "$out/fileio-objects/CPools.o" "$out/fileio-objects/CSetting.o" "$out/fileio-objects/CServer.o" "$out/fileio-objects/CNetGame.o" "$out/fileio-objects/CTheZones.o" "$out/fileio-objects/CWeather.o" "$out/fileio-objects/CCamera.o" "$out/fileio-objects/CPad.o" "${raknet_objects[@]}" \
     "$out/fileio-objects/CScripting.o" "$out/fileio-objects/CRunningScript.o" "$out/fileio-objects/CExceptions.o" \
     "$out/fileio-objects/CTiltedRadar.o" "$out/fileio-objects/CTiltedCameraController.o" "$out/fileio-objects/CTiltedRadarGeometry.o" "$out/fileio-objects/CTiltedRadarMath.o" \

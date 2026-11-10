@@ -105,6 +105,18 @@ bool CTiltedRadar::UpdateRadarWidgetBounds()
     return true;
 }
 
+float CTiltedRadar::GetWidgetRightFraction()
+{
+    static const bool verified = CMemory::HasMappedInstruction(SA_ADDR(0x03BDD0), "\xE8\x31\x00\xB0") && CMemory::HasMappedInstruction(SA_ADDR(0x03BDD4), "\x08\x01\x42\xF9") && CMemory::HasMappedInstruction(SA_ADDR(0x03BDE4), "\x00\x69\x69\xB8");
+    if (!verified || !radarReady || !CTiltedRadar::UpdateRadarWidgetBounds()) {
+        return 0.0f;
+    }
+
+    const int screenWidth = reinterpret_cast<int (*)()>(SA_ADDR(0x03BDD0) + gtaSlide)();
+    const float radarRight = CTiltedRadar::m_fCenterX + CTiltedRadar::m_fRadiusX;
+    return screenWidth > 0 && radarRight > 0.0f && radarRight < screenWidth ? radarRight / screenWidth : 0.0f;
+}
+
 bool CTiltedRadar::BeginMap()
 {
     if (!CTiltedRadar::IsEnabled() || CGame::IsDrawingBigMap() || !CTiltedRadar::UpdateRadarWidgetBounds()) {

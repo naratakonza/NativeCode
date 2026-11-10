@@ -1,4 +1,4 @@
-#import "MGFlutterLoadingScreen.h"
+#import "MGFlutter.h"
 
 #import <UIKit/UIKit.h>
 #import <dispatch/dispatch.h>
@@ -48,7 +48,7 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 }
 @end
 
-@interface MGFlutterLoadingScreen : NSObject
+@interface MGFlutter : NSObject
 @property(nonatomic, strong) id<MGLoadingEngine> engine;
 @property(nonatomic, strong) UIViewController<MGLoadingController>* controller;
 @property(nonatomic, strong) id<MGLoadingChannel> channel;
@@ -62,14 +62,14 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 @property(nonatomic) BOOL chatReady;
 @property(nonatomic) BOOL chatVisible;
 @property(nonatomic) BOOL loadingFinished;
-@property(nonatomic, strong) NSNumber* chatPosition;
+@property(nonatomic, strong) NSDictionary* chatLayout;
 - (BOOL)attachTo:(UIViewController*)parent;
 - (void)close;
 - (void)send:(NSString*)method value:(id)value;
 - (void)updateChatVisibility;
 @end
 
-static MGFlutterLoadingScreen* loadingScreen;
+static MGFlutter* flutter;
 static NSString* const flutterEngineRevision = @"55eae6864b296dd9f43b2cc7577ec256e5c32a8d";
 
 static void MGRunLoadingOnMain(dispatch_block_t work)
@@ -89,7 +89,7 @@ static NSString* MGChatColor(uint32_t rgba)
     return [NSString stringWithFormat:@"{%06X}", static_cast<unsigned>(rgba >> 8)];
 }
 
-@implementation MGFlutterLoadingScreen
+@implementation MGFlutter
 
 - (BOOL)attachTo:(UIViewController*)parent
 {
@@ -100,8 +100,8 @@ static NSString* MGChatColor(uint32_t rgba)
     }
 
     // Dart AOT must be paired with the Flutter 3.22.1 engine revision.
-    NSBundle* flutter = [NSBundle bundleForClass:engineClass];
-    if (![[flutter objectForInfoDictionaryKey:@"FlutterEngine"] isEqualToString:flutterEngineRevision])
+    NSBundle* engineBundle = [NSBundle bundleForClass:engineClass];
+    if (![[engineBundle objectForInfoDictionaryKey:@"FlutterEngine"] isEqualToString:flutterEngineRevision])
     {
         return NO;
     }
@@ -140,10 +140,10 @@ static NSString* MGChatColor(uint32_t rgba)
         return NO;
     }
 
-    __weak MGFlutterLoadingScreen* weakSelf = self;
+    __weak MGFlutter* weakSelf = self;
     [self.channel setMethodCallHandler:^(id<MGLoadingCall> call, MGLoadingResult result) {
-        MGFlutterLoadingScreen* screen = weakSelf;
-        if ([call.method isEqualToString:@"ready"] && screen && screen == loadingScreen && !screen.ready)
+        MGFlutter* screen = weakSelf;
+        if ([call.method isEqualToString:@"ready"] && screen && screen == flutter && !screen.ready)
         {
             screen.ready = YES;
             if (screen.visible)
@@ -162,7 +162,7 @@ static NSString* MGChatColor(uint32_t rgba)
         else if ([call.method isEqualToString:@"onLoadingComplete"])
         {
             dispatch_async(dispatch_get_main_queue(), ^{
-                if (screen && screen == loadingScreen && !screen.visible)
+                if (screen && screen == flutter && !screen.visible)
                 {
                     screen.loadingFinished = YES;
                     [screen updateChatVisibility];
@@ -172,8 +172,8 @@ static NSString* MGChatColor(uint32_t rgba)
         result(nil);
     }];
     [self.chatChannel setMethodCallHandler:^(id<MGLoadingCall> call, MGLoadingResult result) {
-        MGFlutterLoadingScreen* screen = weakSelf;
-        if (!screen || screen != loadingScreen) {
+        MGFlutter* screen = weakSelf;
+        if (!screen || screen != flutter) {
             result(@NO);
             return;
         }
@@ -185,8 +185,8 @@ static NSString* MGChatColor(uint32_t rgba)
                 [screen.chatChannel invokeMethod:@"addMessage" arguments:message];
             }
             [screen.pendingMessages removeAllObjects];
-            if (screen.chatPosition) {
-                [screen.chatChannel invokeMethod:@"ChatPosition" arguments:screen.chatPosition];
+            if (screen.chatLayout) {
+                [screen.chatChannel invokeMethod:@"ChatPosition" arguments:screen.chatLayout];
             }
             [screen updateChatVisibility];
             result(@YES);
@@ -244,16 +244,16 @@ static NSString* MGChatColor(uint32_t rgba)
     [self.controller didMoveToParentViewController:parent];
 
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 8 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        MGFlutterLoadingScreen* screen = weakSelf;
-        if (screen && screen == loadingScreen && !screen.ready)
+        MGFlutter* screen = weakSelf;
+        if (screen && screen == flutter && !screen.ready)
         {
             NSLog(@"[MorganLauncher] Flutter loading screen did not initialize");
             [screen close];
         }
     });
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 90 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        MGFlutterLoadingScreen* screen = weakSelf;
-        if (screen && screen == loadingScreen && screen.visible)
+        MGFlutter* screen = weakSelf;
+        if (screen && screen == flutter && screen.visible)
         {
             NSLog(@"[MorganLauncher] Flutter loading screen timed out");
             MGSetLoadingScreenVisible(false);
@@ -306,9 +306,9 @@ static NSString* MGChatColor(uint32_t rgba)
     self.controller = nil;
     [self.engine destroyContext];
     self.engine = nil;
-    if (loadingScreen == self)
+    if (flutter == self)
     {
-        loadingScreen = nil;
+        flutter = nil;
     }
 }
 
@@ -316,15 +316,15 @@ static NSString* MGChatColor(uint32_t rgba)
 
 void MGPrepareLoadingScreen(UIViewController* parent)
 {
-    if (!NSThread.isMainThread || loadingScreen || !parent)
+    if (!NSThread.isMainThread || flutter || !parent)
     {
         return;
     }
 
-    loadingScreen = [[MGFlutterLoadingScreen alloc] init];
-    if (![loadingScreen attachTo:parent])
+    flutter = [[MGFlutter alloc] init];
+    if (![flutter attachTo:parent])
     {
-        [loadingScreen close];
+        [flutter close];
         NSLog(@"[MorganLauncher] Flutter 3.22.1 loading screen is unavailable");
     }
 }
@@ -332,7 +332,7 @@ void MGPrepareLoadingScreen(UIViewController* parent)
 void MGSetLoadingScreenVisible(bool visible)
 {
     MGRunLoadingOnMain(^{
-        MGFlutterLoadingScreen* screen = loadingScreen;
+        MGFlutter* screen = flutter;
         if (!screen || screen.visible == visible)
         {
             return;
@@ -343,10 +343,10 @@ void MGSetLoadingScreenVisible(bool visible)
         [screen send:visible ? @"show" : @"hide" value:nil];
         if (!visible)
         {
-            __weak MGFlutterLoadingScreen* weakScreen = screen;
+            __weak MGFlutter* weakScreen = screen;
             dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 2 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-                MGFlutterLoadingScreen* pending = weakScreen;
-                if (pending && pending == loadingScreen && !pending.visible)
+                MGFlutter* pending = weakScreen;
+                if (pending && pending == flutter && !pending.visible)
                 {
                     pending.loadingFinished = YES;
                     [pending updateChatVisibility];
@@ -359,7 +359,7 @@ void MGSetLoadingScreenVisible(bool visible)
 void MGSetFlutterChatVisible(bool visible)
 {
     MGRunLoadingOnMain(^{
-        MGFlutterLoadingScreen* screen = loadingScreen;
+        MGFlutter* screen = flutter;
         if (screen && screen.chatVisible != visible)
         {
             screen.chatVisible = visible;
@@ -370,18 +370,20 @@ void MGSetFlutterChatVisible(bool visible)
 
 void MGCloseFlutterChat()
 {
-    MGRunLoadingOnMain(^{ [loadingScreen close]; });
+    MGRunLoadingOnMain(^{ [flutter close]; });
 }
 
-void MGSetFlutterChatPosition(int position)
+void MGSetFlutterChatPosition(int position, float radarRight)
 {
+    const int radarRightPerMille = static_cast<int>(std::ceil(radarRight * 1000.0f));
     MGRunLoadingOnMain(^{
-        MGFlutterLoadingScreen* screen = loadingScreen;
-        if (screen && ![screen.chatPosition isEqualToNumber:@(position)])
+        MGFlutter* screen = flutter;
+        if (screen && (!screen.chatLayout || [screen.chatLayout[@"position"] intValue] != position ||
+                       [screen.chatLayout[@"radarRight"] intValue] != radarRightPerMille))
         {
-            screen.chatPosition = @(position);
+            screen.chatLayout = @{@"position": @(position), @"radarRight": @(radarRightPerMille)};
             if (screen.chatReady) {
-                [screen.chatChannel invokeMethod:@"ChatPosition" arguments:screen.chatPosition];
+                [screen.chatChannel invokeMethod:@"ChatPosition" arguments:screen.chatLayout];
             }
         }
     });
@@ -390,7 +392,7 @@ void MGSetFlutterChatPosition(int position)
 void MGAddFlutterChatMessage(int type, uint32_t color, uint32_t nickColor, const char* nick, const char* text)
 {
     if (!text || !NSThread.isMainThread) return;
-    MGFlutterLoadingScreen* screen = loadingScreen;
+    MGFlutter* screen = flutter;
     if (!screen) return;
 
     NSString* message = [NSString stringWithUTF8String:text];
@@ -410,7 +412,7 @@ void MGAddFlutterChatMessage(int type, uint32_t color, uint32_t nickColor, const
 void MGUpdateLoadingScreenPercent(int percent)
 {
     MGRunLoadingOnMain(^{
-        MGFlutterLoadingScreen* screen = loadingScreen;
+        MGFlutter* screen = flutter;
         screen.percent = @(percent);
         [screen send:@"updateProgress" value:screen.percent];
     });
@@ -425,7 +427,7 @@ void MGUpdateLoadingScreenList(const char* text)
     }
 
     MGRunLoadingOnMain(^{
-        MGFlutterLoadingScreen* screen = loadingScreen;
+        MGFlutter* screen = flutter;
         if (screen && ![screen.statusText isEqualToString:status])
         {
             screen.statusText = status;
