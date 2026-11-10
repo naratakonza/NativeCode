@@ -48,7 +48,16 @@ void main() {
     await tester.tapAt(chatPoint);
     await tester.pump();
     expect(tester.testTextInput.isVisible, isTrue);
+    expect(calls.lastWhere((call) => call.method == 'inputActive').arguments, isTrue);
     await tester.enterText(find.byType(TextField), '/rec');
+    await native('HideInputChat');
+    expect(tester.testTextInput.isVisible, isFalse);
+    expect(calls.lastWhere((call) => call.method == 'inputActive').arguments, isFalse);
+
+    await tester.tapAt(chatPoint);
+    await tester.pump();
+    expect(tester.testTextInput.isVisible, isTrue);
+    expect(tester.widget<TextField>(find.byType(TextField)).controller?.text, '/rec');
     await tester.tap(find.byTooltip('ส่ง'));
     await tester.pump();
     final submission = calls.singleWhere((call) => call.method == 'sendText');

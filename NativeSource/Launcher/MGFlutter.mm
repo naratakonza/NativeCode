@@ -49,12 +49,13 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 }
 @end
 
-@interface MGFlutter : NSObject
+@interface MGFlutter : NSObject <UIGestureRecognizerDelegate>
 @property(nonatomic, strong) id<MGLoadingEngine> engine;
 @property(nonatomic, strong) UIViewController<MGLoadingController>* controller;
 @property(nonatomic, strong) id<MGLoadingChannel> channel;
 @property(nonatomic, strong) id<MGLoadingChannel> chatChannel;
 @property(nonatomic, strong) MGFlutterOverlayView* overlay;
+@property(nonatomic, strong) UITapGestureRecognizer* outsideChatTap;
 @property(nonatomic, strong) NSMutableArray<NSDictionary*>* pendingMessages;
 @property(nonatomic, copy) NSString* statusText;
 @property(nonatomic, strong) NSNumber* percent;
@@ -208,6 +209,12 @@ static NSString* MGChatColor(uint32_t rgba)
             result(@(queued));
             return;
         }
+        if ([call.method isEqualToString:@"inputActive"] && [call.arguments isKindOfClass:NSNumber.class])
+        {
+            screen.outsideChatTap.enabled = [screen isChatInteractive] && [call.arguments boolValue];
+            result(@YES);
+            return;
+        }
         if ([call.method isEqualToString:@"hitRegion"])
         {
             CGRect area = CGRectZero;
@@ -248,6 +255,14 @@ static NSString* MGChatColor(uint32_t rgba)
     [self.controller endAppearanceTransition];
     [self.controller didMoveToParentViewController:parent];
 
+    self.outsideChatTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleOutsideChatTap:)];
+    self.outsideChatTap.delegate = self;
+    self.outsideChatTap.enabled = NO;
+    self.outsideChatTap.cancelsTouchesInView = NO;
+    self.outsideChatTap.delaysTouchesBegan = NO;
+    self.outsideChatTap.delaysTouchesEnded = NO;
+    [parent.view addGestureRecognizer:self.outsideChatTap];
+
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 8 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
         MGFlutter* screen = weakSelf;
         if (screen && screen == flutter && !screen.ready)
@@ -265,6 +280,26 @@ static NSString* MGChatColor(uint32_t rgba)
         }
     });
     return YES;
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer*)recognizer shouldReceiveTouch:(UITouch*)touch
+{
+    return recognizer == self.outsideChatTap && [self isChatInteractive] &&
+        !CGRectContainsPoint(self.overlay.chatArea, [touch locationInView:self.overlay]);
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer*)recognizer
+    shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer*)other
+{
+    return recognizer == self.outsideChatTap || other == self.outsideChatTap;
+}
+
+- (void)handleOutsideChatTap:(UITapGestureRecognizer*)recognizer
+{
+    if (recognizer.state == UIGestureRecognizerStateRecognized && [self isChatInteractive])
+    {
+        [self.chatChannel invokeMethod:@"HideInputChat" arguments:nil];
+    }
 }
 
 - (void)send:(NSString*)method value:(id)value
@@ -286,6 +321,7 @@ static NSString* MGChatColor(uint32_t rgba)
     self.controller.viewIfLoaded.accessibilityElementsHidden = !interactive;
     if (!interactive) {
         self.overlay.chatArea = CGRectZero;
+        self.outsideChatTap.enabled = NO;
     }
     if (self.chatReady) {
         const BOOL show = self.chatVisible && self.loadingFinished && !self.visible;
@@ -295,6 +331,8 @@ static NSString* MGChatColor(uint32_t rgba)
 
 - (void)close
 {
+    [self.outsideChatTap.view removeGestureRecognizer:self.outsideChatTap];
+    self.outsideChatTap = nil;
     [self.chatChannel setMethodCallHandler:nil];
     self.chatChannel = nil;
     [self.channel setMethodCallHandler:nil];

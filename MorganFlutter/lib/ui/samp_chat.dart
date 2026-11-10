@@ -126,12 +126,14 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
       _showNewMessageButton.value = false;
     });
     _focusNode.unfocus();
+    unawaited(SampChatController.notify('inputActive', false));
     _scrollToBottom();
   }
 
   void showInput() {
     setState(() => chatInputstatus = true);
     _focusNode.requestFocus();
+    unawaited(SampChatController.notify('inputActive', true));
   }
 
   void _onHoldComplete() {
