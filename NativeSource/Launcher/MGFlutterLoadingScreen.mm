@@ -86,26 +86,7 @@ static void MGRunLoadingOnMain(dispatch_block_t work)
 
 static NSStringEncoding MGChatEncoding()
 {
-    auto* config = CSetting::GetConfig();
-    const int language = config ? config->GetIntValue("Language") : 0;
-    CFStringRef charset = CFSTR("windows-1252");
-    switch (language)
-    {
-        case 1: charset = CFSTR("windows-874"); break;
-        case 2: charset = CFSTR("windows-1251"); break;
-        case 5: charset = CFSTR("windows-1258"); break;
-        case 11: charset = CFSTR("windows-1256"); break;
-    }
-    return CFStringConvertEncodingToNSStringEncoding(CFStringConvertIANACharSetNameToEncoding(charset));
-}
-
-static NSString* MGChatString(const char* text)
-{
-    if (!text) return @"";
-    const auto size = std::strlen(text);
-    NSString* utf8 = [[NSString alloc] initWithBytes:text length:size encoding:NSUTF8StringEncoding];
-    return utf8 ?: [[NSString alloc] initWithBytes:text length:size encoding:MGChatEncoding()] ?:
-        [[NSString alloc] initWithBytes:text length:size encoding:NSISOLatin1StringEncoding];
+    return CFStringConvertEncodingToNSStringEncoding(CNecessary::GetLocalizedEncoding());
 }
 
 static NSString* MGChatColor(uint32_t rgba)
@@ -416,9 +397,10 @@ void MGAddFlutterChatMessage(int type, uint32_t color, uint32_t nickColor, const
     MGFlutterLoadingScreen* screen = loadingScreen;
     if (!screen) return;
 
-    NSString* message = MGChatString(text);
+    NSString* message = [NSString stringWithUTF8String:text];
+    if (!message.length) return;
     if (nick && *nick) {
-        message = [NSString stringWithFormat:@"%@%@: %@%@", MGChatColor(nickColor), MGChatString(nick), MGChatColor(color), message];
+        message = [NSString stringWithFormat:@"%@%@: %@%@", MGChatColor(nickColor), [NSString stringWithUTF8String:nick], MGChatColor(color), message];
     }
     NSDictionary* entry = @{@"type": @(type), @"color": MGChatColor(color), @"message": message};
     if (screen.chatReady) {

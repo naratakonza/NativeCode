@@ -5,6 +5,7 @@
 #include "../CMultiPlayer.h"
 #include "../Core/CMultiPlayerPacket.h"
 #include "../../Base/CPad.h"
+#include "../../CUtil.h"
 #include "../../../../Launcher/MGFlutterLoadingScreen.h"
 #include <queue>
 
@@ -186,17 +187,20 @@ void CChat::AddToChatWindowBuffer(eChatMessageType type, const char* szString, c
     }
 
     CHAT_WINDOW_ENTRY entry{};
+    std::string strString = CUtil::ReplaceKey(std::string(szString));
+    CChat::FilterInvalidChars(strString.data());
     entry.eType = type;
     entry.dwNickColor = dwNickColor | 0x000000FF;
     entry.dwTextColor = dwTextColor | 0x000000FF;
     if (szNick) {
         std::snprintf(entry.szNick, sizeof(entry.szNick), "%s", szNick);
     }
-    std::snprintf(entry.szMessage, sizeof(entry.szMessage), "%s", szString);
-    CChat::FilterInvalidChars(entry.szMessage);
     CChat::FilterInvalidChars(entry.szNick);
+    CNecessary::ConvertLocalizedEncodingToUTF8(entry.utf8Message, strString.c_str(), sizeof(entry.utf8Message));
+    char utf8Nick[eMaxItem::MAX_PLAYER_NAME * 3 + 1]{};
+    CNecessary::ConvertLocalizedEncodingToUTF8(utf8Nick, entry.szNick, sizeof(utf8Nick));
 
-    MGAddFlutterChatMessage(entry.eType == CHAT_TYPE_DEBUG ? alerttype : 0, entry.dwTextColor, entry.dwNickColor, entry.szNick, entry.szMessage);
+    MGAddFlutterChatMessage(entry.eType == CHAT_TYPE_DEBUG ? alerttype : 0, entry.dwTextColor, entry.dwNickColor, utf8Nick, entry.utf8Message);
 }
 
 void CChat::FilterInvalidChars(char *szString)

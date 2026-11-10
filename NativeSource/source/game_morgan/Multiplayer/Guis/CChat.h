@@ -9,7 +9,7 @@
 typedef struct
 {
     eChatMessageType	eType;
-    char 				szMessage[eMaxItem::MAX_MESSAGE_LENGTH * 3 + 1];
+    char 				utf8Message[eMaxItem::MAX_MESSAGE_LENGTH * 3 + 1];
     char 				szNick[eMaxItem::MAX_PLAYER_NAME + 1];
     uint32_t			dwTextColor;
     uint32_t 			dwNickColor;
