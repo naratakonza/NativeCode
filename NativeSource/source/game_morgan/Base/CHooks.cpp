@@ -7,8 +7,11 @@
 #include "../../utils/Memory/CHook.h"
 #include "../../utils/Storage/CStorage.h"
 #include "../Multiplayer/CMultiPlayer.h"
+#include "../Multiplayer/Guis/CGui.h"
+#include "../../vendor/imgui/imgui_impl_renderware.h"
 
 static bool gameProcessHookInstalled = false;
+static bool renderTitleHookInstalled = false;
 
 extern "C" __attribute__((visibility("default"))) void InitialiseRenderWare_hook(void* (*load)(const char*, bool, int))
 {
@@ -88,6 +91,19 @@ void CHooks::InstallNecessary()
     }
 }
 
+extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (*Render2dStuff)())
+{
+    Render2dStuff();
+
+    if (pthread_main_np() && renderTitleHookInstalled && CMultiPlayer::IsSampActive())
+    {
+        CMultiPlayer::m_bGameStarted = true;
+        if (CMultiPlayer::IsSampInit() && CMultiPlayer::GetActiveNetwork() && CGui::GetFontRender()) {
+            CGui::GetFontRender()->Render();
+        }
+    }
+}
+
 void CHooks::InstallMenu()
 {
     gameProcessHookInstalled = CMemory::HasMappedInstruction(SA_ADDR(0x151B30), "\xE9\x23\xBA\x6D") && CMemory::HasMappedInstruction(SA_ADDR(0x15A0C8), "\xCE\xF3\x0C\x94");
@@ -95,6 +111,11 @@ void CHooks::InstallMenu()
     if (!gameProcessHookInstalled)
     {
         CExceptions::Print(OBFUSCATE("CHooks InstallMenu"), OBFUSCATE("CGame Process bridge unavailable"));
+    }
+
+    renderTitleHookInstalled = CMemory::HasMappedInstruction(SA_ADDR(0x159B5C), "\xFD\x7B\xBF\xA9") && CMemory::HasMappedInstruction(SA_ADDR(0x15A468), "\x41\xF3\x0C\x94") && ImGui_ImplRenderWare_Init();
+    if (!renderTitleHookInstalled) {
+        CExceptions::Print(OBFUSCATE("CHooks InstallMenu"), OBFUSCATE("Render2dStuff title bridge unavailable"));
     }
 }
 

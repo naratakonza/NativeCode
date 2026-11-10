@@ -36,4 +36,4 @@ flutter:
   module:
     androidX: true
     androidPackage: com.morgangame.loading
-    iosBundleIdentifier: com.morgangame.ios.loading
+    iosBundleIdentifier: com.morgangame.ios.flutter

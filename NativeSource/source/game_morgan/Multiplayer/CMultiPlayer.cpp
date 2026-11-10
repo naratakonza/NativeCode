@@ -2,6 +2,7 @@
 #include "CMultiPlayer.h"
 #include "CServer.h"
 #include "CNetGame.h"
+#include "Guis/CGui.h"
 #include "../CStartGameScreen.h"
 #include "../Base/CPatches.h"
 #include "../Base/CHooks.h"
@@ -17,6 +18,7 @@ void CMultiPlayer::Initialise()
 {
 	CNecessary::Log(OBFUSCATE("CMultiPlayer Initialise"));
 
+    CGui::Initialise();
 	CMultiPlayer::SetThread(eThreadType::THREAD_TYPE_ONLOAD);
 }
 
@@ -24,6 +26,7 @@ void CMultiPlayer::Uninitialise()
 {
 	CNecessary::Log(OBFUSCATE("CMultiPlayer Uninitialise"));
 
+    CGui::Uninitialise();
 	SAFE_DELETE(CMultiPlayer::pNetGame);
 
 	CGame::SetPlayerStatsLocked(false);

@@ -61,17 +61,17 @@ jobs:
       - name: Test and build iPhoneOS AOT module
         shell: bash
         run: |
-          mkdir -p "$RUNNER_TEMP/morgan-loading"
-          bash MorganLauncherNative/build-loading-ios.sh "$RUNNER_TEMP/morgan-loading" \
-            2>&1 | tee "$RUNNER_TEMP/morgan-loading/build.log"
+          mkdir -p "$RUNNER_TEMP/morgan-flutter"
+          bash MorganLauncherNative/build-loading-ios.sh "$RUNNER_TEMP/morgan-flutter" \
+            2>&1 | tee "$RUNNER_TEMP/morgan-flutter/build.log"
       - name: Upload iPhoneOS AOT module and build log
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: MorganLoading-Flutter-3.22.1-iPhoneOS
+          name: MorganFlutter-3.22.1-iPhoneOS
           path: |
-            ${{ runner.temp }}/morgan-loading/MorganLoading.framework.tar
-            ${{ runner.temp }}/morgan-loading/SHA256SUMS
-            ${{ runner.temp }}/morgan-loading/aot-symbols.txt
-            ${{ runner.temp }}/morgan-loading/build.log
+            ${{ runner.temp }}/morgan-flutter/MorganFlutter.framework.tar
+            ${{ runner.temp }}/morgan-flutter/SHA256SUMS
+            ${{ runner.temp }}/morgan-flutter/aot-symbols.txt
+            ${{ runner.temp }}/morgan-flutter/build.log
           if-no-files-found: error

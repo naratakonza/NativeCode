@@ -79,9 +79,9 @@ static void MGRunLoadingOnMain(dispatch_block_t work)
     }
 
     NSURL* frameworks = NSBundle.mainBundle.privateFrameworksURL;
-    NSBundle* module = [NSBundle bundleWithURL:[frameworks URLByAppendingPathComponent:@"MorganLoading.framework"]];
+    NSBundle* module = [NSBundle bundleWithURL:[frameworks URLByAppendingPathComponent:@"MorganFlutter.framework"]];
     NSURL* assets = [module.resourceURL URLByAppendingPathComponent:@"flutter_assets/AssetManifest.bin"];
-    if (!parent.viewIfLoaded.window || ![module.bundleIdentifier isEqualToString:@"com.morgangame.ios.loading"] ||
+    if (!parent.viewIfLoaded.window || ![module.bundleIdentifier isEqualToString:@"com.morgangame.ios.flutter"] ||
         ![[module objectForInfoDictionaryKey:@"MorganFlutterEngine"] isEqualToString:flutterEngineRevision] ||
         ![module.executableURL checkResourceIsReachableAndReturnError:nil] || ![assets checkResourceIsReachableAndReturnError:nil])
     {
@@ -97,7 +97,7 @@ static void MGRunLoadingOnMain(dispatch_block_t work)
     }
 
     id<MGLoadingProject> project = [[(id)projectClass alloc] initWithPrecompiledDartBundle:module];
-    self.engine = [[(id)engineClass alloc] initWithName:@"MorganLoading" project:project allowHeadlessExecution:YES];
+    self.engine = [[(id)engineClass alloc] initWithName:@"MorganFlutter" project:project allowHeadlessExecution:YES];
     if (![self.engine runWithEntrypoint:nil])
     {
         return NO;

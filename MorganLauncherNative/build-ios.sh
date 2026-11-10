@@ -43,6 +43,7 @@ storage="$native/source/utils/Storage"
 memory="$native/source/utils/Memory"
 hooks="$native/source/game_morgan/Base"
 multiplayer="$native/source/game_morgan/Multiplayer"
+imgui="$native/source/vendor/imgui"
 scripts="$native/source/game_morgan/Scripts"
 radar="$native/source/game_morgan/RadarMod"
 [[ -f "$launcher/MGLauncherViewController.h" && -f "$launcher/MGLauncherViewController.mm" ]]
@@ -75,12 +76,19 @@ for source in \
     "$native/Main.cpp" "$native/source/game_morgan/RenderWare/RenderWare.cpp" "$multiplayer/CMultiPlayer.cpp" "$native/source/utils/Necessary/CNecessary.cpp" \
     "$native/source/game_morgan/CMainMenuScreen.cpp" "$native/source/game_morgan/CStartGameScreen.cpp" "$native/source/game_morgan/CLoadingScreen.cpp" "$hooks/CPatches.cpp" "$hooks/CUvAnim.cpp" "$hooks/Thread/CFastLoad.cpp" "$memory/CMemory.cpp" \
     "$fileio/FileIO.cpp" "$storage/PosixFileIO.cpp" "$storage/CStorageZip.cpp" "$storage/CStorageDisk.cpp" \
-    "$fileio/HookAdapter.cpp" "$hooks/CHooks.cpp" "$fileio/FileOpenDiagnostics.cpp" "$memory/CHook.cpp"; do
+    "$fileio/HookAdapter.cpp" "$hooks/CHooks.cpp" "$fileio/FileOpenDiagnostics.cpp" "$memory/CHook.cpp" \
+    "$multiplayer/Texts/CDebugInfo.cpp" "$multiplayer/Guis/CGui.cpp" "$multiplayer/Guis/Font/CFontRender.cpp" \
+    "$imgui/imgui_impl_renderware.cpp"; do
     object="${source##*/}"
     xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
         -std=c++17 "${fileio_flags[@]}" -isystem "$native/source/vendor" -Wall -Wextra -Werror -fstack-protector-strong \
         -fvisibility=hidden -fvisibility-inlines-hidden \
         -c "$source" -o "$out/fileio-objects/${object%.cpp}.o"
+done
+for unit in imgui imgui_draw; do
+    xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
+        -std=c++17 "${fileio_flags[@]}" -fvisibility=hidden -fvisibility-inlines-hidden \
+        -c "$imgui/$unit.cpp" -o "$out/fileio-objects/$unit.o"
 done
 xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
     -std=c++17 "${fileio_flags[@]}" -Wall -Wextra -Werror -fstack-protector-strong \
@@ -108,6 +116,8 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CStreaming.o" "$out/fileio-objects/CClock.o" "$out/fileio-objects/COptimizeDistance.o" "$out/fileio-objects/CGame.o" "$out/fileio-objects/CModelInfo.o" "$out/fileio-objects/CPools.o" "$out/fileio-objects/CSetting.o" "$out/fileio-objects/CServer.o" "$out/fileio-objects/CNetGame.o" "$out/fileio-objects/CTheZones.o" "$out/fileio-objects/CWeather.o" "$out/fileio-objects/CCamera.o" "$out/fileio-objects/CPad.o" "${raknet_objects[@]}" \
     "$out/fileio-objects/CScripting.o" "$out/fileio-objects/CRunningScript.o" "$out/fileio-objects/CExceptions.o" \
     "$out/fileio-objects/CTiltedRadar.o" "$out/fileio-objects/CTiltedCameraController.o" "$out/fileio-objects/CTiltedRadarGeometry.o" "$out/fileio-objects/CTiltedRadarMath.o" \
+    "$out/fileio-objects/CDebugInfo.o" "$out/fileio-objects/CGui.o" "$out/fileio-objects/CFontRender.o" \
+    "$out/fileio-objects/imgui.o" "$out/fileio-objects/imgui_draw.o" "$out/fileio-objects/imgui_impl_renderware.o" \
     "$out/fileio-objects/Main.o" "$out/fileio-objects/RenderWare.o" "$out/fileio-objects/CMultiPlayer.o" "$out/fileio-objects/CNecessary.o" \
     "$out/fileio-objects/CPatches.o" "$out/fileio-objects/CUvAnim.o" "$out/fileio-objects/CFastLoad.o" "$out/fileio-objects/CMemory.o" \
     "$out/fileio-objects/FileIO.o" "$out/fileio-objects/PosixFileIO.o" \

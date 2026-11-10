@@ -22,3 +22,4 @@ _OBJC_CLASS_$_MGLauncherViewController
 _OBJC_METACLASS_$_MGLauncherOverlayWindow
 _OBJC_METACLASS_$_MGLauncherPresentationCoordinator
 _OBJC_METACLASS_$_MGLauncherViewController
+_Render2dStuff_hook
