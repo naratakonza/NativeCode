@@ -126,9 +126,11 @@ void CNecessary::ConvertLocalizedEncodingToUTF8(char* utf8Output, const char* cp
         while (bytesWritten < maxBytesAllowed && cp874Input[bytesWritten]) {
             bytesWritten++;
         }
+
         while (bytesWritten > 0 && (static_cast<uint8_t>(cp874Input[bytesWritten]) & 0xC0) == 0x80) {
             bytesWritten--;
         }
+
         std::memcpy(utf8Output, cp874Input, bytesWritten);
         utf8Output += bytesWritten;
 

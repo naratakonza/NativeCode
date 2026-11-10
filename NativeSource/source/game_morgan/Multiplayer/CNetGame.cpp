@@ -177,18 +177,18 @@ void CNetGame::Process()
     }
     else
     {
-        // CNetGame::SpawnScreen();
+        CNetGame::SpawnScreen();
 
-        static bool once = false;
-        if (once)
-        {
-            return;
-        }
-        else
-        {
-            once = true;
-            CGame::GetCamera()->SetBehindPlayer();
-		}
+        // static bool once = false;
+        // if (once)
+        // {
+        //     return;
+        // }
+        // else
+        // {
+        //     once = true;
+        //     CGame::GetCamera()->SetBehindPlayer();
+		// }
     }
 }
 
