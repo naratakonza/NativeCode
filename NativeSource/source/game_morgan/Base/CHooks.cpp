@@ -87,18 +87,18 @@ extern "C" __attribute__((visibility("default"))) void CGame_Process_hook(void (
 
 extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (*EndFrame2D)())
 {
-    const bool renderSamp = pthread_main_np() && renderTitleHookInstalled && CMultiPlayer::IsSampActive();
+    const bool renderSamp = pthread_main_np() && renderTitleHookInstalled;
     if (renderSamp)
     {
         CMultiPlayer::m_bGameStarted = true;
     }
 
     EndFrame2D();
+
     if (!renderSamp) {
         return;
     }
 
-    const bool paused = CTimer::UpdatePauseState();
     if (CMultiPlayer::GetActiveNetwork())
     {
         if (CMultiPlayer::IsSampInit() && CMultiPlayer::IsGameActive())
@@ -108,7 +108,7 @@ extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (
                 CGui::GetChat()->Render();
             }
 
-            if (!paused && CGui::GetFontRender())
+            if (!CTimer::IsUserPause() && CGui::GetFontRender())
             {
                 CGui::GetFontRender()->Render();
             }
@@ -146,6 +146,7 @@ void CHooks::SetHooking(eHookType type)
 
     switch (type) {
         case eHookType::HOOK_TYPE_ONLOAD: {
+            CTimer::Initialise();
             CHooks::InstallNecessary();
             CModelInfo::Initialise();
             CPools::Install();

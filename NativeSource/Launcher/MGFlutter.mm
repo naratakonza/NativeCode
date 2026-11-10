@@ -4,6 +4,7 @@
 #import <dispatch/dispatch.h>
 
 #include "../Main.h"
+#include "../source/game_morgan/CTimer.h"
 #include "../source/game_morgan/Multiplayer/Guis/CChat.h"
 
 @protocol MGLoadingProject <NSObject>
@@ -183,6 +184,7 @@ static NSString* MGChatColor(uint32_t rgba)
         if ([call.method isEqualToString:@"ready"])
         {
             screen.chatReady = YES;
+            screen.paused = CTimer::IsUserPause();
             for (NSDictionary* message in screen.pendingMessages) {
                 [screen.chatChannel invokeMethod:@"addMessage" arguments:message];
             }
