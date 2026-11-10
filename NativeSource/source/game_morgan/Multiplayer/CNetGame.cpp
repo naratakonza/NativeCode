@@ -232,7 +232,8 @@ void CNetGame::SetNetworkState(eNetworkState state)
 		case eNetworkState::GAMESTATE_RESTARTING : {
             CNecessary::Log(OBFUSCATE("The server is restarting.."));
 
-            if (CGui::GetChat()) {
+            if (CGui::GetChat())
+            {
                 CGui::GetChat()->AddInfoMessage(OBFUSCATE("The server is restarting.."));
             }
 
@@ -242,7 +243,8 @@ void CNetGame::SetNetworkState(eNetworkState state)
         case eNetworkState::GAMESTATE_NETWORKCHANGED : {
             CNecessary::Log(OBFUSCATE("Network data has changed.."));
 
-            if (CGui::GetChat()) {
+            if (CGui::GetChat())
+            {
                 CGui::GetChat()->AddInfoMessage(OBFUSCATE("Network data has changed"));
             }
 

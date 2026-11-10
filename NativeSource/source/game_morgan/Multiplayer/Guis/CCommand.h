@@ -1,8 +1,5 @@
 #pragma once
 
-#include <string>
-#include <vector>
-
 using CommandCallback = void (*)(const std::vector<std::string>&);
 
 struct ChatCommand

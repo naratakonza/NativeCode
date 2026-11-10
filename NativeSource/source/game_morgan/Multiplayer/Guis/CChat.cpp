@@ -29,6 +29,7 @@ CChat::~CChat()
         std::lock_guard<std::mutex> lock(m_ChatInputMutex);
         m_ChatInputQueue = {};
     }
+
     MGCloseFlutterChat();
 }
 
@@ -42,6 +43,7 @@ bool CChat::QueueInput(std::string input)
     if (m_ChatInputQueue.size() >= 16) {
         return false;
     }
+
     m_ChatInputQueue.push(std::move(input));
     return true;
 }
@@ -106,10 +108,7 @@ void CChat::Render()
 
     MGSetFlutterChatVisible(true);
 
-    if (CPad::IsActiveWidgets() || CGame::IsRadarActive()
-        // || CRadar::GetAlpha() <= 0
-        // || CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsSpectating()
-    )
+    if (CPad::IsActiveWidgets() || CGame::IsRadarActive() /* || CRadar::GetAlpha() <= 0 || CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsSpectating()*/)
     {
         MGSetFlutterChatPosition(0);
     }
@@ -188,9 +187,12 @@ void CChat::AddToChatWindowBuffer(eChatMessageType type, const char* szString, c
     entry.eType = type;
     entry.dwNickColor = dwNickColor | 0x000000FF;
     entry.dwTextColor = dwTextColor | 0x000000FF;
-    if (szNick) {
+
+    if (szNick)
+    {
         std::snprintf(entry.szNick, sizeof(entry.szNick), "%s", szNick);
     }
+
     CChat::FilterInvalidChars(entry.szNick);
     CNecessary::ConvertLocalizedEncodingToUTF8(entry.utf8Message, strString.c_str(), sizeof(entry.utf8Message));
     char utf8Nick[eMaxItem::MAX_PLAYER_NAME * 3 + 1]{};

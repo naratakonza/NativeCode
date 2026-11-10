@@ -4,6 +4,7 @@
 #import <dispatch/dispatch.h>
 
 #include "../Main.h"
+#include "../source/game_morgan/Enums/eLanguage.h"
 #include "../source/game_morgan/Multiplayer/Guis/CChat.h"
 
 @protocol MGLoadingProject <NSObject>
@@ -86,7 +87,32 @@ static void MGRunLoadingOnMain(dispatch_block_t work)
 
 static NSStringEncoding MGChatEncoding()
 {
-    return CFStringConvertEncodingToNSStringEncoding(CNecessary::GetLocalizedEncoding());
+    auto* settings = CSetting::GetConfig();
+    const int language = settings ? settings->GetIntValue(OBFUSCATE("Language")) : eLanguage::LANGUAGE_TH;
+    CFStringRef charset = CFSTR("windows-1252");
+
+    switch (language)
+    {
+        case eLanguage::LANGUAGE_TH:
+        case eLanguage::LANGUAGE_LAOS:
+            charset = CFSTR("windows-874");
+            break;
+        case eLanguage::LANGUAGE_RU:
+            charset = CFSTR("windows-1251");
+            break;
+        case eLanguage::LANGUAGE_VN:
+            charset = CFSTR("windows-1258");
+            break;
+        case eLanguage::LANGUAGE_KURDISH:
+        case eLanguage::LANGUAGE_ARABIC:
+            charset = CFSTR("windows-1256");
+            break;
+        case eLanguage::LANGUAGE_POLAND:
+            charset = CFSTR("windows-1250");
+            break;
+    }
+
+    return CFStringConvertEncodingToNSStringEncoding(CFStringConvertIANACharSetNameToEncoding(charset));
 }
 
 static NSString* MGChatColor(uint32_t rgba)

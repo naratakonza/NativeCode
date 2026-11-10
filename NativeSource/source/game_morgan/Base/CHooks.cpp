@@ -24,7 +24,7 @@ extern "C" __attribute__((visibility("default"))) void InitialiseRenderWare_hook
     };
 
     CNecessary::Log(OBFUSCATE("Initialise RenderWare"));
-    
+
     if (externalOnly && hasTexture("texdb/samp/samp.txt") && hasTexture("texdb/samp/samp.dxt.dat") && hasTexture("texdb/samp/samp.dxt.toc") && hasTexture("texdb/samp/samp.dxt.tmb"))
     {
         load(OBFUSCATE("samp"), false, DF_DXT);
@@ -92,7 +92,8 @@ extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (
     {
         CMultiPlayer::m_bGameStarted = true;
 
-        if (CGui::GetChat()) {
+        if (CGui::GetChat())
+        {
             CGui::GetChat()->Render();
         }
 

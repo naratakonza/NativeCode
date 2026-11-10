@@ -1,8 +1,5 @@
 #pragma once
 
-#include <cstdint>
-#include <string>
-
 #include "../../Enums/eChatMessageType.h"
 #include "../../Enums/eMaxItem.h"
 
