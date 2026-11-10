@@ -1,5 +1,6 @@
 #include "../../../Main.h"
 #include "CExceptions.h"
+#include "../../game_morgan/Multiplayer/Guis/CGui.h"
 
 void CExceptions::Print(const char* type, const char* detail)
 {
@@ -12,10 +13,10 @@ void CExceptions::Print(const char* type, const char* detail)
         {
             CNecessary::Log(OBFUSCATE("Warning(%s): %s"), type, detail);
 
-            // if (CGui::GetChat())
-            // {
-            //     CGui::GetChat()->AddDebugMessage(1, OBFUSCATE("Warning(%s): %s"), type, detail);
-            // }
+            if (pthread_main_np() && CGui::GetChat())
+            {
+                CGui::GetChat()->AddDebugMessage(1, OBFUSCATE("Warning(%s): %s"), type, detail);
+            }
 
             return;
         }

@@ -38,6 +38,10 @@ void CMultiPlayer::Uninitialise()
 
 void CMultiPlayer::Process()
 {
+    if (CGui::GetChat()) {
+        CGui::GetChat()->ProcessPendingChatInputs();
+    }
+
     if (CMultiPlayer::IsSampInit())
     {
         if (CMultiPlayer::GetActiveNetwork())
@@ -52,6 +56,13 @@ void CMultiPlayer::Process()
         CMultiPlayer::pNetGame = new CNetGame(CServer::GetIpConnect(), CServer::GetPortConnect(), "ArtiwlizDev", CServer::GetPassConnect(), 576);
 
         CMultiPlayer::m_bSAMPInited = true;
+    }
+}
+
+void CMultiPlayer::Reconnect()
+{
+    if (CMultiPlayer::GetActiveNetwork()) {
+        CMultiPlayer::GetActiveNetwork()->Reconnect();
     }
 }
 

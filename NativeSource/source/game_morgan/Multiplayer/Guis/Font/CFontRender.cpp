@@ -23,6 +23,7 @@ CFontRender::CFontRender()
 	{
 		CNecessary::Log(OBFUSCATE("CFontRender | RenderWare bindings unavailable"));
 	}
+
 	io.IniFilename = nullptr;
 	io.LogFilename = nullptr;
 

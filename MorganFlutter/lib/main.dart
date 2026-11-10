@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'ui/game_loading_screen.dart';
+import 'ui/samp_chat.dart';
 
 void main() => runApp(const SAGameApp());
 
@@ -19,7 +20,13 @@ class SAGameApp extends StatelessWidget {
           child: child!,
         );
       },
-      home: const GameLoadingScreen(isVisible: false),
+      home: const Stack(
+        fit: StackFit.expand,
+        children: [
+          SampChat(),
+          IgnorePointer(child: GameLoadingScreen(isVisible: false)),
+        ],
+      ),
     );
   }
 }

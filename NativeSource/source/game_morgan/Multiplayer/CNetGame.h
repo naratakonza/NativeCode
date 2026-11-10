@@ -10,6 +10,8 @@
 #include <raknet/RakClientInterface.h>
 #include <raknet/RakNetworkFactory.h>
 #include <raknet/PacketEnumerations.h>
+#include <string>
+#include <unordered_map>
 #include <raknet/StringCompressor.h>
 
 #define NO_TEAM 255
@@ -91,6 +93,7 @@ public:
 	void SpawnScreen();
 	void Process();
 	void ProcessPools();
+    void Reconnect();
 
 public:
 	NetworkData& GetNetworkData() {
@@ -113,6 +116,23 @@ public:
 	int m_iPort;
 	char m_szPassword[0xFF];
 private:
+    void ProcessNetwork();
+    void Packet_AuthKey(Packet* packet);
+    void Packet_ConnectionSucceeded(Packet* packet);
+    static void InitGame(RPCParameters* rpc);
+    static void ClientMessage(RPCParameters* rpc);
+    static void Chat(RPCParameters* rpc);
+    static void ServerJoin(RPCParameters* rpc);
+    static void ServerQuit(RPCParameters* rpc);
+    static void ConnectionRejected(RPCParameters* rpc);
+
+    struct ChatPlayer
+    {
+        std::string name;
+        uint32_t color;
+    };
+    std::unordered_map<uint16_t, ChatPlayer> m_chatPlayers;
+    uint16_t m_localPlayerId = 0xFFFF;
 	NetworkData m_networkData;
 	RakClientInterface* m_pRakClient = nullptr;
 	// CNetGamePool* m_pNetGamePools;

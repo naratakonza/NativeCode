@@ -84,14 +84,6 @@ extern "C" __attribute__((visibility("default"))) void CGame_Process_hook(void (
     }
 }
 
-void CHooks::InstallNecessary()
-{
-    if (const auto error = CHook::GetThread()->InstallFileOpen())
-    {
-        CNecessary::Log(OBFUSCATE("Client ONLOAD failed (error %d)"), error.value());
-    }
-}
-
 extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (*EndFrame2D)())
 {
     EndFrame2D();
@@ -100,10 +92,22 @@ extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (
     {
         CMultiPlayer::m_bGameStarted = true;
 
+        if (CGui::GetChat()) {
+            CGui::GetChat()->Render();
+        }
+
         if (CMultiPlayer::IsSampInit() && CMultiPlayer::GetActiveNetwork() && CGui::GetFontRender())
         {
             CGui::GetFontRender()->Render();
         }
+    }
+}
+
+void CHooks::InstallNecessary()
+{
+    if (const auto error = CHook::GetThread()->InstallFileOpen())
+    {
+        CNecessary::Log(OBFUSCATE("Client ONLOAD failed (error %d)"), error.value());
     }
 }
 
@@ -116,9 +120,9 @@ void CHooks::InstallMenu()
         CExceptions::Print(OBFUSCATE("CHooks InstallMenu"), OBFUSCATE("CGame Process bridge unavailable"));
     }
 
-    // Both GTA 2D paths reach this call before RwCameraEndUpdate.
     renderTitleHookInstalled = CMemory::HasMappedInstruction(SA_ADDR(0x319178), "\xC0\x03\x5F\xD6") && CMemory::HasMappedInstruction(SA_ADDR(0x15A2D0), "\xA7\xF3\x0C\x94");
-    if (!renderTitleHookInstalled) {
+    if (!renderTitleHookInstalled)
+    {
         CExceptions::Print(OBFUSCATE("CHooks InstallMenu"), OBFUSCATE("End-of-frame title bridge unavailable"));
     }
 }

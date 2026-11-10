@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #ifdef __OBJC__
 @class UIViewController;
 
@@ -9,3 +11,6 @@ void MGPrepareLoadingScreen(UIViewController* parent);
 void MGSetLoadingScreenVisible(bool visible);
 void MGUpdateLoadingScreenPercent(int percent);
 void MGUpdateLoadingScreenList(const char* text);
+void MGSetFlutterChatVisible(bool visible);
+void MGCloseFlutterChat();
+void MGAddFlutterChatMessage(int type, uint32_t color, uint32_t nickColor, const char* nick, const char* text);

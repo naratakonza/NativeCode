@@ -29,7 +29,7 @@
 #include "source/utils/Necessary/CNecessary.h"
 #include "source/utils/Memory/CMemory.h"
 
-#define SAMP_VERSION	OBFUSCATE("0.3.7")
+#define SAMP_VERSION	OBFUSCATE("0.3.7 R5")
 #define PORT_VERSION	OBFUSCATE("0.69")
 
 #ifndef RAKSAMP_CLIENT
