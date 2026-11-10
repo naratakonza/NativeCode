@@ -249,7 +249,7 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
     _updateHitRegion(Rect.fromLTWH(leftPos, top, chatstatus ? 48 : chatWidth,
       chatstatus ? 48 : messageHeight + inputHeight));
 
-    return Stack(
+    return Material(type: MaterialType.transparency, child: Stack(
       children: [
         if (chatstatus)
           Positioned(
@@ -412,7 +412,7 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
             ),
           ),
       ],
-    );
+    ));
   }
 
   Widget _buildMessageRow(_ChatMessage msg, double scale, TextStyle baseStyle) {

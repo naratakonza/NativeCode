@@ -4,4 +4,5 @@ class CPad
 {
 public:
     static void DisplayWidgets(bool bDisp);
+    static bool IsActiveWidgets();
 };

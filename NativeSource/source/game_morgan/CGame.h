@@ -12,6 +12,7 @@ public:
     static void Uninitialise();
     static void SetFramerate(std::uint8_t fps);
     static void ToggleRadar(bool iToggle);
+    static bool IsRadarActive();
     static void DisplayHUD(bool bDisp);
     static bool IsAnimationLoaded(const char* animation);
     static void RequestAnimation(const char* animation);

@@ -51,10 +51,21 @@ void CGame::SetFramerate(std::uint8_t fps)
     }
 }
 
-void CGame::ToggleRadar(bool iToggle)
+static bool HasRadarFlag()
 {
     static const bool verified = CMemory::HasMappedInstruction(SA_ADDR(0x109F40), "\x2A\x35\x00\xB0") && CMemory::HasMappedInstruction(SA_ADDR(0x109F44), "\x4A\xB1\x0B\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x109F48), "\x49\x01\x00\x39");
-    if (!verified) {
+    return verified;
+}
+
+bool CGame::IsRadarActive()
+{
+    // Thunder tests the radar-disabled byte, the same flag ToggleRadar writes.
+    return HasRadarFlag() && *reinterpret_cast<const std::uint8_t*>(SA_ADDR(0x7AE2EC) + _dyld_get_image_vmaddr_slide(0)) == 1;
+}
+
+void CGame::ToggleRadar(bool iToggle)
+{
+    if (!HasRadarFlag()) {
         return;
     }
 

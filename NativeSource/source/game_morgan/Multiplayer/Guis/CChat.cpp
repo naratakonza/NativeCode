@@ -4,6 +4,7 @@
 #include "CCommand.h"
 #include "../CMultiPlayer.h"
 #include "../Core/CMultiPlayerPacket.h"
+#include "../../Base/CPad.h"
 #include "../../../../Launcher/MGFlutterLoadingScreen.h"
 #include <queue>
 
@@ -108,8 +109,14 @@ void CChat::Render()
 
     MGSetFlutterChatVisible(true);
 
-    // || CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsSpectating()
-    if (auto* settings = CSetting::GetConfig())
+    if (CPad::IsActiveWidgets() || CGame::IsRadarActive()
+        // || CRadar::GetAlpha() <= 0
+        // || CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsSpectating()
+    )
+    {
+        MGSetFlutterChatPosition(0);
+    }
+    else if (auto* settings = CSetting::GetConfig())
     {
         const float position = settings->GetFloatValue(OBFUSCATE("JavaChatPosX"));
         MGSetFlutterChatPosition(std::isfinite(position) ? static_cast<int>(std::clamp(position, 0.0f, 16.0f)) : 16);
