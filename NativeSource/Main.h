@@ -13,6 +13,7 @@
 #include <exception>
 #include <mutex>
 #include <string>
+#include <vector>
 
 #include <arpa/inet.h>
 #include <netdb.h>
