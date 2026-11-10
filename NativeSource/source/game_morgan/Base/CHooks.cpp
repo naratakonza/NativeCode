@@ -108,7 +108,7 @@ extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (
                 CGui::GetChat()->Render();
             }
 
-            if (!CTimer::IsUserPause() && CGui::GetFontRender())
+            if (CGui::GetFontRender())
             {
                 CGui::GetFontRender()->Render();
             }
