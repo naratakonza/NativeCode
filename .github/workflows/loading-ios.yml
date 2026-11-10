@@ -1,0 +1,77 @@
+name: Morgan iPhoneOS Frameworks
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    runs-on: macos-15
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Build and validate Debug iPhoneOS framework
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/morgan-launcher-debug"
+          mkdir -p "$out"
+          bash MorganLauncherNative/build-ios.sh "$out" "$GITHUB_WORKSPACE/NativeSource" Debug \
+            2>&1 | tee "$out/build.log"
+      - name: Build and validate Release iPhoneOS framework
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/morgan-launcher"
+          mkdir -p "$out"
+          bash MorganLauncherNative/build-ios.sh "$out" "$GITHUB_WORKSPACE/NativeSource" Release \
+            2>&1 | tee "$out/build.log"
+          COPYFILE_DISABLE=1 tar -C "$out" -cf "$out/MorganLauncher.framework.tar" MorganLauncher.framework
+      - name: Upload Release Framework and verification results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: MorganLauncher-iPhoneOS-ARM64
+          path: |
+            ${{ runner.temp }}/morgan-launcher/MorganLauncher.framework.tar
+            ${{ runner.temp }}/morgan-launcher/SHA256SUMS
+            ${{ runner.temp }}/morgan-launcher/dsym-uuid.txt
+            ${{ runner.temp }}/morgan-launcher/exports-after-strip.txt
+            ${{ runner.temp }}/morgan-launcher/build.log
+            ${{ runner.temp }}/morgan-launcher-debug/build.log
+          if-no-files-found: error
+  loading-aot:
+    runs-on: macos-15
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Install Flutter 3.22.1
+        shell: bash
+        run: |
+          git clone --depth 1 --branch 3.22.1 https://github.com/flutter/flutter.git "$RUNNER_TEMP/flutter-3.22.1"
+          echo "$RUNNER_TEMP/flutter-3.22.1/bin" >> "$GITHUB_PATH"
+      - name: Test and build iPhoneOS AOT module
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/morgan-loading"
+          bash MorganLauncherNative/build-loading-ios.sh "$RUNNER_TEMP/morgan-loading" \
+            2>&1 | tee "$RUNNER_TEMP/morgan-loading/build.log"
+      - name: Upload iPhoneOS AOT module and build log
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: MorganLoading-Flutter-3.22.1-iPhoneOS
+          path: |
+            ${{ runner.temp }}/morgan-loading/MorganLoading.framework.tar
+            ${{ runner.temp }}/morgan-loading/SHA256SUMS
+            ${{ runner.temp }}/morgan-loading/aot-symbols.txt
+            ${{ runner.temp }}/morgan-loading/build.log
+          if-no-files-found: error

@@ -1,0 +1,39 @@
+name: morgan_loading
+description: Arita game loading screen for Morgan iOS
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.4.1
+  flutter: 3.22.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: false
+  assets:
+    - assets/backgroud01.png
+  fonts:
+    - family: Rajdhani
+      fonts:
+        - asset: assets/fonts/Rajdhani-Medium.ttf
+    - family: Kanit
+      fonts:
+        - asset: assets/fonts/Kanit-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Kanit-Black.ttf
+          weight: 900
+    - family: NotoSans
+      fonts:
+        - asset: assets/fonts/NotoSans-Regular.ttf
+
+  module:
+    androidX: true
+    androidPackage: com.morgangame.loading
+    iosBundleIdentifier: com.morgangame.ios.loading
