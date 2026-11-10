@@ -14,11 +14,11 @@ CFontRender::CFontRender()
 
 	ImGuiContext* previous = ImGui::GetCurrentContext();
 	IMGUI_CHECKVERSION();
-	m_pContext = ImGui::CreateContext();
-	ImGui::SetCurrentContext(m_pContext);
+	CFontRender::m_pContext = ImGui::CreateContext();
+	ImGui::SetCurrentContext(CFontRender::m_pContext);
 	ImGuiIO &io = ImGui::GetIO();
 
-	m_bBackendReady = ImGui_ImplRenderWare_Init();
+	CFontRender::m_bBackendReady = ImGui_ImplRenderWare_Init();
 	io.IniFilename = nullptr;
 	io.LogFilename = nullptr;
 
@@ -49,7 +49,7 @@ CFontRender::CFontRender()
 	if (!io.FontDefault)
 	{
 		CNecessary::Log(OBFUSCATE("CFontRender | Could not load SAMP/fonts/arial.ttf"));
-		m_bBackendReady = false;
+		CFontRender::m_bBackendReady = false;
 	}
 
 	style.WindowRounding = 0.0f;
@@ -61,11 +61,11 @@ CFontRender::~CFontRender()
 	CNecessary::Log(OBFUSCATE("CFontRender Uninitialise"));
 
 	ImGuiContext* previous = ImGui::GetCurrentContext();
-	ImGui::SetCurrentContext(m_pContext);
+	ImGui::SetCurrentContext(CFontRender::m_pContext);
 	ImGui_ImplRenderWare_ShutDown();
-	ImGui::DestroyContext(m_pContext);
+	ImGui::DestroyContext(CFontRender::m_pContext);
 
-	if (previous != m_pContext)
+	if (previous != CFontRender::m_pContext)
 	{
 		ImGui::SetCurrentContext(previous);
 	}
@@ -73,12 +73,13 @@ CFontRender::~CFontRender()
 
 void CFontRender::Render()
 {
-	if (!m_bBackendReady) {
+	if (!CFontRender::m_bBackendReady)
+	{
 		return;
 	}
 
 	ImGuiContext* previous = ImGui::GetCurrentContext();
-	ImGui::SetCurrentContext(m_pContext);
+	ImGui::SetCurrentContext(CFontRender::m_pContext);
 	if (!ImGui_ImplRenderWare_NewFrame())
 	{
 		ImGui::SetCurrentContext(previous);
@@ -91,13 +92,14 @@ void CFontRender::Render()
 	const float fontSize = std::isfinite(size) ? std::clamp(size, 1.0f, 80.0f) : atlasFontSize;
 	io.FontGlobalScale = SCALE_Y(io, fontSize) / atlasFontSize;
 
-	if (!m_dwLastFrameTick) {
+	if (!CFontRender::m_dwLastFrameTick)
+	{
 		CNecessary::Log(OBFUSCATE("CFontRender | Scale factor: %f, %f Font size: %f"), io.DisplaySize.x * MULT_X, io.DisplaySize.y * MULT_Y, SCALE_Y(io, fontSize));
 	}
 
 	const auto now = CNecessary::GetTickCount();
-	io.DeltaTime = m_dwLastFrameTick ? std::max(0.001f, (now - m_dwLastFrameTick) / 1000.0f) : 1.0f / 60.0f;
-	m_dwLastFrameTick = now;
+	io.DeltaTime = CFontRender::m_dwLastFrameTick ? std::max(0.001f, (now - CFontRender::m_dwLastFrameTick) / 1000.0f) : 1.0f / 60.0f;
+	CFontRender::m_dwLastFrameTick = now;
 
 	ImGui::NewFrame();
 
@@ -157,30 +159,27 @@ ImFont* CFontRender::LoadFont(const char* font, float fontsize, const ImWchar* r
 	return nullptr;
 }
 
-void CFontRender::RenderText(ImVec2& posCur, ImU32 col, bool bOutline, const char* text_begin, const char* text_end)
+void CFontRender::RenderText(ImVec2& posCur, ImU32 col, bool bOutline, const char* text_begin, const char* text_end, float fontSize)
 {
 	auto* settings = CSetting::GetConfig();
-	int iOffset = settings ? std::clamp(settings->GetIntValue(OBFUSCATE("FontOutline")), 0, 8) : 2;
-
-	if (bOutline && iOffset > 0)
+	float offset = settings ? std::clamp(settings->GetIntValue(OBFUSCATE("FontOutline")), 0, 8) : 2;
+	if (fontSize > 0.0f)
 	{
-		// left
-		posCur.x -= iOffset;
-		ImGui::GetBackgroundDrawList()->AddText(posCur, ImColor(IM_COL32_BLACK), text_begin, text_end);
-		posCur.x += iOffset;
-		// right
-		posCur.x += iOffset;
-		ImGui::GetBackgroundDrawList()->AddText(posCur, ImColor(IM_COL32_BLACK), text_begin, text_end);
-		posCur.x -= iOffset;
-		// above
-		posCur.y -= iOffset;
-		ImGui::GetBackgroundDrawList()->AddText(posCur, ImColor(IM_COL32_BLACK), text_begin, text_end);
-		posCur.y += iOffset;
-		// below
-		posCur.y += iOffset;
-		ImGui::GetBackgroundDrawList()->AddText(posCur, ImColor(IM_COL32_BLACK), text_begin, text_end);
-		posCur.y -= iOffset;
+		offset = std::min(offset, fontSize / 12.0f);
 	}
 
-	ImGui::GetBackgroundDrawList()->AddText(posCur, col, text_begin, text_end);
+	ImDrawList* drawList = ImGui::GetBackgroundDrawList();
+	if (bOutline && offset > 0.0f)
+	{
+		// left
+		drawList->AddText(nullptr, fontSize, ImVec2(posCur.x - offset, posCur.y), IM_COL32_BLACK, text_begin, text_end);
+		// right
+		drawList->AddText(nullptr, fontSize, ImVec2(posCur.x + offset, posCur.y), IM_COL32_BLACK, text_begin, text_end);
+		// above
+		drawList->AddText(nullptr, fontSize, ImVec2(posCur.x, posCur.y - offset), IM_COL32_BLACK, text_begin, text_end);
+		// below
+		drawList->AddText(nullptr, fontSize, ImVec2(posCur.x, posCur.y + offset), IM_COL32_BLACK, text_begin, text_end);
+	}
+
+	drawList->AddText(nullptr, fontSize, posCur, col, text_begin, text_end);
 }

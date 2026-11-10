@@ -17,7 +17,7 @@ public:
 	~CFontRender();
 
 	void Render();
-	void RenderText(ImVec2& pos, ImU32 col, bool bOutline, const char* text_begin, const char* text_end = nullptr);
+	void RenderText(ImVec2& pos, ImU32 col, bool bOutline, const char* text_begin, const char* text_end = nullptr, float fontSize = 0.0f);
 
 private:
 	ImFont* LoadFont(const char* font, float fontsize, const ImWchar* ranges = nullptr);
