@@ -1,19 +1,9 @@
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
 
 #include "Enums/eMaxArchives.h"
 #include "Enums/eMaxItem.h"
-
-struct ImgArchive
-{
-    char name[40];
-    std::uint8_t listed;
-    std::uint8_t padding[3];
-    std::uint32_t stream;
-};
-static_assert(sizeof(ImgArchive) == 48 && offsetof(ImgArchive, stream) == 44);
 
 class CStreaming
 {

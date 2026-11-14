@@ -63,8 +63,8 @@ int CStreaming::AddImageToList(const char* fileName, bool isPlayerIMG)
         return -1;
     }
 
-    const auto length = ::strnlen(fileName, sizeof(ImgArchive::name));
-    if (!length || length == sizeof(ImgArchive::name)) {
+    const auto length = ::strnlen(fileName, 40);
+    if (!length || length == 40) {
         return -1;
     }
 
@@ -74,42 +74,33 @@ int CStreaming::AddImageToList(const char* fileName, bool isPlayerIMG)
         return -1;
     }
 
-    auto* archives = reinterpret_cast<ImgArchive*>(CStreaming::ms_files);
-    int slot = -1;
-
     for (int i = 0; i < eMaxArchives::MAX_IMG_ARCHIVES; ++i)
     {
-        const auto existingLength = ::strnlen(archives[i].name, sizeof(archives[i].name));
-        if (!existingLength)
+        if (CStreaming::ms_files[48 * i] == '\0')
         {
-            slot = i;
-            break;
+            const int stream = CdStreamInfo::CdStreamOpen(fileName, false);
+            if (stream < 0) {
+                return -1;
+            }
+
+            // GTA iOS uses a 40-byte name, a flag at +40 and a CD handle at +44.
+            std::memcpy(&CStreaming::ms_files[48 * i], fileName, length + 1);
+            CStreaming::ms_files[48 * i + 40] = isPlayerIMG;
+            std::memcpy(&CStreaming::ms_files[48 * i + 44], &stream, sizeof(stream));
+
+            CNecessary::Log(OBFUSCATE("IMG Archive : %s (slot %d, CD handle %u)"), fileName, i, static_cast<std::uint32_t>(stream) >> 24);
+            return i;
         }
 
-        if (morgan::fileio::ResolveGameAssetPath({archives[i].name, existingLength}).Path() == path)
+        const char* existingName = &CStreaming::ms_files[48 * i];
+        if (morgan::fileio::ResolveGameAssetPath({existingName, ::strnlen(existingName, 40)}).Path() == path)
         {
             return i;
         }
     }
 
-    if (slot < 0)
-    {
-        CNecessary::Log(OBFUSCATE("IMG Out of Space"));
-        return -1;
-    }
-
-    const int stream = CdStreamInfo::CdStreamOpen(fileName, false);
-    if (stream < 0) {
-        return -1;
-    }
-
-    auto& archive = archives[slot];
-    std::memcpy(archive.name, fileName, length + 1);
-    archive.listed = isPlayerIMG;
-    archive.stream = static_cast<std::uint32_t>(stream);
-
-    CNecessary::Log(OBFUSCATE("IMG Archive : %s (slot %d, CD handle %u)"), fileName, slot, archive.stream >> 24);
-    return slot;
+    CNecessary::Log(OBFUSCATE("IMG Out of Space"));
+    return -1;
 }
 
 extern "C" __attribute__((visibility("default"))) int CStreaming_AddImageToList_hook(const char* fileName, bool isPlayerIMG)
