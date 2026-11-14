@@ -43,7 +43,6 @@ static bool ValidateCdDirectory(std::FILE* file, std::uint32_t& largestEntry)
 
         const auto start = entry.sector * sectorSize;
         const auto count = entry.streamingSectors ? entry.streamingSectors : entry.sectors;
-        // CdStreamRead and OS_FileSeek use signed 32-bit byte offsets on iOS.
         if (!count || start < directoryEnd || start > INT32_MAX || start + count * sectorSize > fileSize) {
             return false;
         }
@@ -62,7 +61,7 @@ void CStreaming::Initialise()
 {
     CNecessary::Log(OBFUSCATE("CStreaming Initialise"));
 
-    imageListHookReady = CMemory::HasMappedInstruction(SA_ADDR(0x15551C), "\x04\x07\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x14D268), "\x73\x4A\x00\x90") && CMemory::HasMappedInstruction(SA_ADDR(0x14D26C), "\x73\x02\x10\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x3040C8), "\x1E\x4C\x06\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x14D47C), "\x34\x27\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x219F9C), "\x88\x69\xF8\x97") && CMemory::HasMappedInstruction(SA_ADDR(0x034754), "\x36\x00\x00\xF9");
+    imageListHookReady = CMemory::HasMappedInstruction(SA_ADDR(0x15551C), "\x04\x07\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x14D268), "\x73\x4A\x00\x90") && CMemory::HasMappedInstruction(SA_ADDR(0x14D26C), "\x73\x02\x10\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x3040C8), "\x1E\x4C\x06\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x14D47C), "\x34\x27\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x219F9C), "\x88\x69\xF8\x97") && CMemory::HasMappedInstruction(SA_ADDR(0x034754), "\x16\x00\x00\xF9");
 
     if (!imageListHookReady)
     {
@@ -174,7 +173,6 @@ int CStreaming::AddImageToList(const char* fileName, bool isPlayerIMG)
 
     if (morgan::fileio::CStorage::IsAssetFreeBundle())
     {
-        // OS_FileOpen stores the stdio stream at offset zero in its native handle.
         std::FILE* file = nullptr;
         std::memcpy(&file, handles[cdSlot], sizeof(file));
         std::uint32_t largestEntry = 0;
@@ -224,7 +222,6 @@ extern "C" __attribute__((visibility("default"))) void CStreaming_LoadExtraImgDi
     const auto* loadingFlag = reinterpret_cast<const std::uint8_t*>(SA_ADDR(0x8E8258) + slide);
 
     int firstUnread = 0;
-    // The native unrolled directory loop stops at the first empty slot or after slot 7.
     while (firstUnread < StockImgArchives && archives[firstUnread].name[0])
     {
         ++firstUnread;
@@ -251,7 +248,6 @@ extern "C" __attribute__((visibility("default"))) void CStreaming_LoadExtraImgDi
         }
     }
 
-    // GTA sizes the buffer immediately after this hook and counts only the base sector field.
     auto* bufferSectors = reinterpret_cast<std::uint32_t*>(SA_ADDR(0x8E8048) + slide);
     *bufferSectors = std::max(*bufferSectors, largestDirectoryEntry);
 }
