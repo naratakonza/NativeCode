@@ -8,18 +8,7 @@
 
 CPedGta* CUtil::GamePool_FindPlayerPed()
 {
-    if (!pthread_main_np()) {
-        return nullptr;
-    }
-
-    static const bool redirected = CMemory::HasMappedBytes(SA_ADDR(0x190C1C), "\x2A\x19\x00\xB0\x4A\x61\x42\xF9\x0B\x3B\x80\x52", 12, "__text");
-    if (redirected)
-    {
-        return CWorld::Players[0].m_pPed;
-    }
-
-    static const bool stock = CMemory::HasMappedBytes(SA_ADDR(0x190C1C), "\x8A\x2D\x00\xB0\x4A\xA1\x29\x91\x0B\x3B\x80\x52\x29\x29\xAB\x9B", 16, "__text");
-    return stock ? *reinterpret_cast<CPedGta* const*>(SA_ADDR(0x741A68) + _dyld_get_image_vmaddr_slide(0)) : nullptr;
+    return CWorld::GetPlayerPed(0);
 }
 
 CPedGta* CUtil::GamePool_Ped_GetAt(int iID)

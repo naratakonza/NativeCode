@@ -6,10 +6,10 @@
 class CWorld
 {
 public:
-    __attribute__((visibility("default"))) static inline CPlayerInfo Players[eMaxItem::MAX_PLAYERS];
-    __attribute__((visibility("default"))) static uint8_t PlayerInFocus;
+    static inline CPlayerInfo Players[eMaxItem::MAX_PLAYERS];
 
 public:
     static void Initialise();
-    __attribute__((visibility("default"))) static int32_t FindPlayerSlotWithPedPointer(CPedGta* pPlayersPed);
+    static CPedGta* GetPlayerPed(unsigned int slot);
+    static int32_t FindPlayerSlotWithPedPointer(CPedGta* pPlayersPed);
 };
