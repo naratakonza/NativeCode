@@ -70,6 +70,8 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 {
     if (CMultiPlayer::GetActiveNetwork())
 	{
+		CCameraAim::GameResetLocalPlayerSkills();
+		
 		CMultiPlayer::GetActiveNetwork()->InitialiseGameLogic();
 
 		CClock::EnableGameClock(false);

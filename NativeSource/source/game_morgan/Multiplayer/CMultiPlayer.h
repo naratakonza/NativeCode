@@ -2,6 +2,9 @@
 
 #include "../Enums/eThreadType.h"
 
+#define NETGAME_VERSION 4057
+#define AUTH_BS_TH OBFUSCATE("15121F6F18550C00AC4B4F8A167D0379BB0ACA99043") // 2.0
+
 class CNetGame;
 
 class CMultiPlayer

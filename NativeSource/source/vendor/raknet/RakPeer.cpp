@@ -19,6 +19,10 @@
 #include "RakPeer.h"
 #include "NetworkTypes.h"
 
+#ifdef RAKSAMP_CLIENT
+#include "../../game_morgan/Multiplayer/Core/CMultiPlayerOpcode.h"
+#endif
+
 
 #ifdef __USE_IO_COMPLETION_PORTS
 #include "AsynchronousFileIO.h"
@@ -2895,7 +2899,12 @@ bool RakPeer::HandleRPCPacket( const char *data, int length, PlayerID playerId )
 		return false;
 	}
 
-	// CMultiPlayerOpcode::Receive(&incomingBitStream, uniqueIdentifierByte);
+#ifdef RAKSAMP_CLIENT
+	// SAMP RPC's Receiver
+	if (!CMultiPlayerOpcode::Receive(&incomingBitStream, uniqueIdentifierByte)) {
+		return false;
+	}
+#endif
 
 	/*if (uniqueIdentifier != (int *)RPC_UpdateScoresPingsIPs)
 	{

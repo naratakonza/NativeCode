@@ -83,6 +83,7 @@ for source in \
     "$fileio/HookAdapter.cpp" "$hooks/CHooks.cpp" "$fileio/FileOpenDiagnostics.cpp" "$memory/CHook.cpp" \
     "$multiplayer/Texts/CDebugInfo.cpp" "$multiplayer/Guis/CGui.cpp" "$multiplayer/Guis/Font/CFontRender.cpp" \
     "$multiplayer/Guis/CChat.cpp" "$multiplayer/Guis/CCommand.cpp" "$multiplayer/Core/CMultiPlayerPacket.cpp" "$native/source/game_morgan/CUtil.cpp" "$native/source/game_morgan/CWorld.cpp" \
+    "$multiplayer/Core/CMultiPlayerNetwork.cpp" "$multiplayer/Core/CMultiPlayerOpcode.cpp" "$native/source/game_morgan/CEntryExitManager.cpp" \
     "$imgui/imgui_impl_renderware.cpp"; do
     object="${source##*/}"
     xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
@@ -106,7 +107,7 @@ for source in MGLauncherViewController MGLauncherRuntime MGStartupTickGate MGSta
 done
 raknet="$native/source/vendor/raknet"
 raknet_objects=()
-for unit in BitStream CheckSum DataBlockEncryptor DataCompressor DS_HuffmanEncodingTree GetTime InternalPacketPool NetworkTypes PluginInterface RakClient RakNetStatistics RakNetworkFactory RakPeer rakserver RakSleep Rand ReliabilityLayer rijndael RPCMap SHA1 SimpleMutex SocketLayer StringCompressor StringTable SAMP/samp_netencr SAMP/SAMPRPC; do
+for unit in BitStream CheckSum DataBlockEncryptor DataCompressor DS_HuffmanEncodingTree GetTime InternalPacketPool NetworkTypes PluginInterface RakClient RakNetStatistics RakNetworkFactory RakPeer rakserver RakSleep Rand ReliabilityLayer rijndael RPCMap SHA1 SimpleMutex SocketLayer StringCompressor StringTable SAMP/samp_netencr SAMP/SAMPRPC SAMP/samp_auth; do
     object="$out/fileio-objects/raknet-${unit##*/}.o"
     xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
         -std=c++17 "${fileio_flags[@]}" -fvisibility=hidden -DRAKSAMP_CLIENT -DNDEBUG \
@@ -127,6 +128,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CTiltedRadar.o" "$out/fileio-objects/CTiltedCameraController.o" "$out/fileio-objects/CTiltedRadarGeometry.o" "$out/fileio-objects/CTiltedRadarMath.o" \
     "$out/fileio-objects/CDebugInfo.o" "$out/fileio-objects/CGui.o" "$out/fileio-objects/CFontRender.o" \
     "$out/fileio-objects/CChat.o" "$out/fileio-objects/CCommand.o" "$out/fileio-objects/CMultiPlayerPacket.o" "$out/fileio-objects/CUtil.o" "$out/fileio-objects/CWorld.o" \
+    "$out/fileio-objects/CMultiPlayerNetwork.o" "$out/fileio-objects/CMultiPlayerOpcode.o" "$out/fileio-objects/CEntryExitManager.o" \
     "$out/fileio-objects/imgui.o" "$out/fileio-objects/imgui_draw.o" "$out/fileio-objects/imgui_impl_renderware.o" \
     "$out/fileio-objects/Main.o" "$out/fileio-objects/RenderWare.o" "$out/fileio-objects/CMultiPlayer.o" "$out/fileio-objects/CNecessary.o" \
     "$out/fileio-objects/CPatches.o" "$out/fileio-objects/CUvAnim.o" "$out/fileio-objects/CFastLoad.o" "$out/fileio-objects/CMemory.o" \
@@ -179,6 +181,9 @@ check_call CMultiPlayer 'CServer12SetIpConnect'
 check_call CMultiPlayer 'CNetGameC1'
 check_call CMultiPlayer 'CNetGame7Process'
 check_call CNetGame 'RakNetworkFactory21GetRakClientInterface'
+check_call CNetGame 'CMultiPlayerNetwork6Update'
+check_call raknet-RakPeer 'CMultiPlayerOpcode7Receive'
+check_call CMultiPlayerOpcode 'CEntryExitManager25DisableInteriorEnterExits'
 check_call CNetGame 'SetGameWeather'
 check_call CNetGame 'DisplayHUD'
 check_call CNetGame 'DisplayWidgets'

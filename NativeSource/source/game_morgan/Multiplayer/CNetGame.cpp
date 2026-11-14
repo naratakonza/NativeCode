@@ -11,7 +11,7 @@
 #include "../CLoadingScreen.h"
 #include "../Base/CPad.h"
 #include "../Scripts/CScripting.h"
-// #include "Core/CMultiPlayerNetwork.h"
+#include "Core/CMultiPlayerNetwork.h"
 
 CNetGame::CNetGame(const char* szHostOrIp, int iPort, const char* szPlayerName, const char* szPass, int Size, bool hasChanged) : NetworkSettings{}
 {
@@ -148,7 +148,7 @@ void CNetGame::Process()
 		return;
 	}
 
-    // CMultiPlayerNetwork::Update();
+    CMultiPlayerNetwork::Update();
 
     if (CMultiPlayer::GetActiveNetwork()->m_bHoldTime)
     {
@@ -179,19 +179,19 @@ void CNetGame::Process()
     }
     else
     {
-        // CNetGame::SpawnScreen();
+        CNetGame::SpawnScreen();
 
-        static bool once = false;
-        if (once)
-        {
-            return;
-        }
-        else
-        {
-            once = true;
-            CGame::GetCamera()->SetBehindPlayer();
-            CGame::GetPlayer()->SetModelIndex(309);
-        }
+        // static bool once = false;
+        // if (once)
+        // {
+        //     return;
+        // }
+        // else
+        // {
+        //     once = true;
+        //     CGame::GetCamera()->SetBehindPlayer();
+        //     CGame::GetPlayer()->SetModelIndex(309);
+        // }
     }
 }
 
