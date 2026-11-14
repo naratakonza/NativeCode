@@ -5,10 +5,8 @@
 
 #include <mach-o/dyld.h>
 
-static constexpr int StockImgArchives = 8;
 static bool imageListHookReady = false;
 static bool stockImageListOpened = false;
-static std::uint32_t largestDirectoryEntry = 0;
 
 char (&CStreaming::ms_files)[48 * eMaxArchives::MAX_IMG_ARCHIVES] = *reinterpret_cast<char (*)[48 * eMaxArchives::MAX_IMG_ARCHIVES]>(SA_ADDR(0xA99400) + _dyld_get_image_vmaddr_slide(0));
 std::uint32_t& CStreaming::ms_memoryUsed = *reinterpret_cast<std::uint32_t*>(SA_ADDR(0x8E7E54) + _dyld_get_image_vmaddr_slide(0));
@@ -18,7 +16,7 @@ void CStreaming::Initialise()
 {
     CNecessary::Log(OBFUSCATE("CStreaming Initialise"));
 
-    imageListHookReady = CdStreamInfo::IsAvailable() && CMemory::HasMappedInstruction(SA_ADDR(0x15551C), "\x04\x07\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x14D268), "\x73\x4A\x00\x90") && CMemory::HasMappedInstruction(SA_ADDR(0x14D26C), "\x73\x02\x10\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x3040C8), "\x1E\x4C\x06\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x14D47C), "\x34\x27\x0D\x94");
+    imageListHookReady = CdStreamInfo::IsAvailable() && CMemory::HasMappedInstruction(SA_ADDR(0x15551C), "\x04\x07\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x14D268), "\x73\x4A\x00\x90") && CMemory::HasMappedInstruction(SA_ADDR(0x14D2B0), "\xDF\x82\x00\x71") && CMemory::HasMappedInstruction(SA_ADDR(0x3040C8), "\x1E\x4C\x06\x14");
 
     if (!imageListHookReady)
     {
@@ -47,7 +45,6 @@ void CStreaming::InitImageList()
     }
 
     std::memset(CStreaming::ms_files, 0, sizeof(CStreaming::ms_files));
-    largestDirectoryEntry = 0;
 
     const int gta3 = CStreaming::AddImageToList(OBFUSCATE("TEXDB\\GTA3.IMG"), true);
     const int gtaInt = CStreaming::AddImageToList(OBFUSCATE("TEXDB\\GTA_INT.IMG"), true);
@@ -85,12 +82,8 @@ int CStreaming::AddImageToList(const char* fileName, bool isPlayerIMG)
         const auto existingLength = ::strnlen(archives[i].name, sizeof(archives[i].name));
         if (!existingLength)
         {
-            if (slot < 0)
-            {
-                slot = i;
-            }
-
-            continue;
+            slot = i;
+            break;
         }
 
         if (morgan::fileio::ResolveGameAssetPath({archives[i].name, existingLength}).Path() == path)
@@ -110,16 +103,6 @@ int CStreaming::AddImageToList(const char* fileName, bool isPlayerIMG)
         return -1;
     }
 
-    std::uint32_t largestEntry = 0;
-    if (morgan::fileio::CStorage::IsAssetFreeBundle() && !CdStreamInfo::ValidateOpenArchive(static_cast<std::uint32_t>(stream), fileName, largestEntry)) {
-        return -1;
-    }
-
-    if (isPlayerIMG)
-    {
-        largestDirectoryEntry = std::max(largestDirectoryEntry, largestEntry);
-    }
-
     auto& archive = archives[slot];
     std::memcpy(archive.name, fileName, length + 1);
     archive.listed = isPlayerIMG;
@@ -133,51 +116,6 @@ extern "C" __attribute__((visibility("default"))) int CStreaming_AddImageToList_
 {
     const int slot = CStreaming::AddImageToList(fileName, isPlayerIMG);
     return slot < 0 ? 0 : slot;
-}
-
-extern "C" __attribute__((visibility("default"))) void CStreaming_LoadExtraImgDirectories_hook()
-{
-    if (!imageListHookReady || !pthread_main_np()) {
-        return;
-    }
-
-    const auto* archives = reinterpret_cast<const ImgArchive*>(CStreaming::ms_files);
-    const auto slide = _dyld_get_image_vmaddr_slide(0);
-    const auto loadDirectory = reinterpret_cast<void (*)(const char*, int)>(SA_ADDR(0x14D5CC) + slide);
-    const auto displayPCScreen = reinterpret_cast<void (*)()>(SA_ADDR(0x21907C) + slide);
-    const auto updateLoading = reinterpret_cast<void (*)()>(SA_ADDR(0x15A480) + slide);
-    const auto* displayFlag = reinterpret_cast<const std::uint8_t*>(SA_ADDR(0x7AE3A0) + slide);
-    const auto* loadingFlag = reinterpret_cast<const std::uint8_t*>(SA_ADDR(0x8E8258) + slide);
-
-    int firstUnread = 0;
-    while (firstUnread < StockImgArchives && archives[firstUnread].name[0])
-    {
-        ++firstUnread;
-    }
-
-    for (int i = firstUnread; i < eMaxArchives::MAX_IMG_ARCHIVES; ++i)
-    {
-        if (!archives[i].name[0]) {
-            continue;
-        }
-
-        if (archives[i].listed)
-        {
-            loadDirectory(archives[i].name, i);
-        }
-
-        if (*displayFlag)
-        {
-            displayPCScreen();
-        }
-        else if (*loadingFlag)
-        {
-            updateLoading();
-        }
-    }
-
-    auto* bufferSectors = reinterpret_cast<std::uint32_t*>(SA_ADDR(0x8E8048) + slide);
-    *bufferSectors = std::max(*bufferSectors, largestDirectoryEntry);
 }
 
 void CStreaming::RequestModel(unsigned int modelId)
