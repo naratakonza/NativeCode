@@ -3,10 +3,56 @@
 #include "../utils/Storage/CStorage.h"
 
 #include <mach-o/dyld.h>
+#include <sys/stat.h>
 
 static constexpr int StockImgArchives = 8;
 static bool imageListHookReady = false;
 static bool stockImageListOpened = false;
+static std::uint32_t largestDirectoryEntry = 0;
+
+struct CdDirectoryEntry
+{
+    std::uint32_t sector;
+    std::uint16_t sectors;
+    std::uint16_t streamingSectors;
+    char name[24];
+};
+static_assert(sizeof(CdDirectoryEntry) == 32);
+
+static bool ValidateCdDirectory(std::FILE* file, std::uint32_t& largestEntry)
+{
+    struct stat info{};
+    std::uint32_t header[2]{};
+    if (::fstat(::fileno(file), &info) != 0 || info.st_size < 0 || std::fread(header, sizeof(header), 1, file) != 1 || header[0] != 0x32524556 || !header[1] || header[1] > INT32_MAX / sizeof(CdDirectoryEntry)) {
+        return false;
+    }
+
+    constexpr std::uint64_t sectorSize = 2048;
+    const auto directoryEnd = sizeof(header) + sizeof(CdDirectoryEntry) * static_cast<std::uint64_t>(header[1]);
+    const auto fileSize = static_cast<std::uint64_t>(info.st_size);
+    if (directoryEnd > fileSize) {
+        return false;
+    }
+
+    for (std::uint32_t i = 0; i < header[1]; ++i)
+    {
+        CdDirectoryEntry entry{};
+        if (std::fread(&entry, sizeof(entry), 1, file) != 1) {
+            return false;
+        }
+
+        const auto start = entry.sector * sectorSize;
+        const auto count = entry.streamingSectors ? entry.streamingSectors : entry.sectors;
+        // CdStreamRead and OS_FileSeek use signed 32-bit byte offsets on iOS.
+        if (!count || start < directoryEnd || start > INT32_MAX || start + count * sectorSize > fileSize) {
+            return false;
+        }
+
+        largestEntry = std::max(largestEntry, static_cast<std::uint32_t>(count));
+    }
+
+    return true;
+}
 
 char (&CStreaming::ms_files)[48 * eMaxArchives::MAX_IMG_ARCHIVES] = *reinterpret_cast<char (*)[48 * eMaxArchives::MAX_IMG_ARCHIVES]>(SA_ADDR(0xA99400) + _dyld_get_image_vmaddr_slide(0));
 std::uint32_t& CStreaming::ms_memoryUsed = *reinterpret_cast<std::uint32_t*>(SA_ADDR(0x8E7E54) + _dyld_get_image_vmaddr_slide(0));
@@ -16,7 +62,7 @@ void CStreaming::Initialise()
 {
     CNecessary::Log(OBFUSCATE("CStreaming Initialise"));
 
-    imageListHookReady = CMemory::HasMappedInstruction(SA_ADDR(0x15551C), "\x04\x07\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x303F64), "\x73\x02\x10\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x3040C8), "\x1E\x4C\x06\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x14D47C), "\x34\x27\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x219F9C), "\x88\x69\xF8\x97");
+    imageListHookReady = CMemory::HasMappedInstruction(SA_ADDR(0x15551C), "\x04\x07\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x14D268), "\x73\x4A\x00\x90") && CMemory::HasMappedInstruction(SA_ADDR(0x14D26C), "\x73\x02\x10\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x3040C8), "\x1E\x4C\x06\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x14D47C), "\x34\x27\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x219F9C), "\x88\x69\xF8\x97") && CMemory::HasMappedInstruction(SA_ADDR(0x034754), "\x36\x00\x00\xF9");
 
     if (!imageListHookReady)
     {
@@ -24,33 +70,43 @@ void CStreaming::Initialise()
     }
 }
 
-extern "C" __attribute__((visibility("default"))) void CStreaming_InitImageList_hook(void (*original)())
+extern "C" __attribute__((visibility("default"))) void CStreaming_InitImageList_hook()
 {
-    std::memset(CStreaming::ms_files, 0, sizeof(CStreaming::ms_files));
-    original();
-
-    if (!imageListHookReady || !pthread_main_np()) {
-        return;
-    }
-
-    const auto* handles = reinterpret_cast<void* const*>(SA_ADDR(0x509500) + _dyld_get_image_vmaddr_slide(0));
-    stockImageListOpened = CStreaming::ms_files[0] != '\0' && handles[0] != nullptr;
     CStreaming::InitImageList();
 }
 
 void CStreaming::InitImageList()
 {
-    if (!pthread_main_np() || !stockImageListOpened || !morgan::fileio::CStorage::IsAssetFreeBundle()) {
+    if (!pthread_main_np()) {
         return;
     }
 
-    CStreaming::AddImageToList(OBFUSCATE("TEXDB\\SAMP.IMG"), true);
-    CStreaming::AddImageToList(OBFUSCATE("TEXDB\\SAMPCOL.IMG"), true);
+    if (!imageListHookReady)
+    {
+        CStreaming::Initialise();
+    }
+
+    if (!imageListHookReady) {
+        return;
+    }
+
+    std::memset(CStreaming::ms_files, 0, sizeof(CStreaming::ms_files));
+    largestDirectoryEntry = 0;
+
+    const int gta3 = CStreaming::AddImageToList(OBFUSCATE("TEXDB\\GTA3.IMG"), true);
+    const int gtaInt = CStreaming::AddImageToList(OBFUSCATE("TEXDB\\GTA_INT.IMG"), true);
+    stockImageListOpened = gta3 == 0 && gtaInt == 1;
+
+    if (stockImageListOpened && morgan::fileio::CStorage::IsAssetFreeBundle())
+    {
+        CStreaming::AddImageToList(OBFUSCATE("TEXDB\\SAMP.IMG"), true);
+        CStreaming::AddImageToList(OBFUSCATE("TEXDB\\SAMPCOL.IMG"), true);
+    }
 }
 
 int CStreaming::AddImageToList(const char* fileName, bool isPlayerIMG)
 {
-    if (!pthread_main_np() || !fileName || !CMemory::HasMappedInstruction(SA_ADDR(0x3040C8), "\x1E\x4C\x06\x14")) {
+    if (!imageListHookReady || !pthread_main_np() || !fileName) {
         return -1;
     }
 
@@ -88,39 +144,62 @@ int CStreaming::AddImageToList(const char* fileName, bool isPlayerIMG)
     }
 
     const auto slide = _dyld_get_image_vmaddr_slide(0);
-    const auto* handles = reinterpret_cast<void* const*>(SA_ADDR(0x509500) + slide);
-    if (slot < 0 || std::none_of(handles, handles + eMaxArchives::MAX_CD_HANDLE_ARCHIVES, [](const void* handle) { return handle == nullptr; }))
+    if (slot < 0)
     {
         CNecessary::Log(OBFUSCATE("IMG Out of Space"));
         return -1;
     }
 
-    if (morgan::fileio::CStorage::IsAssetFreeBundle())
+    auto** handles = reinterpret_cast<void**>(SA_ADDR(0x509500) + slide);
+    auto* names = reinterpret_cast<char (*)[eMaxArchives::MAX_CD_STREAM_IMAGE_NAME_SIZE]>(SA_ADDR(0x7AE520) + slide);
+    int cdSlot = 0;
+    while (cdSlot < eMaxArchives::MAX_CD_HANDLE_ARCHIVES && handles[cdSlot])
     {
-        const auto input = morgan::fileio::CStorage::OpenActiveResource(nullptr, asset);
-        std::uint32_t header[2]{};
-        if (!input.file || std::fread(header, sizeof(header), 1, input.file.get()) != 1 || header[0] != 0x32524556 || !header[1] || ::fseeko(input.file.get(), 0, SEEK_END) != 0 || ::ftello(input.file.get()) < static_cast<std::int64_t>(8 + 32ULL * header[1]))
-        {
-            CNecessary::Log(OBFUSCATE("IMG missing or invalid: %s"), fileName);
-            return -1;
-        }
+        ++cdSlot;
+    }
+
+    if (cdSlot == eMaxArchives::MAX_CD_HANDLE_ARCHIVES)
+    {
+        CNecessary::Log(OBFUSCATE("IMG Out of Space"));
+        return -1;
     }
 
     const auto open = reinterpret_cast<std::uint32_t (*)(const char*, bool)>(SA_ADDR(0x219CEC) + slide);
-    const bool usedSlotZero = handles[0] != nullptr;
-    const auto handle = open(fileName, false);
-    if (!handle && (usedSlotZero || !handles[0]))
+    const auto stream = open(fileName, false);
+    if (!handles[cdSlot] || stream != (static_cast<std::uint32_t>(cdSlot) << 24))
     {
         CNecessary::Log(OBFUSCATE("IMG open failed: %s"), fileName);
         return -1;
     }
 
+    if (morgan::fileio::CStorage::IsAssetFreeBundle())
+    {
+        // OS_FileOpen stores the stdio stream at offset zero in its native handle.
+        std::FILE* file = nullptr;
+        std::memcpy(&file, handles[cdSlot], sizeof(file));
+        std::uint32_t largestEntry = 0;
+        if (!file || !ValidateCdDirectory(file, largestEntry) || ::fseeko(file, 0, SEEK_SET) != 0)
+        {
+            const auto close = reinterpret_cast<int (*)(void*)>(SA_ADDR(0x034874) + slide);
+            close(handles[cdSlot]);
+            handles[cdSlot] = nullptr;
+            names[cdSlot][0] = '\0';
+            CNecessary::Log(OBFUSCATE("IMG invalid directory or sectors: %s"), fileName);
+            return -1;
+        }
+
+        if (isPlayerIMG)
+        {
+            largestDirectoryEntry = std::max(largestDirectoryEntry, largestEntry);
+        }
+    }
+
     auto& archive = archives[slot];
     std::memcpy(archive.name, fileName, length + 1);
     archive.listed = isPlayerIMG;
-    archive.stream = handle;
+    archive.stream = stream;
 
-    CNecessary::Log(OBFUSCATE("IMG Archive : %s (slot %d)"), fileName, slot);
+    CNecessary::Log(OBFUSCATE("IMG Archive : %s (slot %d, CD handle %d)"), fileName, slot, cdSlot);
     return slot;
 }
 
@@ -132,11 +211,11 @@ extern "C" __attribute__((visibility("default"))) int CStreaming_AddImageToList_
 
 extern "C" __attribute__((visibility("default"))) void CStreaming_LoadExtraImgDirectories_hook()
 {
-    const auto* archives = reinterpret_cast<const ImgArchive*>(CStreaming::ms_files);
-    if (!archives[StockImgArchives - 1].name[0]) {
+    if (!imageListHookReady || !pthread_main_np()) {
         return;
     }
 
+    const auto* archives = reinterpret_cast<const ImgArchive*>(CStreaming::ms_files);
     const auto slide = _dyld_get_image_vmaddr_slide(0);
     const auto loadDirectory = reinterpret_cast<void (*)(const char*, int)>(SA_ADDR(0x14D5CC) + slide);
     const auto displayPCScreen = reinterpret_cast<void (*)()>(SA_ADDR(0x21907C) + slide);
@@ -144,8 +223,19 @@ extern "C" __attribute__((visibility("default"))) void CStreaming_LoadExtraImgDi
     const auto* displayFlag = reinterpret_cast<const std::uint8_t*>(SA_ADDR(0x7AE3A0) + slide);
     const auto* loadingFlag = reinterpret_cast<const std::uint8_t*>(SA_ADDR(0x8E8258) + slide);
 
-    for (int i = StockImgArchives; i < eMaxArchives::MAX_IMG_ARCHIVES && archives[i].name[0]; ++i)
+    int firstUnread = 0;
+    // The native unrolled directory loop stops at the first empty slot or after slot 7.
+    while (firstUnread < StockImgArchives && archives[firstUnread].name[0])
     {
+        ++firstUnread;
+    }
+
+    for (int i = firstUnread; i < eMaxArchives::MAX_IMG_ARCHIVES; ++i)
+    {
+        if (!archives[i].name[0]) {
+            continue;
+        }
+
         if (archives[i].listed)
         {
             loadDirectory(archives[i].name, i);
@@ -160,6 +250,10 @@ extern "C" __attribute__((visibility("default"))) void CStreaming_LoadExtraImgDi
             updateLoading();
         }
     }
+
+    // GTA sizes the buffer immediately after this hook and counts only the base sector field.
+    auto* bufferSectors = reinterpret_cast<std::uint32_t*>(SA_ADDR(0x8E8048) + slide);
+    *bufferSectors = std::max(*bufferSectors, largestDirectoryEntry);
 }
 
 void CStreaming::RequestModel(unsigned int modelId)
