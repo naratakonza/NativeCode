@@ -38,4 +38,6 @@ public:
 
 public:
     static bool m_bRebuildPlayer;
+
+    static void ProcessAnimGroups(bool bUseCJWalk);
 };

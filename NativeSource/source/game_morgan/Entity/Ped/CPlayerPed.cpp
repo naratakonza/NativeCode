@@ -109,6 +109,17 @@ bool CPlayerPed::IsInVehicle()
     return CPlayerPed::VerifyInstance() && GetPed()->bInVehicle;
 }
 
+void CPlayerPed::ProcessAnimGroups(bool bUseCJWalk)
+{
+    static const bool verified = CMemory::HasMappedInstruction(SA_ADDR(0x26FCB8), "\x27\x9E\x08\x14") && CMemory::HasMappedBytes(SA_ADDR(0x497554), "\xC9\x33\x00\x90\x29\xE1\x73\x39\x49\x00\x00\x35\x68\x32\x06\xB9\xD6\x61\xF7\x17", 20, "__mg_gameproc");
+    if (!verified) {
+        return;
+    }
+
+    // The packaged instruction skips the movement-group store when this byte is set.
+    *reinterpret_cast<std::uint8_t*>(SA_ADDR(0xB0FCF8) + _dyld_get_image_vmaddr_slide(0)) = static_cast<std::uint8_t>(!bUseCJWalk);
+}
+
 void CPlayerPed::RemoveFromVehicleAndPutAt(float fX, float fY, float fZ)
 {
     if (CPlayerPed::IsInVehicle())

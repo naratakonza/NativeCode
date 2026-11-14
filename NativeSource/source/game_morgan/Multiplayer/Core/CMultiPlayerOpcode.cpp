@@ -139,7 +139,7 @@ void InitGame(RakNet::BitStream bsInitGame)
 	// CGame::EnableStuntBonus(bStuntBonus);
     CClock::SetGameTime(CMultiPlayer::GetActiveNetwork()->m_byteWorldTime, 0);
 	CWeather::SetGameWeather((eWeatherType)CMultiPlayer::GetActiveNetwork()->m_byteWeather);
-    // CPlayerPed::ProcessAnimGroups(CMultiPlayer::GetActiveNetwork()->m_bUseCJWalk);
+    CPlayerPed::ProcessAnimGroups(CMultiPlayer::GetActiveNetwork()->m_bUseCJWalk);
     CTheZones::EnableZoneNames(CMultiPlayer::GetActiveNetwork()->m_bZoneNames);
 
     CNecessary::Log(OBFUSCATE("Connected to {B9C9BF}%.64s"), CMultiPlayer::GetActiveNetwork()->GetNetworkData().HostName);
@@ -147,6 +147,8 @@ void InitGame(RakNet::BitStream bsInitGame)
     CGame::GetCamera()->SetBehindPlayer();
     CGame::DisplayHUD(true);
     CGame::GetPlayer()->SetModelIndex(230);
+	CGame::GetPlayer()->SetHealth(100);
+	CGame::GetPlayer()->SetArmour(100);
 
 	if (CGui::GetChat())
 	{

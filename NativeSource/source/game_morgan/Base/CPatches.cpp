@@ -2,6 +2,7 @@
 #include "CPatches.h"
 #include "CUvAnim.h"
 #include "../Models/CModelInfo.h"
+#include "../Entity/Ped/CPlayerPed.h"
 #include "Thread/CFastLoad.h"
 
 #include <mach-o/dyld.h>
@@ -174,8 +175,14 @@ void CPatches::InstallMainPatches()
     // ปิดชื่อ Zone ในแผนที่
     CMemory::makeNOP(SA_ADDR(0x1EE7A0), 1);
 
+    // ปิด HeadMove ใน CCam::Process_FollowPed_SA เพราะใน samp ใช้ของ sync แล้ว
+    CMemory::makeNOP(SA_ADDR(0x11F134), 1);
+
     // CMirrors::RenderReflections ใช้ตำแหน่งกล้องสะท้อนคงที่ทุกโหมดแบบ Arita
     CMemory::makeNOP(SA_ADDR(0x301B14), 1);
+
+    // บังคับให้ใช้ท่าทางจาก IDE สำหรับตัวละคร
+    CPlayerPed::ProcessAnimGroups(false);
 
     // แก้ไข UvAnim
     // ตัวแพ็กเปิดแฟล็กเฉพาะ RpMaterialUVAnimAddAnimTime (0x29F904) และคืนค่าเดิมหลังอัปเดต
