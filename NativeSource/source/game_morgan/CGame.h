@@ -1,11 +1,13 @@
 #pragma once
 
 #include "CCamera.h"
+#include "Entity/Ped/CPlayerPed.h"
 
 class CGame
 {
 public:
 	static CCamera* m_pGameCamera;
+	static CPlayerPed* m_pGamePlayer;
 
 public:
     static void Initialize();
@@ -27,5 +29,10 @@ public:
 	static CCamera* GetCamera() {
 		if (!m_pGameCamera) m_pGameCamera = new CCamera();
 		return m_pGameCamera;
+	};
+
+	static CPlayerPed* GetPlayer() {
+		if (!m_pGamePlayer) m_pGamePlayer = new CPlayerPed();
+		return m_pGamePlayer;
 	};
 };

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Core/CMatrix.h"
-// #include "Entity/CEntity.h"
+class CEntity;
 
 // #include "Enums/eCamMode.h"
 // #include "Enums/eSwitchType.h"
@@ -33,14 +33,14 @@ public:
 
 	// void Attach(CEntity* pEntity);
 
-	// CEntity* GetAttach() {
-	// 	return m_pAttachedTo;
-	// };
+	CEntity* GetAttach() {
+		return m_pAttachedTo;
+	};
 
 	// void Update();
 	static void LerpFOV(float from, float to, float time, bool bSetSmoothEnds);
 
 private:
 	CMatrix *m_matPos = nullptr;
-	// CEntity* m_pAttachedTo;
+	CEntity* m_pAttachedTo;
 };

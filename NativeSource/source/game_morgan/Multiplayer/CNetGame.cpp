@@ -3,6 +3,8 @@
 #include "CMultiPlayer.h"
 #include "Guis/CGui.h"
 #include "../CGame.h"
+#include "../CCommon.h"
+#include "../CUtil.h"
 #include "../CClock.h"
 #include "../CWeather.h"
 #include "../CTheZones.h"
@@ -188,7 +190,8 @@ void CNetGame::Process()
         {
             once = true;
             CGame::GetCamera()->SetBehindPlayer();
-		}
+            CGame::GetPlayer()->SetModelIndex(309);
+        }
     }
 }
 
@@ -265,8 +268,7 @@ void CNetGame::SetNetworkState(eNetworkState state)
 
 void CNetGame::SpawnScreen()
 {
-    // if (!CGame::GetCamera() || !CGame::GetPlayer()) {
-    if (!CGame::GetCamera()) {
+    if (!CGame::GetCamera() || !CGame::GetPlayer()) {
         return;
     }
 
@@ -274,16 +276,14 @@ void CNetGame::SpawnScreen()
     CGame::DisplayHUD(false);
     CPad::DisplayWidgets(false);
 
-    // if (CGame::GetPlayer()->IsInVehicle())
-    // {
-    //     CGame::GetPlayer()->RemoveFromVehicleAndPutAt(1093.4, -2036.5, 82.710602);
-    // }
-    // else
-    // {
-    //     CGame::GetPlayer()->TeleportTo(1093.4f, -2036.5f, 82.7106f);
-    // }
-
-    // CGame::GetPlayer()->TeleportTo(1093.4f, -2036.5f, 82.7106f);
+    if (CGame::GetPlayer()->IsInVehicle())
+    {
+        CGame::GetPlayer()->RemoveFromVehicleAndPutAt(1093.4f, -2036.5f, 82.7106f);
+    }
+    else
+    {
+        CGame::GetPlayer()->TeleportTo(1093.4f, -2036.5f, 82.7106f);
+    }
 
     CGame::GetCamera()->SetPosition(1093.0f, -2036.0f, 90.0f, 0.0f, 0.0f, 0.0f);
     CGame::GetCamera()->LookAtPoint(384.0f, -1557.0f, 20.0f, 2);

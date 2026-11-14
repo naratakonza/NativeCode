@@ -4,9 +4,11 @@
 #include "../CDraw.h"
 #include "../CCameraController.h"
 #include "../CTimer.h"
+#include "../CWorld.h"
 #include "../Models/CModelInfo.h"
 #include "../CPools.h"
 #include "../CStreaming.h"
+#include "../Entity/Ped/CPlayerPed.h"
 #include "../RadarMod/CTiltedRadar.h"
 #include "../../utils/Memory/CHook.h"
 #include "../../utils/Storage/CStorage.h"
@@ -15,6 +17,7 @@
 
 static bool gameProcessHookInstalled = false;
 static bool renderTitleHookInstalled = false;
+static bool clothesRebuildHookInstalled = false;
 
 extern "C" __attribute__((visibility("default"))) void InitialiseRenderWare_hook(void* (*load)(const char*, bool, int))
 {
@@ -120,6 +123,21 @@ extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (
     }
 }
 
+extern "C" __attribute__((visibility("default"))) void CClothes_RebuildPlayer_hook(uintptr_t thiz, bool bForReplay, void (*CClothes_RebuildPlayer)(uintptr_t, bool))
+{
+    if (!pthread_main_np() || !clothesRebuildHookInstalled || !CMultiPlayer::IsSampActive())
+    {
+        CClothes_RebuildPlayer(thiz, bForReplay);
+        return;
+    }
+
+    if (!CPlayerPed::m_bRebuildPlayer) {
+        return;
+    }
+
+    CClothes_RebuildPlayer(thiz, bForReplay);
+}
+
 void CHooks::InstallNecessary()
 {
     if (const auto error = CHook::GetThread()->InstallFileOpen())
@@ -142,6 +160,8 @@ void CHooks::InstallMenu()
     {
         CExceptions::Print(OBFUSCATE("CHooks InstallMenu"), OBFUSCATE("End-of-frame title bridge unavailable"));
     }
+
+    clothesRebuildHookInstalled = CMemory::HasMappedInstruction(SA_ADDR(0x86450), "\xF6\x57\xBD\xA9") && CMemory::HasMappedBytes(SA_ADDR(0x49728C), "\x62\xDF\xFF\xF0\x42\x40\x11\x91\xF0\x00\x00\xD0\x10\x5A\x42\xF9\x00\x02\x1F\xD6", 20, "__mg_gameproc");
 }
 
 void CHooks::SetHooking(eHookType type)
@@ -152,6 +172,7 @@ void CHooks::SetHooking(eHookType type)
         case eHookType::HOOK_TYPE_ONLOAD: {
             CTimer::Initialise();
             CHooks::InstallNecessary();
+            CWorld::Initialise();
             CModelInfo::Initialise();
             CPools::Install();
 

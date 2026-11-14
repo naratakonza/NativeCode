@@ -1,4 +1,5 @@
 _CDraw_SetFov_hook
+_CClothes_RebuildPlayer_hook
 _CGame_Process_hook
 _CPools_Initialise_hook
 _CRadar_DrawBlips_hook
@@ -11,6 +12,9 @@ _CRadar_ShowRadarTraceWithHeight_hook
 _CStreaming_AddImageToList_hook
 _CStreaming_InitImageList_hook
 _CameraSize_hook
+__ZN6CWorld13PlayerInFocusE
+__ZN6CWorld28FindPlayerSlotWithPedPointerEP7CPedGta
+__ZN6CWorld7PlayersE
 _DrawMoney_Sprintf_hook
 _InitialiseRenderWare_hook
 _MGClockFormatHUD

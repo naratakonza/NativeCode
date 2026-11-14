@@ -4,7 +4,7 @@ class CDebugInfo
 {
 public:
     CDebugInfo();
-
+    
     void RenderTitle();
 
 private:

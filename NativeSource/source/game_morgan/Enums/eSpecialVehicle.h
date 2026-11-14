@@ -1,0 +1,10 @@
+#pragma once
+
+enum eSpecialVehicle {
+	HYDRA = 520,
+	TRAIN_TRAM = 449,
+	TRAIN_FREIGHT_LOCO = 537,
+	TRAIN_PASSENGER_LOCO,
+	TRAIN_FREIGHT = 569,
+	TRAIN_PASSENGER,
+};

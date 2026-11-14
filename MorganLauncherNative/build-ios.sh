@@ -72,6 +72,8 @@ mkdir "$out/fileio-objects"
 for source in \
     "$native/source/game_morgan/CCameraAim.cpp" "$native/source/game_morgan/CAspectRatio.cpp" "$native/source/game_morgan/CCameraController.cpp" "$native/source/game_morgan/CDraw.cpp" "$native/source/game_morgan/CSensitivity.cpp" \
     "$native/source/game_morgan/CdStreamInfo.cpp" \
+    "$native/source/game_morgan/CCommon.cpp" "$native/source/game_morgan/Entity/CEntity.cpp" \
+    "$native/source/game_morgan/Entity/Ped/CPed.cpp" "$native/source/game_morgan/Entity/Ped/CPlayerPed.cpp" "$native/source/game_morgan/Entity/Ped/CPlayerPedSlot.cpp" "$native/source/game_morgan/Entity/Ped/CPedPointerRecorder.cpp" \
     "$native/source/game_morgan/CStreaming.cpp" "$native/source/game_morgan/CClock.cpp" "$native/source/game_morgan/CTimer.cpp" "$native/source/game_morgan/COptimizeDistance.cpp" "$native/source/game_morgan/CGame.cpp" "$native/source/game_morgan/Models/CModelInfo.cpp" "$native/source/game_morgan/CPools.cpp" "$native/source/game_morgan/CSetting.cpp" "$multiplayer/CServer.cpp" "$multiplayer/CNetGame.cpp" "$native/source/game_morgan/CTheZones.cpp" "$native/source/game_morgan/CWeather.cpp" "$native/source/game_morgan/CCamera.cpp" "$hooks/CPad.cpp" \
     "$scripts/CScripting.cpp" "$scripts/CRunningScript.cpp" "$native/source/utils/Exceptions/CExceptions.cpp" \
     "$radar/CTiltedRadar.cpp" "$radar/CTiltedCameraController.cpp" "$radar/CTiltedRadarGeometry.cpp" "$radar/CTiltedRadarMath.cpp" \
@@ -80,7 +82,7 @@ for source in \
     "$fileio/FileIO.cpp" "$storage/PosixFileIO.cpp" "$storage/CStorageZip.cpp" "$storage/CStorageDisk.cpp" \
     "$fileio/HookAdapter.cpp" "$hooks/CHooks.cpp" "$fileio/FileOpenDiagnostics.cpp" "$memory/CHook.cpp" \
     "$multiplayer/Texts/CDebugInfo.cpp" "$multiplayer/Guis/CGui.cpp" "$multiplayer/Guis/Font/CFontRender.cpp" \
-    "$multiplayer/Guis/CChat.cpp" "$multiplayer/Guis/CCommand.cpp" "$multiplayer/Core/CMultiPlayerPacket.cpp" "$native/source/game_morgan/CUtil.cpp" \
+    "$multiplayer/Guis/CChat.cpp" "$multiplayer/Guis/CCommand.cpp" "$multiplayer/Core/CMultiPlayerPacket.cpp" "$native/source/game_morgan/CUtil.cpp" "$native/source/game_morgan/CWorld.cpp" \
     "$imgui/imgui_impl_renderware.cpp"; do
     object="${source##*/}"
     xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
@@ -118,11 +120,13 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/MGStartupKeychain.o" "$out/fileio-objects/MGStartupTickGate.o" "$out/fileio-objects/CMainMenuScreen.o" "$out/fileio-objects/CStartGameScreen.o" "$out/fileio-objects/CLoadingScreen.o" "$out/fileio-objects/MGFlutter.o" \
     "$out/fileio-objects/CStreaming.o" "$out/fileio-objects/CClock.o" "$out/fileio-objects/CTimer.o" "$out/fileio-objects/COptimizeDistance.o" "$out/fileio-objects/CGame.o" "$out/fileio-objects/CModelInfo.o" "$out/fileio-objects/CPools.o" "$out/fileio-objects/CSetting.o" "$out/fileio-objects/CServer.o" "$out/fileio-objects/CNetGame.o" "$out/fileio-objects/CTheZones.o" "$out/fileio-objects/CWeather.o" "$out/fileio-objects/CCamera.o" "$out/fileio-objects/CPad.o" "${raknet_objects[@]}" \
     "$out/fileio-objects/CdStreamInfo.o" \
+    "$out/fileio-objects/CCommon.o" "$out/fileio-objects/CEntity.o" \
+    "$out/fileio-objects/CPed.o" "$out/fileio-objects/CPlayerPed.o" "$out/fileio-objects/CPlayerPedSlot.o" "$out/fileio-objects/CPedPointerRecorder.o" \
     "$out/fileio-objects/CCameraAim.o" "$out/fileio-objects/CAspectRatio.o" "$out/fileio-objects/CCameraController.o" "$out/fileio-objects/CDraw.o" "$out/fileio-objects/CSensitivity.o" \
     "$out/fileio-objects/CScripting.o" "$out/fileio-objects/CRunningScript.o" "$out/fileio-objects/CExceptions.o" \
     "$out/fileio-objects/CTiltedRadar.o" "$out/fileio-objects/CTiltedCameraController.o" "$out/fileio-objects/CTiltedRadarGeometry.o" "$out/fileio-objects/CTiltedRadarMath.o" \
     "$out/fileio-objects/CDebugInfo.o" "$out/fileio-objects/CGui.o" "$out/fileio-objects/CFontRender.o" \
-    "$out/fileio-objects/CChat.o" "$out/fileio-objects/CCommand.o" "$out/fileio-objects/CMultiPlayerPacket.o" "$out/fileio-objects/CUtil.o" \
+    "$out/fileio-objects/CChat.o" "$out/fileio-objects/CCommand.o" "$out/fileio-objects/CMultiPlayerPacket.o" "$out/fileio-objects/CUtil.o" "$out/fileio-objects/CWorld.o" \
     "$out/fileio-objects/imgui.o" "$out/fileio-objects/imgui_draw.o" "$out/fileio-objects/imgui_impl_renderware.o" \
     "$out/fileio-objects/Main.o" "$out/fileio-objects/RenderWare.o" "$out/fileio-objects/CMultiPlayer.o" "$out/fileio-objects/CNecessary.o" \
     "$out/fileio-objects/CPatches.o" "$out/fileio-objects/CUvAnim.o" "$out/fileio-objects/CFastLoad.o" "$out/fileio-objects/CMemory.o" \
@@ -187,6 +191,7 @@ check_call CClock 'CGame17GetActiveInterior'
 check_call CGame 'CScripting13ScriptCommand'
 check_call CHooks 'CMultiPlayer7Process'
 check_call CHooks 'CTiltedRadar10Initialise'
+check_call CHooks 'CWorld10Initialise'
 check_call CHooks 'CStreaming10Initialise'
 check_call CHooks 'CAspectRatio10Initialise'
 check_call CHooks 'CDraw10Initialise'

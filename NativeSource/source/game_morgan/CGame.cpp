@@ -1,11 +1,14 @@
 #include "../../Main.h"
 #include "CGame.h"
 #include "CStreaming.h"
+#include "Entity/Ped/CPedPointerRecorder.h"
+#include "Entity/Ped/CPlayerPedSlot.h"
 #include "../../Launcher/MGStartupTickGate.h"
 
 #include <mach-o/dyld.h>
 
 CCamera* CGame::m_pGameCamera = (CCamera*)nullptr;
+CPlayerPed* CGame::m_pGamePlayer = nullptr;
 
 void CGame::Initialize()
 {
@@ -17,6 +20,13 @@ void CGame::Uninitialise()
 	CNecessary::Log(OBFUSCATE("CGame Uninitialise"));
 
 	SAFE_DELETE(CGame::m_pGameCamera);
+    
+	if (CGame::m_pGamePlayer)
+	{
+		CPedPointerRecorder::Record(0, 0);
+		CPlayerPedSlot::Set(0, 0);
+		SAFE_DELETE(CGame::m_pGamePlayer);
+	}
 }
 
 void CGame::SetFramerate(std::uint8_t fps)

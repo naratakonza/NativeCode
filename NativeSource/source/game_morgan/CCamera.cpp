@@ -18,41 +18,41 @@ CCamera::CCamera()
         m_matPos = reinterpret_cast<CMatrix*>(SA_ADDR(0x72CF08 + 0x970) + _dyld_get_image_vmaddr_slide(0)); // TheCamera->m_mCameraMatrix
     }
 	
-	// m_pAttachedTo = nullptr;
+	m_pAttachedTo = nullptr;
 }
 
 void CCamera::SetBehindPlayer()
 {
 	CScripting::ScriptCommand(&lock_camera_position, 0);
   	CScripting::ScriptCommand(&restore_camera_to_user);
-  	// m_pAttachedTo = nullptr;
+	m_pAttachedTo = nullptr;
   	CScripting::ScriptCommand(&set_camera_behind_player);
   	CScripting::ScriptCommand(&restore_camera_jumpcut);
 }
 
 void CCamera::Restore()
 {
-	// m_pAttachedTo = nullptr;
+	m_pAttachedTo = nullptr;
 	CScripting::ScriptCommand(&restore_camera_jumpcut);
 }
 
 void CCamera::SetPosition(float fX, float fY, float fZ, float fRotationX, float fRotationY, float fRotationZ)
 {
 	CScripting::ScriptCommand(&restore_camera_to_user);
-	// m_pAttachedTo = nullptr;
+	m_pAttachedTo = nullptr;
 	CScripting::ScriptCommand(&set_camera_position, fX, fY, fZ, fRotationX, fRotationY, fRotationZ);
 }
 
 void CCamera::Fade(int iInOut)
 {
-	// m_pAttachedTo = nullptr;
+	m_pAttachedTo = nullptr;
 	CScripting::ScriptCommand(&fade, 500, iInOut);
 }
 
 void CCamera::LookAtPoint(float fX, float fY, float fZ, int iType)
 {
 	CScripting::ScriptCommand(&restore_camera_to_user);
-	// m_pAttachedTo = nullptr;
+	m_pAttachedTo = nullptr;
 	CScripting::ScriptCommand(&point_camera, fX, fY, fZ, iType);
 }
 
