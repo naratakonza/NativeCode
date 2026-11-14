@@ -1,7 +1,6 @@
 #include "../../../Main.h"
 #include "CMultiPlayer.h"
 #include "CServer.h"
-#include "CNetGame.h"
 #include "Guis/CGui.h"
 #include "../CAspectRatio.h"
 #include "../CCameraAim.h"
@@ -60,7 +59,7 @@ void CMultiPlayer::Process()
     {
         CMultiPlayer::SetThread(eThreadType::THREAD_TYPE_PROCESS);
 
-        CMultiPlayer::pNetGame = new CNetGame(CServer::GetIpConnect(), CServer::GetPortConnect(), "ArtiwlizDev", CServer::GetPassConnect(), 576);
+        CMultiPlayer::pNetGame = new CNetGame(CServer::GetIpConnect(), CServer::GetPortConnect(), CMultiPlayer::GetPlayerName(), CServer::GetPassConnect(), 576);
 
         CMultiPlayer::m_bSAMPInited = true;
     }
@@ -96,9 +95,9 @@ void CMultiPlayer::StartSAMP()
 
 	CNecessary::Log(OBFUSCATE("CMultiPlayer StartSAMP"));
 
-    CServer::SetIpConnect(OBFUSCATE("morgan-games.com"));
+    CServer::SetIpConnect(OBFUSCATE("play.uifserver.net"));
 	CServer::SetPassConnect("");
-	CServer::SetPortConnect(7777);
+	CServer::SetPortConnect(7776);
 
     CScripting::Init();
 

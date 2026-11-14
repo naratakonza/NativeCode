@@ -1,5 +1,4 @@
 #include "../../../Main.h"
-#include "CNetGame.h"
 #include "CMultiPlayer.h"
 #include "Guis/CGui.h"
 #include "../CGame.h"

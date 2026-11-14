@@ -1,7 +1,6 @@
 #include "../../../../Main.h"
 #include "CMultiPlayerNetwork.h"
 #include "../CMultiPlayer.h"
-#include "../CNetGame.h"
 #include "../Guis/CGui.h"
 #include <raknet/SAMP/SAMPRPC.h>
 #include <ctime>
