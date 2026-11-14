@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
 typedef struct _CAMERA_AIM
 {
     float f1x, f1y, f1z;
