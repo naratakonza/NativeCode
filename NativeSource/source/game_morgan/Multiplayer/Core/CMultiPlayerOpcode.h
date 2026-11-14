@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <raknet/BitStream.h>
 #include <raknet/NetworkTypes.h>
 #include <raknet/RakClientInterface.h>

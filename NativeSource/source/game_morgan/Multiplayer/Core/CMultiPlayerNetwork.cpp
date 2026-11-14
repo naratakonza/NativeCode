@@ -6,8 +6,6 @@
 #include <raknet/SAMP/SAMPRPC.h>
 #include <ctime>
 
-#include "RPCData/CAritaSecurity.h"
-
 void gen_auth_key(char buf[260], char* auth_in);
 
 unsigned char CMultiPlayerNetwork::GetPacketID(Packet *p)
@@ -88,7 +86,26 @@ void CMultiPlayerNetwork::Packet_ConnectionSucceeded(Packet* pkt)
 	char byteAuthBSLen = (char)CNecessary::MPSTRLEN(AUTH_BS_TH);
 	char byteNameLen = (char)CNecessary::MPSTRLEN(CMultiPlayer::GetActiveNetwork()->GetNetworkData().PlayerName);
 
-	char byteClientverLen = (char)CNecessary::MPSTRLEN(SAMP_VERSION);
+	const char* szSampVersion;
+
+	if (strcmp(CMultiPlayer::GetActiveNetwork()->GetNetworkData().HostDomain, OBFUSCATE("graj.samp.gg")) == 0 || strcmp(CMultiPlayer::GetActiveNetwork()->GetNetworkData().HostDomain, OBFUSCATE("ip.blood.ovh")) == 0)
+	{
+		szSampVersion = OBFUSCATE("thd445599");
+	}
+	else if (strcmp(CMultiPlayer::GetActiveNetwork()->GetNetworkData().HostDomain, OBFUSCATE("gta-irz.com")) == 0)
+	{
+		szSampVersion = OBFUSCATE("5.4.1");
+	}
+	else if (strcmp(CMultiPlayer::GetActiveNetwork()->GetNetworkData().HostDomain, OBFUSCATE("morgan-games.com")) == 0 || strcmp(CMultiPlayer::GetActiveNetwork()->GetNetworkData().HostDomain, OBFUSCATE("168.222.20.137")) == 0)
+	{
+		szSampVersion = OBFUSCATE("MG1.0");
+	}
+	else
+	{
+		szSampVersion = SAMP_VERSION;
+	}
+
+	char byteClientverLen = (char)CNecessary::MPSTRLEN(szSampVersion);
 
 	RakNet::BitStream bsSend;
 	bsSend.Write(iVersion);
@@ -99,23 +116,7 @@ void CMultiPlayerNetwork::Packet_ConnectionSucceeded(Packet* pkt)
 	bsSend.Write(byteAuthBSLen);
 	bsSend.Write(AUTH_BS_TH, byteAuthBSLen);
 	bsSend.Write(byteClientverLen);
-	bsSend.Write(SAMP_VERSION, byteClientverLen);
-
-	// Arita Client แท้เท่านั้น
-	uint32_t dwAritaMagic = ARITA_NET_MAGIC;
-	uint32_t dwClientVersion = ARITA_NET_VERSION;
-	uint32_t dwTimestamp = (uint32_t)time(nullptr);
-
-	char szSignature[65] = { '\0' };
-	CAritaSecurity::GenerateJoinSignature(CMultiPlayer::GetActiveNetwork()->GetNetworkData().PlayerName, uiClientChallengeResponse, dwTimestamp, szSignature);
-
-	uint8_t byteSigLen = (uint8_t)strlen(szSignature);
-
-	bsSend.Write(dwAritaMagic);
-	bsSend.Write(dwClientVersion);
-	bsSend.Write(dwTimestamp);
-	bsSend.Write(byteSigLen);
-	bsSend.Write(szSignature, byteSigLen);
+	bsSend.Write(szSampVersion, byteClientverLen);
 
 	// CNetwork::OnRaknetConnect(CMultiPlayer::GetActiveNetwork()->GetNetworkData().HostOrIP, CMultiPlayer::GetActiveNetwork()->GetNetworkData().Port);
 	// CNetwork::OnRaknetRpc(RPC_ClientJoin, bsSend);

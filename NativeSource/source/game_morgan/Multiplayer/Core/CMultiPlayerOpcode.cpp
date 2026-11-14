@@ -153,6 +153,70 @@ void InitGame(RakNet::BitStream bsInitGame)
 	}
 }
 
+void GameModeRestart()
+{
+	CNecessary::Log(OBFUSCATE("RPC: GameModeRestart"));
+
+	CMultiPlayer::GetActiveNetwork()->SetNetworkState(eNetworkState::GAMESTATE_RESTARTING);
+	CMultiPlayer::Reconnect();
+}
+
+void ConnectionRejected(RakNet::BitStream bsData)
+{
+	uint8_t byteRejectReason;
+
+	bsData.Read(byteRejectReason);
+
+	if (CGui::GetChat())
+	{
+		if (byteRejectReason == eConnectionRejectedType::REJECT_REASON_BAD_VERSION)
+		{
+			CGui::GetChat()->AddInfoMessage(OBFUSCATE("CONNECTION REJECTED: Incorrect Version."));
+		}
+		else if (byteRejectReason == eConnectionRejectedType::REJECT_REASON_BAD_NICKNAME)
+		{
+			CGui::GetChat()->AddInfoMessage(OBFUSCATE("CONNECTION REJECTED: Unacceptable NickName"));
+			CGui::GetChat()->AddInfoMessage(OBFUSCATE("Please choose another nick between and 3-20 characters"));
+			CGui::GetChat()->AddInfoMessage(OBFUSCATE("Please use only a-z, A-Z, 0-9"));
+			CGui::GetChat()->AddInfoMessage(OBFUSCATE("Use /q or /quit to exit or press ESC and select Quit Game"));
+		}
+		else if (byteRejectReason == eConnectionRejectedType::REJECT_REASON_BAD_MOD)
+		{
+			CGui::GetChat()->AddInfoMessage(OBFUSCATE("CONNECTION REJECTED: Bad mod version."));
+		}
+		else if (byteRejectReason == eConnectionRejectedType::REJECT_REASON_BAD_PLAYERID)
+		{
+			CGui::GetChat()->AddInfoMessage(OBFUSCATE("CONNECTION REJECTED: Unable to allocate a player slot."));
+		}
+
+		if (CMultiPlayer::GetActiveNetwork())
+		{
+			CMultiPlayer::GetActiveNetwork()->GetRakClient()->Disconnect(500);
+		}
+	}
+}
+
+void ClientMessage(RakNet::BitStream bsClientMessage)
+{
+    uint32_t dwStrLen;
+    uint32_t dwColor;
+
+    bsClientMessage.Read(dwColor);
+    bsClientMessage.Read(dwStrLen);
+
+	if (dwStrLen <= 0xFF)
+	{
+		char* szMsg = (char*)malloc(dwStrLen + 1);
+		bsClientMessage.Read(szMsg, dwStrLen);
+		szMsg[dwStrLen] = 0;
+
+		if (CGui::GetChat()) 
+		{
+			CGui::GetChat()->AddClientMessage(dwColor, szMsg);
+		}
+	}
+}
+
 bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 {
     if (rpcid >= 255) {
@@ -180,15 +244,15 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_GameModeRestart: {
-		// 	GameModeRestart();
-		// 	break;
-		// }
+		case RPC_GameModeRestart: {
+			GameModeRestart();
+			break;
+		}
 
-		// case RPC_ConnectionRejected: {
-		// 	ConnectionRejected(*bsData);
-		// 	break;
-		// }
+		case RPC_ConnectionRejected: {
+			ConnectionRejected(*bsData);
+			break;
+		}
 
 		// case RPC_Chat: {
 		//     Chat(*bsData);
@@ -250,10 +314,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_SendClientMessage: {
-		//     ClientMessage(*bsData);
-		//     break;
-		// }
+		case RPC_SendClientMessage: {
+		    ClientMessage(*bsData);
+		    break;
+		}
 
 		// case RPC_SetPlayerShopName: {
 		//     SetShopName(*bsData);
