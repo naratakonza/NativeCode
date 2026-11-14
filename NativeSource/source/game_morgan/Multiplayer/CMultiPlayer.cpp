@@ -123,10 +123,10 @@ void CMultiPlayer::SetThread(eThreadType type)
 			CGame::SetFramerate(60);
 			if (CSetting::GetConfig())
 			{
-				const int type = CSetting::GetConfig()->GetIntValue(OBFUSCATE("AspectRatio"));
-				if (type >= ASPECTRATIO_DEFAULT && type <= ASPECTRATIO_32_9)
+				const int aspectRatio = CSetting::GetConfig()->GetIntValue(OBFUSCATE("AspectRatio"));
+				if (aspectRatio >= ASPECTRATIO_DEFAULT && aspectRatio <= ASPECTRATIO_32_9)
 				{
-					CAspectRatio::SetSize(static_cast<eAspectRatioType>(type));
+					CAspectRatio::SetSize(static_cast<eAspectRatioType>(aspectRatio));
 				}
 			}
 
