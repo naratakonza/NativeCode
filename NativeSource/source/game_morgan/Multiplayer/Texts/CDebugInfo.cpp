@@ -23,7 +23,7 @@ void CDebugInfo::RenderTitle()
 
     ImGuiIO& io = ImGui::GetIO();
     const float screenScale = std::min(SCALE_X(io, 1.0f), SCALE_Y(io, 1.0f));
-    const float fontSize = 20.0f * screenScale;
+    const float fontSize = 22.0f * screenScale;
     const ImVec2 textSize = ImGui::CalcTextSize(fontSize, CDebugInfo::m_szTitle);
     ImVec2 pos((io.DisplaySize.x - textSize.x) * 0.5f, io.DisplaySize.y - textSize.y - 12.0f * screenScale);
     CGui::GetFontRender()->RenderText(pos, IM_COL32(212, 212, 212, 255), true, CDebugInfo::m_szTitle, nullptr, fontSize);
