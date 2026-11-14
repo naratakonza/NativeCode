@@ -110,7 +110,7 @@ raknet_objects=()
 for unit in BitStream CheckSum DataBlockEncryptor DataCompressor DS_HuffmanEncodingTree GetTime InternalPacketPool NetworkTypes PluginInterface RakClient RakNetStatistics RakNetworkFactory RakPeer rakserver RakSleep Rand ReliabilityLayer rijndael RPCMap SHA1 SimpleMutex SocketLayer StringCompressor StringTable SAMP/samp_netencr SAMP/SAMPRPC SAMP/samp_auth; do
     object="$out/fileio-objects/raknet-${unit##*/}.o"
     xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
-        -std=c++17 "${fileio_flags[@]}" -fvisibility=hidden -DRAKSAMP_CLIENT -DNDEBUG \
+        -std=c++17 "${fileio_flags[@]}" -isystem "$native/source/vendor" -fvisibility=hidden -DRAKSAMP_CLIENT -DNDEBUG \
         -c "$raknet/$unit.cpp" -o "$object"
     raknet_objects+=("$object")
 done
