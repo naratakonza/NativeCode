@@ -5,7 +5,6 @@
 #include "Guis/CGui.h"
 #include "../CAspectRatio.h"
 #include "../CCameraAim.h"
-#include "../CCameraController.h"
 #include "../CDraw.h"
 #include "../CStartGameScreen.h"
 #include "../CTheZones.h"
@@ -102,7 +101,6 @@ void CMultiPlayer::StartSAMP()
     CMultiPlayer::SetThread(eThreadType::THREAD_TYPE_START);
 
     CCameraAim::Initialise();
-    CCameraController::Initialise();
     CGui::Initialise();
 
     CMultiPlayer::m_bPlaySAMP = true;
