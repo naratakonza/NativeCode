@@ -29,6 +29,12 @@ extern "C" __attribute__((visibility("default"))) void CStreaming_InitImageList_
     CStreaming::InitImageList();
 }
 
+extern "C" __attribute__((visibility("default"))) int CStreaming_AddImageToList_hook(const char* fileName, bool isPlayerIMG)
+{
+    const int slot = CStreaming::AddImageToList(fileName, isPlayerIMG);
+    return slot < 0 ? 0 : slot;
+}
+
 void CStreaming::InitImageList()
 {
     if (!pthread_main_np()) {
@@ -83,7 +89,6 @@ int CStreaming::AddImageToList(const char* fileName, bool isPlayerIMG)
                 return -1;
             }
 
-            // GTA iOS uses a 40-byte name, a flag at +40 and a CD handle at +44.
             std::memcpy(&CStreaming::ms_files[48 * i], fileName, length + 1);
             CStreaming::ms_files[48 * i + 40] = isPlayerIMG;
             std::memcpy(&CStreaming::ms_files[48 * i + 44], &stream, sizeof(stream));
@@ -101,12 +106,6 @@ int CStreaming::AddImageToList(const char* fileName, bool isPlayerIMG)
 
     CNecessary::Log(OBFUSCATE("IMG Out of Space"));
     return -1;
-}
-
-extern "C" __attribute__((visibility("default"))) int CStreaming_AddImageToList_hook(const char* fileName, bool isPlayerIMG)
-{
-    const int slot = CStreaming::AddImageToList(fileName, isPlayerIMG);
-    return slot < 0 ? 0 : slot;
 }
 
 void CStreaming::RequestModel(unsigned int modelId)
