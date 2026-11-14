@@ -1,57 +1,14 @@
 #include "../../Main.h"
 #include "CStreaming.h"
+#include "CdStreamInfo.h"
 #include "../utils/Storage/CStorage.h"
 
 #include <mach-o/dyld.h>
-#include <sys/stat.h>
 
 static constexpr int StockImgArchives = 8;
 static bool imageListHookReady = false;
 static bool stockImageListOpened = false;
 static std::uint32_t largestDirectoryEntry = 0;
-
-struct CdDirectoryEntry
-{
-    std::uint32_t sector;
-    std::uint16_t sectors;
-    std::uint16_t streamingSectors;
-    char name[24];
-};
-static_assert(sizeof(CdDirectoryEntry) == 32);
-
-static bool ValidateCdDirectory(std::FILE* file, std::uint32_t& largestEntry)
-{
-    struct stat info{};
-    std::uint32_t header[2]{};
-    if (::fstat(::fileno(file), &info) != 0 || info.st_size < 0 || std::fread(header, sizeof(header), 1, file) != 1 || header[0] != 0x32524556 || !header[1] || header[1] > INT32_MAX / sizeof(CdDirectoryEntry)) {
-        return false;
-    }
-
-    constexpr std::uint64_t sectorSize = 2048;
-    const auto directoryEnd = sizeof(header) + sizeof(CdDirectoryEntry) * static_cast<std::uint64_t>(header[1]);
-    const auto fileSize = static_cast<std::uint64_t>(info.st_size);
-    if (directoryEnd > fileSize) {
-        return false;
-    }
-
-    for (std::uint32_t i = 0; i < header[1]; ++i)
-    {
-        CdDirectoryEntry entry{};
-        if (std::fread(&entry, sizeof(entry), 1, file) != 1) {
-            return false;
-        }
-
-        const auto start = entry.sector * sectorSize;
-        const auto count = entry.streamingSectors ? entry.streamingSectors : entry.sectors;
-        if (!count || start < directoryEnd || start > INT32_MAX || start + count * sectorSize > fileSize) {
-            return false;
-        }
-
-        largestEntry = std::max(largestEntry, static_cast<std::uint32_t>(count));
-    }
-
-    return true;
-}
 
 char (&CStreaming::ms_files)[48 * eMaxArchives::MAX_IMG_ARCHIVES] = *reinterpret_cast<char (*)[48 * eMaxArchives::MAX_IMG_ARCHIVES]>(SA_ADDR(0xA99400) + _dyld_get_image_vmaddr_slide(0));
 std::uint32_t& CStreaming::ms_memoryUsed = *reinterpret_cast<std::uint32_t*>(SA_ADDR(0x8E7E54) + _dyld_get_image_vmaddr_slide(0));
@@ -61,7 +18,7 @@ void CStreaming::Initialise()
 {
     CNecessary::Log(OBFUSCATE("CStreaming Initialise"));
 
-    imageListHookReady = CMemory::HasMappedInstruction(SA_ADDR(0x15551C), "\x04\x07\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x14D268), "\x73\x4A\x00\x90") && CMemory::HasMappedInstruction(SA_ADDR(0x14D26C), "\x73\x02\x10\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x3040C8), "\x1E\x4C\x06\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x14D47C), "\x34\x27\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x219F9C), "\x88\x69\xF8\x97") && CMemory::HasMappedInstruction(SA_ADDR(0x034754), "\x16\x00\x00\xF9");
+    imageListHookReady = CdStreamInfo::IsAvailable() && CMemory::HasMappedInstruction(SA_ADDR(0x15551C), "\x04\x07\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x14D268), "\x73\x4A\x00\x90") && CMemory::HasMappedInstruction(SA_ADDR(0x14D26C), "\x73\x02\x10\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x3040C8), "\x1E\x4C\x06\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x14D47C), "\x34\x27\x0D\x94");
 
     if (!imageListHookReady)
     {
@@ -142,62 +99,29 @@ int CStreaming::AddImageToList(const char* fileName, bool isPlayerIMG)
         }
     }
 
-    const auto slide = _dyld_get_image_vmaddr_slide(0);
     if (slot < 0)
     {
         CNecessary::Log(OBFUSCATE("IMG Out of Space"));
         return -1;
     }
 
-    auto** handles = reinterpret_cast<void**>(SA_ADDR(0x509500) + slide);
-    auto* names = reinterpret_cast<char (*)[eMaxArchives::MAX_CD_STREAM_IMAGE_NAME_SIZE]>(SA_ADDR(0x7AE520) + slide);
-    int cdSlot = 0;
-    while (cdSlot < eMaxArchives::MAX_CD_HANDLE_ARCHIVES && handles[cdSlot])
-    {
-        ++cdSlot;
-    }
-
-    if (cdSlot == eMaxArchives::MAX_CD_HANDLE_ARCHIVES)
-    {
-        CNecessary::Log(OBFUSCATE("IMG Out of Space"));
+    std::uint32_t largestEntry = 0;
+    const int stream = CdStreamInfo::CdStreamOpen(fileName, false, morgan::fileio::CStorage::IsAssetFreeBundle(), largestEntry);
+    if (stream < 0) {
         return -1;
     }
 
-    const auto open = reinterpret_cast<std::uint32_t (*)(const char*, bool)>(SA_ADDR(0x219CEC) + slide);
-    const auto stream = open(fileName, false);
-    if (!handles[cdSlot] || stream != (static_cast<std::uint32_t>(cdSlot) << 24))
+    if (isPlayerIMG)
     {
-        CNecessary::Log(OBFUSCATE("IMG open failed: %s"), fileName);
-        return -1;
-    }
-
-    if (morgan::fileio::CStorage::IsAssetFreeBundle())
-    {
-        std::FILE* file = nullptr;
-        std::memcpy(&file, handles[cdSlot], sizeof(file));
-        std::uint32_t largestEntry = 0;
-        if (!file || !ValidateCdDirectory(file, largestEntry) || ::fseeko(file, 0, SEEK_SET) != 0)
-        {
-            const auto close = reinterpret_cast<int (*)(void*)>(SA_ADDR(0x034874) + slide);
-            close(handles[cdSlot]);
-            handles[cdSlot] = nullptr;
-            names[cdSlot][0] = '\0';
-            CNecessary::Log(OBFUSCATE("IMG invalid directory or sectors: %s"), fileName);
-            return -1;
-        }
-
-        if (isPlayerIMG)
-        {
-            largestDirectoryEntry = std::max(largestDirectoryEntry, largestEntry);
-        }
+        largestDirectoryEntry = std::max(largestDirectoryEntry, largestEntry);
     }
 
     auto& archive = archives[slot];
     std::memcpy(archive.name, fileName, length + 1);
     archive.listed = isPlayerIMG;
-    archive.stream = stream;
+    archive.stream = static_cast<std::uint32_t>(stream);
 
-    CNecessary::Log(OBFUSCATE("IMG Archive : %s (slot %d, CD handle %d)"), fileName, slot, cdSlot);
+    CNecessary::Log(OBFUSCATE("IMG Archive : %s (slot %d, CD handle %u)"), fileName, slot, archive.stream >> 24);
     return slot;
 }
 

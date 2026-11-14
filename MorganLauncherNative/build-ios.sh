@@ -70,6 +70,7 @@ xcodebuild -version
 xcrun --sdk iphoneos clang++ --version
 mkdir "$out/fileio-objects"
 for source in \
+    "$native/source/game_morgan/CdStreamInfo.cpp" \
     "$native/source/game_morgan/CStreaming.cpp" "$native/source/game_morgan/CClock.cpp" "$native/source/game_morgan/CTimer.cpp" "$native/source/game_morgan/COptimizeDistance.cpp" "$native/source/game_morgan/CGame.cpp" "$native/source/game_morgan/Models/CModelInfo.cpp" "$native/source/game_morgan/CPools.cpp" "$native/source/game_morgan/CSetting.cpp" "$multiplayer/CServer.cpp" "$multiplayer/CNetGame.cpp" "$native/source/game_morgan/CTheZones.cpp" "$native/source/game_morgan/CWeather.cpp" "$native/source/game_morgan/CCamera.cpp" "$hooks/CPad.cpp" \
     "$scripts/CScripting.cpp" "$scripts/CRunningScript.cpp" "$native/source/utils/Exceptions/CExceptions.cpp" \
     "$radar/CTiltedRadar.cpp" "$radar/CTiltedCameraController.cpp" "$radar/CTiltedRadarGeometry.cpp" "$radar/CTiltedRadarMath.cpp" \
@@ -184,6 +185,7 @@ check_call CGame 'CScripting13ScriptCommand'
 check_call CHooks 'CMultiPlayer7Process'
 check_call CHooks 'CTiltedRadar10Initialise'
 check_call CHooks 'CStreaming10Initialise'
+check_call CStreaming 'CdStreamInfo12CdStreamOpen'
 check_call CPatches 'CUvAnim10Initialise'
 check_call CMultiPlayer 'COptimizeDistance23OptimizeStreamingMemory'
 check_call CMultiPlayer 'CGame13MenuSwitchOff'
