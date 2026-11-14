@@ -1,6 +1,5 @@
 #include "../../Main.h"
 #include "CDraw.h"
-#include "CCameraAim.h"
 #include "CCameraController.h"
 #include "CTimer.h"
 #include "Enums/eMaxConfig.h"
@@ -32,7 +31,7 @@ extern "C" __attribute__((visibility("default"))) void CDraw_SetFov_hook(float v
 
 void CDraw::SetFovHook(float value, bool isCinematic)
 {
-    if (setFovHookInstalled && wCameraMode2 && CMultiPlayer::IsSampActive())
+    if (setFovHookInstalled && CMultiPlayer::IsSampActive())
     {
         float drawFov = std::min(value, static_cast<float>(eMaxConfig::MAX_FOV));
         if (!CTimer::IsUserPause() && CDraw::GetFov() != 77.0f && !CCameraController::IsCameraAllAiming(false, true))

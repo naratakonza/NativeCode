@@ -19,12 +19,6 @@ void CCameraController::Initialise()
         IsLockOnMode = reinterpret_cast<bool (*)()>(SA_ADDR(0x1EF7F8) + _dyld_get_image_vmaddr_slide(0));
     }
 
-    CCameraController::m_bAimed = false;
-    if (m_fVerticalAngle && m_fHorizontalAngle)
-    {
-        CCameraController::fVerticalAngle = *m_fVerticalAngle;
-        CCameraController::fHorizontalAngle = *m_fHorizontalAngle;
-    }
 }
 
 bool CCameraController::IsCameraAllAiming(bool reset, bool zoomOnly)
@@ -63,6 +57,7 @@ void CCameraController::AimForTheCamera()
         case eCamMode::MODE_ROCKETLAUNCHER:
         case eCamMode::MODE_CAMERA:
         case eCamMode::MODE_ROCKETLAUNCHER_HS:
+
         case eCamMode::MODE_AIMWEAPON: {
             if (!CCameraController::m_bAimed)
             {
@@ -77,6 +72,7 @@ void CCameraController::AimForTheCamera()
 
             break;
         }
+
         default: {
             if (CCameraController::m_bAimed)
             {
