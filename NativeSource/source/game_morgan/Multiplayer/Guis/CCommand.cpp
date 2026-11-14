@@ -3,6 +3,7 @@
 #include "CGui.h"
 #include "../../CAspectRatio.h"
 #include "../../CDraw.h"
+#include "../../CSensitivity.h"
 #include "../../Enums/eMaxConfig.h"
 #include "../CMultiPlayer.h"
 #include "../CNetGame.h"
@@ -16,7 +17,11 @@ void CCommand::Initialise()
     CCommand::commandList.clear();
 
     CCommand::Add(OBFUSCATE("/apr"), CCommand::SetAspectRatio);
+    CCommand::Add(OBFUSCATE("/fpslimit"), CCommand::SetFramerateLimit);
     CCommand::Add(OBFUSCATE("/fov"), CCommand::SetFov);
+    CCommand::Add(OBFUSCATE("/sens"), CCommand::SetSensitivity);
+    CCommand::Add(OBFUSCATE("/aimsens"), CCommand::SetAimWeaponSensitivity);
+    CCommand::Add(OBFUSCATE("/incarsens"), CCommand::SetIncarSensitivity);
     CCommand::Add(OBFUSCATE("/rec"), CCommand::Reconnect);
     CCommand::Add(OBFUSCATE("/reconnect"), CCommand::Reconnect);
     CCommand::Add(OBFUSCATE("/q"), CCommand::QuitGame);
@@ -120,6 +125,36 @@ void CCommand::SetAspectRatio(const std::vector<std::string>& args)
     }
 }
 
+void CCommand::SetFramerateLimit(const std::vector<std::string>& args)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    if (args.size() >= 2)
+    {
+        const char* value = args[1].c_str();
+        char* end = nullptr;
+        const long fps = std::strtol(value, &end, 10);
+
+        if (end != value && *end == '\0' && fps >= 0 && fps <= 2)
+        {
+            CGame::SetFramerate(static_cast<std::uint8_t>(fps));
+            CSetting::GetConfig()->WriteIntValue(OBFUSCATE("SetFps"), static_cast<int>(fps));
+
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> Frame Limiter: %u"), static_cast<unsigned>(fps));
+        }
+        else
+        {
+            CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> Frame Limiter: valid amounts are 0-2"));
+        }
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /fpslimit <value>"));
+    }
+}
+
 void CCommand::SetFov(const std::vector<std::string>& args)
 {
     if (!CSetting::GetConfig() || !CGui::GetChat()) {
@@ -147,6 +182,96 @@ void CCommand::SetFov(const std::vector<std::string>& args)
     else
     {
         CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /fov <value>"));
+    }
+}
+
+void CCommand::SetSensitivity(const std::vector<std::string>& args)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    if (args.size() >= 2)
+    {
+        const char* value = args[1].c_str();
+        char* end = nullptr;
+        const long type = std::strtol(value, &end, 10);
+
+        if (end != value && *end == '\0' && type >= 0 && type <= eMaxConfig::MAX_SENSITIVITY)
+        {
+            CSensitivity::SetOnfootTouch(static_cast<float>(type));
+            CSetting::GetConfig()->WriteIntValue(OBFUSCATE("OnfootSensitivity"), static_cast<int>(type));
+
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> Sensitivity Limiter: %u"), static_cast<unsigned>(type));
+        }
+        else
+        {
+            CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> Sensitivity Limiter: valid amounts are 0-200"));
+        }
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /sens <value>"));
+    }
+}
+
+void CCommand::SetAimWeaponSensitivity(const std::vector<std::string>& args)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    if (args.size() >= 2)
+    {
+        const char* value = args[1].c_str();
+        char* end = nullptr;
+        const long type = std::strtol(value, &end, 10);
+
+        if (end != value && *end == '\0' && type >= 0 && type <= eMaxConfig::MAX_SENSITIVITY)
+        {
+            CSensitivity::SetAimTouch(static_cast<float>(type));
+            CSetting::GetConfig()->WriteIntValue(OBFUSCATE("AimSensitivity"), static_cast<int>(type));
+
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> AimWeaponSensitivity Limiter: %u"), static_cast<unsigned>(type));
+        }
+        else
+        {
+            CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> AimWeaponSensitivity Limiter: valid amounts are 0-200"));
+        }
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /aimsens <value>"));
+    }
+}
+
+void CCommand::SetIncarSensitivity(const std::vector<std::string>& args)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    if (args.size() >= 2)
+    {
+        const char* value = args[1].c_str();
+        char* end = nullptr;
+        const long type = std::strtol(value, &end, 10);
+
+        if (end != value && *end == '\0' && type >= 0 && type <= eMaxConfig::MAX_SENSITIVITY)
+        {
+            CSensitivity::SetIncarTouch(static_cast<float>(type));
+            CSetting::GetConfig()->WriteIntValue(OBFUSCATE("IncarSensitivity"), static_cast<int>(type));
+
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> IncarSensitivity Limiter: %u"), static_cast<unsigned>(type));
+        }
+        else
+        {
+            CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> IncarSensitivity Limiter: valid amounts are 0-200"));
+        }
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /incarsens <value>"));
     }
 }
 

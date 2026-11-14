@@ -186,7 +186,7 @@ void CPatches::InstallMainPatches()
         CNecessary::Log(OBFUSCATE("CPatches RenderSkyPolys constants unavailable"));
     }
 
-    CMemory::WriteProcessMemory(SA_ADDR(0x3BFB20), (uintptr_t)"\x07\x02\x00\x14", 4); // CTaskSimplePlayerOnFoot::ProcessPlayerWeapon (ระบบ ยืนแล้วสามารถใช้มีดอีโมได้เลย)
+    // CMemory::WriteProcessMemory(SA_ADDR(0x3BFB20), (uintptr_t)"\x07\x02\x00\x14", 4); // CTaskSimplePlayerOnFoot::ProcessPlayerWeapon (ระบบ ยืนแล้วสามารถใช้มีดอีโมได้เลย) // เดียวมาเปิดใช้งานภายหลัง
     CMemory::WriteProcessMemory(SA_ADDR(0x1593D0), (uintptr_t)"\x1C\x00\x00\x14", 4); // DoRWStuffStartOfFrame_Horizon (แก้ไขภาพ ฉีก ตอนปรับ Fov หรือ อื่นๆ) ทดสอบ
 }
 

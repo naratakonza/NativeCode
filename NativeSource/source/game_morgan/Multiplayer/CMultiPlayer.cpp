@@ -5,7 +5,9 @@
 #include "Guis/CGui.h"
 #include "../CAspectRatio.h"
 #include "../CCameraAim.h"
+#include "../CCameraController.h"
 #include "../CDraw.h"
+#include "../CSensitivity.h"
 #include "../CStartGameScreen.h"
 #include "../CTheZones.h"
 #include "../Base/CPatches.h"
@@ -101,6 +103,7 @@ void CMultiPlayer::StartSAMP()
     CMultiPlayer::SetThread(eThreadType::THREAD_TYPE_START);
 
     CCameraAim::Initialise();
+	CCameraController::Initialise();
     CGui::Initialise();
 
     CMultiPlayer::m_bPlaySAMP = true;
@@ -121,7 +124,11 @@ void CMultiPlayer::SetThread(eThreadType type)
 		case eThreadType::THREAD_TYPE_START: {
 			CPatches::SetPatches(ePatchType::PATCH_TYPE_MENU);
 			CHooks::SetHooking(eHookType::HOOK_TYPE_START);
-			CGame::SetFramerate(60);
+			const int fps = CSetting::GetConfig()->GetIntValue(OBFUSCATE("SetFps"));
+			CGame::SetFramerate(static_cast<std::uint8_t>(fps >= 0 && fps <= 120 ? fps : 0));
+			CSensitivity::SetOnfootTouch(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("OnfootSensitivity"))));
+			CSensitivity::SetAimTouch(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("AimSensitivity"))));
+			CSensitivity::SetIncarTouch(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("IncarSensitivity"))));
 			CDraw::SetFov(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("SetFov"))));
 			CAspectRatio::SetSize((eAspectRatioType)CSetting::GetConfig()->GetIntValue(OBFUSCATE("AspectRatio")));
 

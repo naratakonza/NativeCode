@@ -163,7 +163,6 @@ void CHooks::SetHooking(eHookType type)
             CStreaming::Initialise();
             CAspectRatio::Initialise();
             CDraw::Initialise();
-            CCameraController::Initialise();
 
             break;
         }
