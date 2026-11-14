@@ -1,3 +1,4 @@
+_CDraw_SetFov_hook
 _CGame_Process_hook
 _CPools_Initialise_hook
 _CRadar_DrawBlips_hook

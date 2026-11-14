@@ -4,8 +4,6 @@
 
 #include <mach-o/dyld.h>
 
-static_assert(sizeof(CAMERA_AIM) == 0x30);
-
 CAMERA_AIM* pcaInternalAim = nullptr;
 float *m_fVerticalAngle = nullptr;
 float *m_fHorizontalAngle = nullptr;

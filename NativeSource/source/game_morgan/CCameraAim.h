@@ -7,6 +7,7 @@ typedef struct _CAMERA_AIM
     float pos2x, pos2y, pos2z;
     float f2x, f2y, f2z;
 } CAMERA_AIM;
+static_assert(sizeof(CAMERA_AIM) == 0x30);
 
 extern float *m_fVerticalAngle;
 extern float *m_fHorizontalAngle;

@@ -1,6 +1,8 @@
 #include "../../../Main.h"
 #include "CHooks.h"
 #include "../CAspectRatio.h"
+#include "../CDraw.h"
+#include "../CCameraController.h"
 #include "../CTimer.h"
 #include "../Models/CModelInfo.h"
 #include "../CPools.h"
@@ -82,6 +84,7 @@ extern "C" __attribute__((visibility("default"))) void CGame_Process_hook(void (
 
     if (pthread_main_np() && gameProcessHookInstalled && CMultiPlayer::IsSampActive())
     {
+        CCameraController::AimForTheCamera();
         CMultiPlayer::Process();
     }
 }
@@ -159,6 +162,7 @@ void CHooks::SetHooking(eHookType type)
             CHooks::InstallMenu();
             CStreaming::Initialise();
             CAspectRatio::Initialise();
+            CDraw::Initialise();
 
             break;
         }

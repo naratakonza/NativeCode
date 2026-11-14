@@ -2,6 +2,8 @@
 #include "CCommand.h"
 #include "CGui.h"
 #include "../../CAspectRatio.h"
+#include "../../CDraw.h"
+#include "../../Enums/eMaxConfig.h"
 #include "../CMultiPlayer.h"
 #include "../CNetGame.h"
 
@@ -14,6 +16,7 @@ void CCommand::Initialise()
     CCommand::commandList.clear();
 
     CCommand::Add(OBFUSCATE("/apr"), CCommand::SetAspectRatio);
+    CCommand::Add(OBFUSCATE("/fov"), CCommand::SetFov);
     CCommand::Add(OBFUSCATE("/rec"), CCommand::Reconnect);
     CCommand::Add(OBFUSCATE("/reconnect"), CCommand::Reconnect);
     CCommand::Add(OBFUSCATE("/q"), CCommand::QuitGame);
@@ -114,6 +117,36 @@ void CCommand::SetAspectRatio(const std::vector<std::string>& args)
     else
     {
         CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /apr <value>"));
+    }
+}
+
+void CCommand::SetFov(const std::vector<std::string>& args)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    if (args.size() >= 2)
+    {
+        const char* value = args[1].c_str();
+        char* end = nullptr;
+        const long fov = std::strtol(value, &end, 10);
+
+        if (end != value && *end == '\0' && fov >= 77 && fov <= eMaxConfig::MAX_FOV)
+        {
+            CDraw::SetFov(static_cast<float>(fov));
+            CSetting::GetConfig()->WriteIntValue(OBFUSCATE("SetFov"), static_cast<int>(fov));
+
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> Fov Limiter: %2.f"), CDraw::GetFov());
+        }
+        else
+        {
+            CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> Fov Limiter: valid amounts are 77-140"));
+        }
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /fov <value>"));
     }
 }
 
