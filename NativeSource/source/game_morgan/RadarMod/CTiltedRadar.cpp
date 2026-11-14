@@ -55,7 +55,10 @@ void CTiltedRadar::Initialise()
     const bool blipHooks = CMemory::HasMappedInstruction(SA_ADDR(0x1F08E4), "\x56\x9A\x0A\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x1F0EEC), "\xD6\x98\x0A\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x1F2204), "\x14\x94\x0A\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x1F5CA0), "\x05\x85\x0A\x94");
     const bool widget = CMemory::HasMappedInstruction(SA_ADDR(0x1F033C), "\x28\x2D\x00\x90") && CMemory::HasMappedInstruction(SA_ADDR(0x1F0340), "\x08\x01\x35\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x1F0344), "\x08\x85\x42\xF9");
     const bool data = CMemory::HasMappedInstruction(SA_ADDR(0x1F56A0), "\x24\xD9\x4A\xBD") && CMemory::HasMappedInstruction(SA_ADDR(0x1F56B4), "\x25\x69\x45\xFD") && CMemory::HasMappedInstruction(SA_ADDR(0x1F56E0), "\x29\x11\x11\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x1F5648), "\x29\x01\x15\x91");
-    const bool helpers = CMemory::HasMappedInstruction(SA_ADDR(0x190F1C), "\x88\x2D\x00\xB0") && CMemory::HasMappedInstruction(SA_ADDR(0x1914A8), "\x88\x2D\x00\x90") && CMemory::HasMappedInstruction(SA_ADDR(0x302E1C), "\x20\x05\x46\xBD") && CMemory::HasMappedInstruction(SA_ADDR(0x302E2C), "\x21\x01\x46\xBD");
+    // CWorld เปลี่ยนทางอ่าน PlayerInFocus ที่ต้นฟังก์ชันทั้งสอง
+    const bool stockPlayerHelpers = CMemory::HasMappedBytes(SA_ADDR(0x190F1C), "\x88\x2D\x00\xB0\x08\x61\x38\x91\x08\x01\x40\x39", 12, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x1914A8), "\x88\x2D\x00\x90\x08\x61\x38\x91\x08\x01\x40\x39", 12, "__text");
+    const bool playerHelpers = stockPlayerHelpers || (CMemory::HasMappedBytes(SA_ADDR(0x190F1C), "\x28\x19\x00\xB0\x08\x71\x42\xF9\x08\x01\x40\x39", 12, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x1914A8), "\x28\x19\x00\x90\x08\x71\x42\xF9\x08\x01\x40\x39", 12, "__text"));
+    const bool helpers = playerHelpers && CMemory::HasMappedInstruction(SA_ADDR(0x302E1C), "\x20\x05\x46\xBD") && CMemory::HasMappedInstruction(SA_ADDR(0x302E2C), "\x21\x01\x46\xBD");
 
     radarReady = mapHooks && blipHooks && widget && data && helpers && RwRenderStateSet && RwRenderStateGet && RwIm2DRenderIndexedPrimitive;
     if (radarReady)
