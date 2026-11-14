@@ -20,5 +20,6 @@ bool CMainMenuScreen::Update()
 
 void CMainMenuScreen::OnExit()
 {
+    RsGlobal->quit = true;
     ExitGame();
 }
