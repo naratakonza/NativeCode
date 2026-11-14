@@ -23,7 +23,5 @@ public:
     static constexpr std::size_t instructionSize = sizeof(std::uint32_t);
 
     static bool HasMappedInstruction(std::uint64_t address, const void* expected, const char* sectionName = "__text");
-
-private:
     static bool HasMappedBytes(std::uint64_t address, const void* expected, std::size_t size, const char* sectionName);
 };

@@ -179,6 +179,15 @@ void CPatches::InstallMainPatches()
 
     // แก้ไข UvAnim
     // ตัวแพ็กเปิดแฟล็กเฉพาะ RpMaterialUVAnimAddAnimTime (0x29F904) และคืนค่าเดิมหลังอัปเดต
+
+    // CClouds::RenderSkyPolys (แก้ไขภาพ ฉีก ตอนปรับ Fov หรือ อื่นๆ)
+    if (!CMemory::HasMappedBytes(SA_ADDR(0x467718), "\x00\x00\x20\xC1\x00\x00\x20\x41", 8, "__const"))
+    {
+        CNecessary::Log(OBFUSCATE("CPatches RenderSkyPolys constants unavailable"));
+    }
+
+    CMemory::WriteProcessMemory(SA_ADDR(0x3BFB20), (uintptr_t)"\x07\x02\x00\x14", 4); // CTaskSimplePlayerOnFoot::ProcessPlayerWeapon (ระบบ ยืนแล้วสามารถใช้มีดอีโมได้เลย)
+    CMemory::WriteProcessMemory(SA_ADDR(0x1593D0), (uintptr_t)"\x1C\x00\x00\x14", 4); // DoRWStuffStartOfFrame_Horizon (แก้ไขภาพ ฉีก ตอนปรับ Fov หรือ อื่นๆ) ทดสอบ
 }
 
 void CPatches::InstallGameProcessPatches()
