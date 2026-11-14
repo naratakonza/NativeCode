@@ -24,6 +24,7 @@ public:
     static float GetWidgetRightFraction();
     static bool BeginMap();
     static bool DrawTiles(int alpha);
+    static void ProjectBlip(const void* worldPos, float& x, float& y);
     static void ReprojectFlatSprite(float& x, float& y);
     static void ProjectPlayerArrow(float& x, float& y);
 };

@@ -52,7 +52,7 @@ static float lastRadiusY = -1.0f;
 void CTiltedRadar::Initialise()
 {
     const bool mapHooks = CMemory::HasMappedInstruction(SA_ADDR(0x1EFF00), "\x4F\x9C\x0A\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x1F0380), "\x34\x9B\x0A\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x2160B4), "\xEC\x03\x0A\x94");
-    const bool blipHooks = CMemory::HasMappedInstruction(SA_ADDR(0x1F08E4), "\xE5\x99\x0A\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x1F0EEC), "\x68\x98\x0A\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x1F2204), "\xA7\x93\x0A\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x1F5CA0), "\x05\x85\x0A\x94");
+    const bool blipHooks = CMemory::HasMappedInstruction(SA_ADDR(0x1F08E4), "\x56\x9A\x0A\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x1F0EEC), "\xD6\x98\x0A\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x1F2204), "\x14\x94\x0A\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x1F5CA0), "\x05\x85\x0A\x94");
     const bool widget = CMemory::HasMappedInstruction(SA_ADDR(0x1F033C), "\x28\x2D\x00\x90") && CMemory::HasMappedInstruction(SA_ADDR(0x1F0340), "\x08\x01\x35\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x1F0344), "\x08\x85\x42\xF9");
     const bool data = CMemory::HasMappedInstruction(SA_ADDR(0x1F56A0), "\x24\xD9\x4A\xBD") && CMemory::HasMappedInstruction(SA_ADDR(0x1F56B4), "\x25\x69\x45\xFD") && CMemory::HasMappedInstruction(SA_ADDR(0x1F56E0), "\x29\x11\x11\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x1F5648), "\x29\x01\x15\x91");
     const bool helpers = CMemory::HasMappedInstruction(SA_ADDR(0x190F1C), "\x88\x2D\x00\xB0") && CMemory::HasMappedInstruction(SA_ADDR(0x1914A8), "\x88\x2D\x00\x90") && CMemory::HasMappedInstruction(SA_ADDR(0x302E1C), "\x20\x05\x46\xBD") && CMemory::HasMappedInstruction(SA_ADDR(0x302E2C), "\x21\x01\x46\xBD");
@@ -246,6 +246,26 @@ void CTiltedRadar::ReprojectFlatSprite(float& x, float& y)
     }
 }
 
+void CTiltedRadar::ProjectBlip(const void* worldPos, float& x, float& y)
+{
+    if (worldPos)
+    {
+        CTiltedVector2 position;
+        std::memcpy(&position, worldPos, sizeof(position));
+        float projectedX = 0.0f;
+        float projectedY = 0.0f;
+        if (CTiltedRadar::ProjectWorldToTiltedHud(position.x, position.y, projectedX, projectedY))
+        {
+            x = projectedX;
+            y = projectedY;
+        }
+    }
+    else
+    {
+        CTiltedRadar::ReprojectFlatSprite(x, y);
+    }
+}
+
 void CTiltedRadar::ProjectPlayerArrow(float& x, float& y)
 {
     if (!CTiltedRadar::ProjectWorldToTiltedHud(radarOriginX, radarOriginY, x, y))
@@ -290,17 +310,17 @@ extern "C" __attribute__((visibility("default"))) void CRadar_DrawBlips_hook(flo
     tiltedFrame = false;
 }
 
-extern "C" __attribute__((visibility("default"))) void CRadar_DrawRadarSprite_hook(int id, float x, float y, int alpha, void (*original)(int, float, float, int))
+extern "C" __attribute__((visibility("default"))) void CRadar_DrawRadarSprite_hook(int id, float x, float y, int alpha, void (*original)(int, float, float, int), const void* worldPos)
 {
     if (drawingBlips && id != 4)
     {
-        CTiltedRadar::ReprojectFlatSprite(x, y);
+        CTiltedRadar::ProjectBlip(worldPos, x, y);
     }
 
     original(id, x, y, alpha);
 }
 
-extern "C" __attribute__((visibility("default"))) void CRadar_DrawRotatingRadarSprite_hook(const void* sprite, float x, float y, float angle, float scale, const void* color, void (*original)(const void*, float, float, float, float, const void*))
+extern "C" __attribute__((visibility("default"))) void CRadar_DrawRotatingRadarSprite_hook(const void* sprite, float x, float y, float angle, float scale, const void* color, void (*original)(const void*, float, float, float, float, const void*), const void* worldPos)
 {
     if (drawingBlips)
     {
@@ -311,18 +331,18 @@ extern "C" __attribute__((visibility("default"))) void CRadar_DrawRotatingRadarS
         }
         else
         {
-            CTiltedRadar::ReprojectFlatSprite(x, y);
+            CTiltedRadar::ProjectBlip(worldPos, x, y);
         }
     }
 
     original(sprite, x, y, angle, scale, color);
 }
 
-extern "C" __attribute__((visibility("default"))) void CRadar_ShowRadarTraceWithHeight_hook(float x, float y, int size, int r, int g, int b, int a, int height, void (*original)(float, float, int, int, int, int, int, int))
+extern "C" __attribute__((visibility("default"))) void CRadar_ShowRadarTraceWithHeight_hook(float x, float y, int size, int r, int g, int b, int a, int height, void (*original)(float, float, int, int, int, int, int, int), const void* worldPos)
 {
     if (drawingBlips)
     {
-        CTiltedRadar::ReprojectFlatSprite(x, y);
+        CTiltedRadar::ProjectBlip(worldPos, x, y);
     }
 
     original(x, y, size, r, g, b, a, height);
