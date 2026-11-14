@@ -11,7 +11,7 @@ void CAspectRatio::Initialise()
 {
     CNecessary::Log(OBFUSCATE("CAspectRatio Initialise"));
 
-    cameraSizeHookInstalled = RwCameraSetViewWindow && CMemory::HasMappedInstruction(SA_ADDR(0x315498), "\x80\x08\x00\xB4") && CMemory::HasMappedInstruction(SA_ADDR(0x1593C4), "\xAC\xF7\x0C\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x15A220), "\x15\xF4\x0C\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x2AC1E4), "\xFF\xC3\x00\xD1") && CMemory::HasMappedInstruction(SA_ADDR(0x2AC26C), "\xFF\xC3\x00\xD1") && CMemory::HasMappedInstruction(SA_ADDR(0x315594), "\x00\x05\x00\xFD");
+    cameraSizeHookInstalled = RsGlobal && RwEngineGetCurrentVideoMode && RwEngineGetVideoModeInfo && RwCameraSetViewWindow && CMemory::HasMappedInstruction(SA_ADDR(0x315498), "\x80\x08\x00\xB4") && CMemory::HasMappedInstruction(SA_ADDR(0x1593C4), "\xAC\xF7\x0C\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x15A220), "\x15\xF4\x0C\x94");
     if (!cameraSizeHookInstalled)
     {
         CNecessary::Log(OBFUSCATE("CAspectRatio CameraSize bridge unavailable"));
@@ -32,8 +32,8 @@ void CAspectRatio::CameraSize(RwCamera* camera, RwRect* rect, float viewWindow, 
     }
 
     RwVideoMode modeInfo{};
-    int currentVideoMode = reinterpret_cast<int (*)()>(SA_ADDR(0x2AC26C) + slide)();
-    if (!reinterpret_cast<RwVideoMode* (*)(RwVideoMode*, int)>(SA_ADDR(0x2AC1E4) + slide)(&modeInfo, currentVideoMode))
+    int currentVideoMode = RwEngineGetCurrentVideoMode();
+    if (currentVideoMode < 0 || !RwEngineGetVideoModeInfo(&modeInfo, currentVideoMode))
     {
         reinterpret_cast<void (*)(RwCamera*, RwRect*, float, float)>(SA_ADDR(0x315498) + slide)(camera, rect, viewWindow, aspectRatio);
         return;
@@ -98,9 +98,8 @@ void CAspectRatio::CameraSize(RwCamera* camera, RwRect* rect, float viewWindow, 
 
     RwCameraSetViewWindow(camera, viewWindowSize);
 
-    auto* rsGlobal = reinterpret_cast<RsGlobalType*>(SA_ADDR(0x918A68) + slide);
-    rsGlobal->maximumWidth = rect->w;
-    rsGlobal->maximumHeight = rect->h;
+    RsGlobal->maximumWidth = rect->w;
+    RsGlobal->maximumHeight = rect->h;
 }
 
 extern "C" __attribute__((visibility("default"))) void CameraSize_hook(RwCamera* camera, RwRect* rect, float viewWindow, float aspectRatio)

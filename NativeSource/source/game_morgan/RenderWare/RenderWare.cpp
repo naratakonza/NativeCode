@@ -5,6 +5,8 @@
 #include <mach-o/dyld.h>
 
 RsGlobalType* RsGlobal;
+RwInt32 (*RwEngineGetCurrentVideoMode)();
+RwVideoMode* (*RwEngineGetVideoModeInfo)(RwVideoMode* modeInfo, RwInt32 modeIndex);
 
 RwCamera *(*RwCameraBeginUpdate)(RwCamera *camera);
 RwCamera *(*RwCameraEndUpdate)(RwCamera *camera);
@@ -129,8 +131,13 @@ void InitialiseRenderWare()
 {
     CNecessary::Log(OBFUSCATE("Initializing RenderWare.."));
 
+    RsGlobal = CMemory::HasMappedInstruction(SA_ADDR(0x31558C), "\x08\x30\x00\xF0") && CMemory::HasMappedInstruction(SA_ADDR(0x315590), "\x08\xA1\x29\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x315594), "\x00\x05\x00\xFD") ? reinterpret_cast<RsGlobalType*>(SA_ADDR(0x918A68) + _dyld_get_image_vmaddr_slide(0)) : nullptr;
+
     // เฉพาะรายการที่ตรงกับ GTA iOS นี้เท่านั้นที่จะถูกเผยแพร่ ส่วนตัวชี้ (pointer) อื่นๆ จะยังคงเป็นค่าว่าง (null)
     unsigned bound = 0;
+    bound += RsGlobal != nullptr;
+    bound += SetFuncAddr(&RwEngineGetCurrentVideoMode, SA_ADDR(0x2AC26C), "\xFF\xC3\x00\xD1\xFD\x7B\x02\xA9");
+    bound += SetFuncAddr(&RwEngineGetVideoModeInfo, SA_ADDR(0x2AC1E4), "\xFF\xC3\x00\xD1\xF4\x4F\x01\xA9");
     bound += SetFuncAddr(&RwCameraBeginUpdate, SA_ADDR(0x2AAE90), "\x01\x18\x40\xF9\x20\x00\x1F\xD6");
     bound += SetFuncAddr(&RwCameraEndUpdate, SA_ADDR(0x2AAE88), "\x01\x1C\x40\xF9\x20\x00\x1F\xD6");
     bound += SetFuncAddr(&RwCameraSetNearClipPlane, SA_ADDR(0x2AAECC), "\xE9\x23\xBD\x6D\xF4\x4F\x01\xA9");
@@ -202,5 +209,5 @@ void InitialiseRenderWare()
     bound += SetFuncAddr(&RwRasterUnlockPalette, SA_ADDR(0x2AF0A0), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9");
     bound += SetFuncAddr(&RpAtomicSetFrame, SA_ADDR(0x2C3108), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9");
 
-    CNecessary::Log(OBFUSCATE("RenderWare iOS bindings: %u/69"), bound);
+    CNecessary::Log(OBFUSCATE("RenderWare iOS bindings: %u/73"), bound);
 }

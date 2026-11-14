@@ -128,5 +128,7 @@ extern RpClump* (*RpClumpForAllAtomics)(RpClump* clump, RpAtomicCallBack fpCallB
 extern RwBool (*RwResourcesFreeResEntry)(RwResEntry* entry);
 
 extern RsGlobalType* RsGlobal;
+extern RwInt32 (*RwEngineGetCurrentVideoMode)();
+extern RwVideoMode* (*RwEngineGetVideoModeInfo)(RwVideoMode* modeInfo, RwInt32 modeIndex);
 
 void InitialiseRenderWare();
