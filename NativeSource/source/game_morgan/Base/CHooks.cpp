@@ -1,5 +1,6 @@
 #include "../../../Main.h"
 #include "CHooks.h"
+#include "../CAspectRatio.h"
 #include "../CTimer.h"
 #include "../Models/CModelInfo.h"
 #include "../CPools.h"
@@ -157,6 +158,7 @@ void CHooks::SetHooking(eHookType type)
         case eHookType::HOOK_TYPE_START: {
             CHooks::InstallMenu();
             CStreaming::Initialise();
+            CAspectRatio::Initialise();
 
             break;
         }

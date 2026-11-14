@@ -18,6 +18,7 @@ public:
 private:
     static void Reconnect(const std::vector<std::string>& args);
     static void QuitGame(const std::vector<std::string>& args);
+    static void SetAspectRatio(const std::vector<std::string>& args);
 
     static std::vector<ChatCommand> commandList;
 };

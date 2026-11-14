@@ -70,6 +70,7 @@ xcodebuild -version
 xcrun --sdk iphoneos clang++ --version
 mkdir "$out/fileio-objects"
 for source in \
+    "$native/source/game_morgan/CCameraAim.cpp" "$native/source/game_morgan/CAspectRatio.cpp" \
     "$native/source/game_morgan/CdStreamInfo.cpp" \
     "$native/source/game_morgan/CStreaming.cpp" "$native/source/game_morgan/CClock.cpp" "$native/source/game_morgan/CTimer.cpp" "$native/source/game_morgan/COptimizeDistance.cpp" "$native/source/game_morgan/CGame.cpp" "$native/source/game_morgan/Models/CModelInfo.cpp" "$native/source/game_morgan/CPools.cpp" "$native/source/game_morgan/CSetting.cpp" "$multiplayer/CServer.cpp" "$multiplayer/CNetGame.cpp" "$native/source/game_morgan/CTheZones.cpp" "$native/source/game_morgan/CWeather.cpp" "$native/source/game_morgan/CCamera.cpp" "$hooks/CPad.cpp" \
     "$scripts/CScripting.cpp" "$scripts/CRunningScript.cpp" "$native/source/utils/Exceptions/CExceptions.cpp" \

@@ -3,6 +3,8 @@
 #include "CServer.h"
 #include "CNetGame.h"
 #include "Guis/CGui.h"
+#include "../CAspectRatio.h"
+#include "../CCameraAim.h"
 #include "../CStartGameScreen.h"
 #include "../CTheZones.h"
 #include "../Base/CPatches.h"
@@ -97,6 +99,7 @@ void CMultiPlayer::StartSAMP()
 
     CMultiPlayer::SetThread(eThreadType::THREAD_TYPE_START);
 
+    CCameraAim::Initialise();
     CGui::Initialise();
 
     CMultiPlayer::m_bPlaySAMP = true;
@@ -118,6 +121,14 @@ void CMultiPlayer::SetThread(eThreadType type)
 			CPatches::SetPatches(ePatchType::PATCH_TYPE_MENU);
 			CHooks::SetHooking(eHookType::HOOK_TYPE_START);
 			CGame::SetFramerate(60);
+			if (CSetting::GetConfig())
+			{
+				const int type = CSetting::GetConfig()->GetIntValue(OBFUSCATE("AspectRatio"));
+				if (type >= ASPECTRATIO_DEFAULT && type <= ASPECTRATIO_32_9)
+				{
+					CAspectRatio::SetSize(static_cast<eAspectRatioType>(type));
+				}
+			}
 
 			break;
 		}

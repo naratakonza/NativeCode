@@ -1,0 +1,12 @@
+#pragma once
+
+enum eAspectRatioType {
+    ASPECTRATIO_DEFAULT,
+    ASPECTRATIO_3_2,
+    ASPECTRATIO_4_3,
+    ASPECTRATIO_5_4,
+    ASPECTRATIO_16_9,
+    ASPECTRATIO_16_10,
+    ASPECTRATIO_21_9,
+    ASPECTRATIO_32_9
+};
