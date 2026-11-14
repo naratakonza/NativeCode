@@ -3,6 +3,15 @@
 #include <cstdint>
 #include <cstdio>
 
+struct CdDirectoryEntry
+{
+    std::uint32_t sector;
+    std::uint16_t sectors;
+    std::uint16_t streamingSectors;
+    char name[24];
+};
+static_assert(sizeof(CdDirectoryEntry) == 32);
+
 class CdStreamInfo
 {
 public:

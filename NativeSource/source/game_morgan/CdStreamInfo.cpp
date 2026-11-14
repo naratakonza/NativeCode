@@ -5,15 +5,6 @@
 #include <mach-o/dyld.h>
 #include <sys/stat.h>
 
-struct CdDirectoryEntry
-{
-    std::uint32_t sector;
-    std::uint16_t sectors;
-    std::uint16_t streamingSectors;
-    char name[24];
-};
-static_assert(sizeof(CdDirectoryEntry) == 32);
-
 bool CdStreamInfo::IsAvailable()
 {
     return CMemory::HasMappedInstruction(SA_ADDR(0x219F9C), "\x88\x69\xF8\x97") && CMemory::HasMappedInstruction(SA_ADDR(0x034754), "\x16\x00\x00\xF9");
