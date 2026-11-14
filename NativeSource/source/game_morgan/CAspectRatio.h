@@ -8,6 +8,9 @@ struct RwRect;
 class CAspectRatio
 {
 public:
+    static float ms_fAspectRatioSize;
+
+public:
     static void Initialise();
     static void SetSize(eAspectRatioType type);
     static void CameraSize(RwCamera* camera, RwRect* rect, float viewWindow, float aspectRatio);
@@ -16,7 +19,4 @@ public:
     {
         return CAspectRatio::ms_fAspectRatioSize;
     }
-
-private:
-    static float ms_fAspectRatioSize;
 };

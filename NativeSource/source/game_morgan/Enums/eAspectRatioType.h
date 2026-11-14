@@ -1,6 +1,6 @@
 #pragma once
 
-enum eAspectRatioType {
+enum eAspectRatioType : int {
     ASPECTRATIO_DEFAULT,
     ASPECTRATIO_3_2,
     ASPECTRATIO_4_3,

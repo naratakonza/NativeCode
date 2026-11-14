@@ -121,14 +121,7 @@ void CMultiPlayer::SetThread(eThreadType type)
 			CPatches::SetPatches(ePatchType::PATCH_TYPE_MENU);
 			CHooks::SetHooking(eHookType::HOOK_TYPE_START);
 			CGame::SetFramerate(60);
-			if (CSetting::GetConfig())
-			{
-				const int aspectRatio = CSetting::GetConfig()->GetIntValue(OBFUSCATE("AspectRatio"));
-				if (aspectRatio >= ASPECTRATIO_DEFAULT && aspectRatio <= ASPECTRATIO_32_9)
-				{
-					CAspectRatio::SetSize(static_cast<eAspectRatioType>(aspectRatio));
-				}
-			}
+			CAspectRatio::SetSize((eAspectRatioType)CSetting::GetConfig()->GetIntValue(OBFUSCATE("AspectRatio")));
 
 			break;
 		}

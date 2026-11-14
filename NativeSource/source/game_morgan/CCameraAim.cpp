@@ -1,33 +1,34 @@
 #include "../../Main.h"
 #include "CCameraAim.h"
-#include "CCamera.h"
 #include "Enums/eMaxItem.h"
 
+#include <iterator>
 #include <mach-o/dyld.h>
 
 static_assert(sizeof(CAMERA_AIM) == 0x30);
-static_assert(offsetof(CAMERA_AIM, pos1x) == 0x0C);
-static_assert(offsetof(CAMERA_AIM, pos2x) == 0x18);
-static_assert(offsetof(CAMERA_AIM, f2x) == 0x24);
 
-float* m_fVerticalAngle = nullptr;
-float* m_fHorizontalAngle = nullptr;
-std::uint16_t* pbyteCameraMode = nullptr;
-std::uint16_t* wCameraMode2 = nullptr;
+CAMERA_AIM* pcaInternalAim = nullptr;
+float *m_fVerticalAngle = nullptr;
+float *m_fHorizontalAngle = nullptr;
+uint16_t *pbyteCameraMode = nullptr;
+uint16_t *wCameraMode2 = nullptr;
+float *pfCameraExtZoom = nullptr;
+float *pfAspectRatio = nullptr;
+float *pPlayerStats = nullptr;
 
-static float* pfAspectRatio = nullptr;
-static float* pPlayerStats = nullptr;
-static CAMERA_AIM caLocalPlayerAim;
-static CAMERA_AIM caRemotePlayerAim[eMaxItem::PLAYER_PED_SLOTS];
-static std::uint8_t byteCameraMode[eMaxItem::PLAYER_PED_SLOTS];
-static float fCameraExtZoom[eMaxItem::PLAYER_PED_SLOTS];
-static float fLocalCameraExtZoom;
-static float fCameraAspectRatio[eMaxItem::PLAYER_PED_SLOTS];
-static float fLocalAspectRatio;
-static constexpr int firstWeaponSkill = 69;
-static constexpr int weaponSkillCount = 11;
-static float fRemoteSkillLevel[eMaxItem::PLAYER_PED_SLOTS][weaponSkillCount];
-static float fLocalSkillLevel[weaponSkillCount];
+CAMERA_AIM caLocalPlayerAim;
+CAMERA_AIM caRemotePlayerAim[eMaxItem::PLAYER_PED_SLOTS];
+
+uint8_t byteCameraMode[eMaxItem::PLAYER_PED_SLOTS];
+
+float fCameraExtZoom[eMaxItem::PLAYER_PED_SLOTS];
+float fLocalCameraExtZoom;
+
+float fCameraAspectRatio[eMaxItem::PLAYER_PED_SLOTS];
+float fLocalAspectRatio;
+
+float fRemoteSkillLevel[eMaxItem::PLAYER_PED_SLOTS][11];
+float fLocalSkillLevel[11];
 
 void CCameraAim::Initialise()
 {
@@ -39,93 +40,81 @@ void CCameraAim::Initialise()
         return;
     }
 
-    caLocalPlayerAim = {};
-    std::memset(caRemotePlayerAim, 0, sizeof(caRemotePlayerAim));
-    std::fill_n(byteCameraMode, eMaxItem::PLAYER_PED_SLOTS, 4);
-    std::fill_n(fCameraAspectRatio, eMaxItem::PLAYER_PED_SLOTS, 1.0f / 3.0f);
+    memset(&caLocalPlayerAim, 0, sizeof(CAMERA_AIM));
+    memset(caRemotePlayerAim, 0, sizeof(CAMERA_AIM) * eMaxItem::PLAYER_PED_SLOTS);
+    memset(byteCameraMode, 4, eMaxItem::PLAYER_PED_SLOTS);
+
+    std::fill_n(fCameraAspectRatio, eMaxItem::PLAYER_PED_SLOTS, 0.333333f);
     std::fill_n(fCameraExtZoom, eMaxItem::PLAYER_PED_SLOTS, 1.0f);
-    std::memset(fRemoteSkillLevel, 0, sizeof(fRemoteSkillLevel));
-    std::memset(fLocalSkillLevel, 0, sizeof(fLocalSkillLevel));
 
-    const auto camera = reinterpret_cast<std::uintptr_t>(&CCamera::TheCamera);
+    memset(fRemoteSkillLevel, 0, sizeof(fRemoteSkillLevel));
+    memset(fLocalSkillLevel, 0, sizeof(fLocalSkillLevel));
+
     const auto slide = _dyld_get_image_vmaddr_slide(0);
-    m_fVerticalAngle = reinterpret_cast<float*>(camera + 0x1FC);
-    m_fHorizontalAngle = reinterpret_cast<float*>(camera + 0x20C);
-    pbyteCameraMode = reinterpret_cast<std::uint16_t*>(camera + 0x186);
-    wCameraMode2 = reinterpret_cast<std::uint16_t*>(camera + 0x80C);
-    pfAspectRatio = reinterpret_cast<float*>(SA_ADDR(0x80EB74) + slide);
-    pPlayerStats = reinterpret_cast<float*>(SA_ADDR(0x73AFDC) + slide);
-
-    CCameraAim::GameStoreLocalPlayerAim();
-    CCameraAim::GameStoreLocalPlayerCameraExtZoom();
-    CCameraAim::GameStoreLocalPlayerSkills();
-}
-
-std::uintptr_t CCameraAim::GetActiveCam()
-{
-    if (!wCameraMode2) {
-        return 0;
-    }
-
-    const auto camera = reinterpret_cast<std::uintptr_t>(&CCamera::TheCamera);
-    const auto active = *reinterpret_cast<const std::uint8_t*>(camera + 0x5F);
-    if (active >= 3) {
-        return 0;
-    }
-
-    return camera + 0x228 * active;
+    pcaInternalAim = CCameraAim::GameGetInternalAim();
+    m_fVerticalAngle = (float*)(SA_ADDR(0x72CF08 + 0x1FC) + slide);
+    m_fHorizontalAngle = (float*)(SA_ADDR(0x72CF08 + 0x20C) + slide);
+    pbyteCameraMode = (uint16_t*)(SA_ADDR(0x72CF08 + 0x186) + slide);
+    wCameraMode2 = (uint16_t *)(SA_ADDR(0x72CF08 + 0x80C) + slide);
+    pfAspectRatio = (float *)(SA_ADDR(0x80EB74) + slide);
+    pfCameraExtZoom = (float*)(SA_ADDR(0x72CF08 + 0x204) + slide);
+    pPlayerStats = (float *)(SA_ADDR(0x73AFDC) + slide);
 }
 
 void CCameraAim::GameResetLocalPlayerSkills()
 {
-    std::fill_n(fLocalSkillLevel, weaponSkillCount, 999.0f);
+    for (int i = 0; i < static_cast<int>(std::size(fLocalSkillLevel)); i++)
+    {
+        fLocalSkillLevel[i] = 999.0f;
+    }
+
     CCameraAim::GameSetLocalPlayerSkills();
 }
 
 CAMERA_AIM* CCameraAim::GameGetInternalAim()
 {
-    const auto camera = CCameraAim::GetActiveCam();
-    return camera ? reinterpret_cast<CAMERA_AIM*>(camera + 0x2E0) : nullptr;
+    return (CAMERA_AIM*)(SA_ADDR(0x72CF08 + 0x2E0) + _dyld_get_image_vmaddr_slide(0));
 }
 
 void CCameraAim::GameSetLocalPlayerAim()
 {
-    if (auto* pAim = CCameraAim::GameGetInternalAim())
-    {
-        std::memcpy(pAim, &caLocalPlayerAim, sizeof(CAMERA_AIM));
+    if (!pcaInternalAim) {
+        return;
     }
+
+    memcpy(pcaInternalAim, &caLocalPlayerAim, sizeof(CAMERA_AIM));
 }
 
 void CCameraAim::GameStoreLocalPlayerAim()
 {
-    if (const auto* pAim = CCameraAim::GameGetInternalAim())
-    {
-        std::memcpy(&caLocalPlayerAim, pAim, sizeof(CAMERA_AIM));
+    if (!pcaInternalAim) {
+        return;
     }
+
+    memcpy(&caLocalPlayerAim, pcaInternalAim, sizeof(CAMERA_AIM));
 }
 
-CAMERA_AIM* CCameraAim::GameGetRemotePlayerAim(std::uint8_t bytePlayerNumber)
+CAMERA_AIM* CCameraAim::GameGetRemotePlayerAim(uint8_t bytePlayerNumber)
 {
     return bytePlayerNumber < eMaxItem::PLAYER_PED_SLOTS ? &caRemotePlayerAim[bytePlayerNumber] : nullptr;
 }
 
-void CCameraAim::GameSetRemotePlayerAim(std::uint8_t bytePlayerID)
+void CCameraAim::GameSetRemotePlayerAim(uint8_t bytePlayerID)
 {
-    auto* pAim = CCameraAim::GameGetInternalAim();
-    const auto* pRemoteAim = CCameraAim::GameGetRemotePlayerAim(bytePlayerID);
-    if (pAim && pRemoteAim)
-    {
-        std::memcpy(pAim, pRemoteAim, sizeof(CAMERA_AIM));
+    if (!pcaInternalAim || bytePlayerID >= eMaxItem::PLAYER_PED_SLOTS) {
+        return;
     }
+
+    memcpy(pcaInternalAim, &caRemotePlayerAim[bytePlayerID], sizeof(CAMERA_AIM));
 }
 
-void CCameraAim::GameStoreRemotePlayerAim(std::uint8_t bytePlayerNumber, CAMERA_AIM* pAim)
+void CCameraAim::GameStoreRemotePlayerAim(uint8_t bytePlayerNumber, CAMERA_AIM* pAim)
 {
-    auto* pRemoteAim = CCameraAim::GameGetRemotePlayerAim(bytePlayerNumber);
-    if (pAim && pRemoteAim && pAim != pRemoteAim)
-    {
-        std::memcpy(pRemoteAim, pAim, sizeof(CAMERA_AIM));
+    if (!pAim || bytePlayerNumber >= eMaxItem::PLAYER_PED_SLOTS || pAim == &caRemotePlayerAim[bytePlayerNumber]) {
+        return;
     }
+
+    memcpy(&caRemotePlayerAim[bytePlayerNumber], pAim, sizeof(CAMERA_AIM));
 }
 
 float CCameraAim::GameGetAspectRatio()
@@ -135,110 +124,132 @@ float CCameraAim::GameGetAspectRatio()
 
 float CCameraAim::GameGetLocalPlayerCameraExtZoom()
 {
-    const auto camera = CCameraAim::GetActiveCam();
-    return camera ? (*reinterpret_cast<const float*>(camera + 0x204) - 35.0f) / 35.0f : 0.0f;
+    return pfCameraExtZoom ? (*pfCameraExtZoom - 35.0f) * 0.028571429f : 0.0f;    // normalize for 35.0 to 70.0
 }
 
 void CCameraAim::GameSetLocalPlayerCameraExtZoom()
 {
-    if (const auto camera = CCameraAim::GetActiveCam())
-    {
-        *reinterpret_cast<float*>(camera + 0x204) = fLocalCameraExtZoom;
-        *pfAspectRatio = fLocalAspectRatio;
+    if (!pfCameraExtZoom) {
+        return;
     }
+
+    *pfCameraExtZoom = fLocalCameraExtZoom;
+    *pfAspectRatio = fLocalAspectRatio;
 }
 
 void CCameraAim::GameStoreLocalPlayerCameraExtZoom()
 {
-    if (const auto camera = CCameraAim::GetActiveCam())
+    if (!pfCameraExtZoom) {
+        return;
+    }
+
+    fLocalCameraExtZoom = *pfCameraExtZoom;
+    fLocalAspectRatio = *pfAspectRatio;
+}
+
+void CCameraAim::GameSetRemotePlayerCameraExtZoom(uint8_t bytePlayerID)
+{
+    if (!pfCameraExtZoom || bytePlayerID >= eMaxItem::PLAYER_PED_SLOTS) {
+        return;
+    }
+
+    *pfCameraExtZoom = fCameraExtZoom[bytePlayerID] * 35.0f + 35.0f; // unnormalize for 35.0 to 70.0
+    *pfAspectRatio = fCameraAspectRatio[bytePlayerID] + 1.0f;
+}
+
+void CCameraAim::GameSetPlayerCameraExtZoom(uint8_t bytePlayerID, float fExtZoom, float fAspectRatio)
+{
+    if (bytePlayerID >= eMaxItem::PLAYER_PED_SLOTS) {
+        return;
+    }
+
+    fCameraExtZoom[bytePlayerID] = fExtZoom;
+    fCameraAspectRatio[bytePlayerID] = fAspectRatio;
+}
+
+uint8_t CCameraAim::GameGetLocalPlayerCameraMode()
+{
+    return pbyteCameraMode ? static_cast<uint8_t>(*pbyteCameraMode) : 0;
+}
+
+void CCameraAim::GameSetLocalPlayerCameraMode(uint8_t byteMode)
+{
+    if (pbyteCameraMode)
     {
-        fLocalCameraExtZoom = *reinterpret_cast<const float*>(camera + 0x204);
-        fLocalAspectRatio = *pfAspectRatio;
+        *pbyteCameraMode = byteMode;
     }
 }
 
-void CCameraAim::GameSetRemotePlayerCameraExtZoom(std::uint8_t bytePlayerID)
-{
-    const auto camera = CCameraAim::GetActiveCam();
-    if (camera && bytePlayerID < eMaxItem::PLAYER_PED_SLOTS)
-    {
-        *reinterpret_cast<float*>(camera + 0x204) = fCameraExtZoom[bytePlayerID] * 35.0f + 35.0f;
-        *pfAspectRatio = fCameraAspectRatio[bytePlayerID] + 1.0f;
-    }
-}
-
-void CCameraAim::GameSetPlayerCameraExtZoom(std::uint8_t bytePlayerID, float fExtZoom, float fAspectRatio)
-{
-    if (bytePlayerID < eMaxItem::PLAYER_PED_SLOTS)
-    {
-        fCameraExtZoom[bytePlayerID] = fExtZoom;
-        fCameraAspectRatio[bytePlayerID] = fAspectRatio;
-    }
-}
-
-std::uint8_t CCameraAim::GameGetLocalPlayerCameraMode()
-{
-    const auto camera = CCameraAim::GetActiveCam();
-    return camera ? static_cast<std::uint8_t>(*reinterpret_cast<const std::uint16_t*>(camera + 0x186)) : 0;
-}
-
-void CCameraAim::GameSetLocalPlayerCameraMode(std::uint8_t byteMode)
-{
-    if (const auto camera = CCameraAim::GetActiveCam())
-    {
-        *reinterpret_cast<std::uint16_t*>(camera + 0x186) = byteMode;
-    }
-}
-
-std::uint8_t CCameraAim::GameGetPlayerCameraMode(std::uint8_t bytePlayerID)
+uint8_t CCameraAim::GameGetPlayerCameraMode(uint8_t bytePlayerID)
 {
     return bytePlayerID < eMaxItem::PLAYER_PED_SLOTS ? byteCameraMode[bytePlayerID] : 4;
 }
 
-void CCameraAim::GameSetPlayerCameraMode(std::uint8_t byteMode, std::uint8_t bytePlayerNumber)
+void CCameraAim::GameSetPlayerCameraMode(uint8_t byteMode, uint8_t bytePlayerNumber)
 {
-    if (bytePlayerNumber < eMaxItem::PLAYER_PED_SLOTS)
-    {
-        byteCameraMode[bytePlayerNumber] = byteMode;
+    if (bytePlayerNumber >= eMaxItem::PLAYER_PED_SLOTS) {
+        return;
     }
+
+    byteCameraMode[bytePlayerNumber] = byteMode;
 }
 
-void CCameraAim::GameUpdateLocalPlayerSkill(int iSkillType, std::uint16_t wSkillLevel)
+void CCameraAim::GameUpdateLocalPlayerSkill(int iSkillType, uint16_t wSkillLevel)
 {
-    if (pPlayerStats && iSkillType >= 0 && iSkillType < weaponSkillCount)
+    if (!pPlayerStats) {
+        return;
+    }
+
+    if (iSkillType >= 0 && iSkillType < static_cast<int>(std::size(fLocalSkillLevel)))
     {
-        pPlayerStats[firstWeaponSkill + iSkillType] = static_cast<float>(wSkillLevel);
+        pPlayerStats[69 + iSkillType] = (float)wSkillLevel;
     }
 }
 
 void CCameraAim::GameSetLocalPlayerSkills()
 {
-    if (pPlayerStats)
+    if (!pPlayerStats) {
+        return;
+    }
+
+    for (int i = 0; i < static_cast<int>(std::size(fLocalSkillLevel)); i++)
     {
-        std::copy_n(fLocalSkillLevel, weaponSkillCount, pPlayerStats + firstWeaponSkill);
+        pPlayerStats[69 + i] = fLocalSkillLevel[i];
     }
 }
 
 void CCameraAim::GameStoreLocalPlayerSkills()
 {
-    if (pPlayerStats)
+    if (!pPlayerStats) {
+        return;
+    }
+
+    for (int i = 0; i < static_cast<int>(std::size(fLocalSkillLevel)); i++)
     {
-        std::copy_n(pPlayerStats + firstWeaponSkill, weaponSkillCount, fLocalSkillLevel);
+        fLocalSkillLevel[i] = pPlayerStats[69 + i];
     }
 }
 
-void CCameraAim::GameSetRemotePlayerSkills(std::uint8_t bytePlayerNumber)
+void CCameraAim::GameSetRemotePlayerSkills(uint8_t bytePlayerNumber)
 {
-    if (pPlayerStats && bytePlayerNumber < eMaxItem::PLAYER_PED_SLOTS)
+    if (!pPlayerStats || bytePlayerNumber >= eMaxItem::PLAYER_PED_SLOTS) {
+        return;
+    }
+
+    for (int i = 0; i < static_cast<int>(std::size(fLocalSkillLevel)); i++)
     {
-        std::copy_n(fRemoteSkillLevel[bytePlayerNumber], weaponSkillCount, pPlayerStats + firstWeaponSkill);
+        pPlayerStats[69 + i] = fRemoteSkillLevel[bytePlayerNumber][i];
     }
 }
 
-void CCameraAim::GameStoreRemotePlayerSkills(std::uint8_t bytePlayerNumber, int iSkillType, std::uint16_t wSkillLevel)
+void CCameraAim::GameStoreRemotePlayerSkills(uint8_t bytePlayerNumber, int iSkillType, uint16_t wSkillLevel)
 {
-    if (bytePlayerNumber < eMaxItem::PLAYER_PED_SLOTS && iSkillType >= 0 && iSkillType < weaponSkillCount)
+    if (bytePlayerNumber >= eMaxItem::PLAYER_PED_SLOTS) {
+        return;
+    }
+
+    if (iSkillType >= 0 && iSkillType < static_cast<int>(std::size(fLocalSkillLevel)))
     {
-        fRemoteSkillLevel[bytePlayerNumber][iSkillType] = static_cast<float>(wSkillLevel);
+        fRemoteSkillLevel[bytePlayerNumber][iSkillType] = (float)wSkillLevel;
     }
 }

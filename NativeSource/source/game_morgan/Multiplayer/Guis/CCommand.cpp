@@ -13,11 +13,11 @@ void CCommand::Initialise()
 
     CCommand::commandList.clear();
 
+    CCommand::Add(OBFUSCATE("/apr"), CCommand::SetAspectRatio);
     CCommand::Add(OBFUSCATE("/rec"), CCommand::Reconnect);
     CCommand::Add(OBFUSCATE("/reconnect"), CCommand::Reconnect);
     CCommand::Add(OBFUSCATE("/q"), CCommand::QuitGame);
     CCommand::Add(OBFUSCATE("/quit"), CCommand::QuitGame);
-    CCommand::Add(OBFUSCATE("/apr"), CCommand::SetAspectRatio);
 }
 
 void CCommand::Add(const char* cmd, CommandCallback callback)
@@ -87,6 +87,36 @@ bool CCommand::Process(const std::string& input)
     return false;
 }
 
+void CCommand::SetAspectRatio(const std::vector<std::string>& args)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    if (args.size() >= 2)
+    {
+        const char* value = args[1].c_str();
+        char* end = nullptr;
+        const long type = std::strtol(value, &end, 10);
+
+        if (end != value && *end == '\0' && type >= eAspectRatioType::ASPECTRATIO_DEFAULT && type <= eAspectRatioType::ASPECTRATIO_32_9)
+        {
+            CAspectRatio::SetSize((eAspectRatioType)type);
+            CSetting::GetConfig()->WriteIntValue(OBFUSCATE("AspectRatio"), static_cast<int>(type));
+
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> AspectRatio: %u"), static_cast<unsigned>(type));
+        }
+        else
+        {
+            CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> AspectRatio: valid amounts are 0-7"));
+        }
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /apr <value>"));
+    }
+}
+
 void CCommand::Reconnect(const std::vector<std::string>&)
 {
     if (CMultiPlayer::GetActiveNetwork())
@@ -99,30 +129,4 @@ void CCommand::Reconnect(const std::vector<std::string>&)
 void CCommand::QuitGame(const std::vector<std::string>&)
 {
     ExitGame();
-}
-
-void CCommand::SetAspectRatio(const std::vector<std::string>& args)
-{
-    if (!CSetting::GetConfig() || !CGui::GetChat()) {
-        return;
-    }
-
-    if (args.size() != 2)
-    {
-        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /apr <0-7>"));
-        return;
-    }
-
-    const char* value = args[1].c_str();
-    char* end = nullptr;
-    const long type = std::strtol(value, &end, 10);
-    if (end == value || *end || type < ASPECTRATIO_DEFAULT || type > ASPECTRATIO_32_9)
-    {
-        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> AspectRatio: valid amounts are 0-7"));
-        return;
-    }
-
-    CAspectRatio::SetSize(static_cast<eAspectRatioType>(type));
-    CSetting::GetConfig()->WriteIntValue(OBFUSCATE("AspectRatio"), static_cast<int>(type));
-    CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> AspectRatio: %u"), static_cast<unsigned>(type));
 }
