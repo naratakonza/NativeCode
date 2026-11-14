@@ -109,7 +109,7 @@ void InitGame(RakNet::BitStream bsInitGame)
     }
 
 	CMultiPlayer::GetActiveNetwork()->InitialiseGameLogic(true);
-    CPhysical::SetGravity(CMultiPlayer::GetActiveNetwork()->m_fGravity);
+    CPhysical::SetGravity(-0.001f);
 
     if (CMultiPlayer::GetActiveNetwork()->m_bDisableEnterExits)
     {
