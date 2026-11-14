@@ -9,6 +9,7 @@
 #include "../CPools.h"
 #include "../CStreaming.h"
 #include "../Entity/Ped/CPlayerPed.h"
+#include "../Entity/CPhysical.h"
 #include "../RadarMod/CTiltedRadar.h"
 #include "../../utils/Memory/CHook.h"
 #include "../../utils/Storage/CStorage.h"
@@ -184,6 +185,7 @@ void CHooks::SetHooking(eHookType type)
             CStreaming::Initialise();
             CAspectRatio::Initialise();
             CDraw::Initialise();
+            CPhysical::Initialise();
 
             break;
         }

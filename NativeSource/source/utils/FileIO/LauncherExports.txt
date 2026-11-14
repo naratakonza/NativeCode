@@ -1,5 +1,6 @@
 _CDraw_SetFov_hook
 _CClothes_RebuildPlayer_hook
+__ZN9CPhysical14ProcessControlEP12CPhysicalGta
 _CGame_Process_hook
 _CPools_Initialise_hook
 _CRadar_DrawBlips_hook

@@ -9,6 +9,7 @@
 #include "../CSensitivity.h"
 #include "../CStartGameScreen.h"
 #include "../CTheZones.h"
+#include "../Entity/CPhysical.h"
 #include "../Base/CPatches.h"
 #include "../Base/CHooks.h"
 #include "../COptimizeDistance.h"
@@ -75,6 +76,7 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 
 		CClock::EnableGameClock(false);
 		CTheZones::EnableZoneNames(false);
+		CPhysical::SetGravity(CMultiPlayer::GetActiveNetwork()->m_fGravity);
 
 		if (waitconnect)
 		{
@@ -95,9 +97,9 @@ void CMultiPlayer::StartSAMP()
 
 	CNecessary::Log(OBFUSCATE("CMultiPlayer StartSAMP"));
 
-    CServer::SetIpConnect(OBFUSCATE("play.uifserver.net"));
+    CServer::SetIpConnect(OBFUSCATE("morgan-games.com"));
 	CServer::SetPassConnect("");
-	CServer::SetPortConnect(7776);
+	CServer::SetPortConnect(7777);
 
     CScripting::Init();
 

@@ -1,6 +1,8 @@
 #include "CEntity.h"
 #include "../CCommon.h"
 #include "../CStreaming.h"
+#include <string>
+
 #include "../Multiplayer/Guis/CGui.h"
 #include "../Multiplayer/CMultiPlayer.h"
 #include "../Enums/eSpecialVehicle.h"
@@ -8,6 +10,7 @@
 #include "../Scripts/CScripting.h"
 #include "../../utils/Necessary/CNecessary.h"
 
+#include <mach-o/dyld.h>
 #include <pthread.h>
 #include <unistd.h>
 
@@ -79,4 +82,9 @@ bool CEntity::SetModelIndex(unsigned int uiModel)
     (*reinterpret_cast<void (*const *)(CEntityGta*, unsigned int)>(m_pEntity->vtable + 0x30))(m_pEntity, uiModel);
 
     return true;
+}
+
+void CEntity::CleanUpOldReference(CEntityGta* thiz, CEntityGta **ppAddress)
+{
+    reinterpret_cast<void (*)(CEntityGta*, CEntityGta**)>(SA_ADDR(0x19275C) + _dyld_get_image_vmaddr_slide(0))(thiz, ppAddress);
 }

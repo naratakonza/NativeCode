@@ -1,5 +1,6 @@
 #include "CUtil.h"
 #include "CWorld.h"
+#include "Core/CMatrix.h"
 #include "../utils/Memory/CMemory.h"
 
 #include <mach-o/dyld.h>
@@ -19,6 +20,11 @@ CPedGta* CUtil::GamePool_Ped_GetAt(int iID)
     }
 
     return reinterpret_cast<CPedGta* (*)(int)>(SA_ADDR(0x16DA74) + _dyld_get_image_vmaddr_slide(0))(iID);
+}
+
+CVector CUtil::Multiply3x3(const CMatrix *m, const CVector *v)
+{
+    return reinterpret_cast<CVector (*)(const CMatrix *, const CVector *)>(SA_ADDR(0x22B874) + _dyld_get_image_vmaddr_slide(0))(m, v);
 }
 
 std::string CUtil::ReplaceKey(const std::string& input)

@@ -10,6 +10,7 @@
 #include "../../CWeather.h"
 #include "../../CTheZones.h"
 #include "../../CEntryExitManager.h"
+#include "../../Entity/CPhysical.h"
 
 int bytesToBits(int bytes) 
 {
@@ -108,7 +109,7 @@ void InitGame(RakNet::BitStream bsInitGame)
     }
 
 	CMultiPlayer::GetActiveNetwork()->InitialiseGameLogic(true);
-    // CPhysical::SetGravity(CMultiPlayer::GetActiveNetwork()->m_fGravity);
+    CPhysical::SetGravity(CMultiPlayer::GetActiveNetwork()->m_fGravity);
 
     if (CMultiPlayer::GetActiveNetwork()->m_bDisableEnterExits)
     {
@@ -218,6 +219,23 @@ void ClientMessage(RakNet::BitStream bsClientMessage)
 			CGui::GetChat()->AddClientMessage(dwColor, szMsg);
 		}
 	}
+}
+
+void SetGravity(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetGravity"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(float));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetGravity"));
+        return;
+    }
+
+	float gravity;
+	bsData.Read(gravity);
+	CPhysical::SetGravity(gravity);
 }
 
 bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
@@ -372,10 +390,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		// 	break;
 		// }
 
-		// case RPC_SetGravity: {
-		// 	SetGravity(*bsData);
-		// 	break;
-		// }
+		case RPC_SetGravity: {
+			SetGravity(*bsData);
+			break;
+		}
 
 		// case RPC_SetPlayerWantedLevel: {
 		// 	SetPlayerWantedLevel(*bsData);

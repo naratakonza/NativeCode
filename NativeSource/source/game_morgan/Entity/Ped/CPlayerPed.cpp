@@ -116,7 +116,6 @@ void CPlayerPed::ProcessAnimGroups(bool bUseCJWalk)
         return;
     }
 
-    // The packaged instruction skips the movement-group store when this byte is set.
     *reinterpret_cast<std::uint8_t*>(SA_ADDR(0xB0FCF8) + _dyld_get_image_vmaddr_slide(0)) = static_cast<std::uint8_t>(!bUseCJWalk);
 }
 
