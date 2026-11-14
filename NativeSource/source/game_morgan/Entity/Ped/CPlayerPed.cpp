@@ -35,67 +35,11 @@ CPlayerPed::CPlayerPed()
 CPlayerPed::CPlayerPed(uint8_t /*bytePlayerNumber*/, int /*iSkin*/, float /*fX*/, float /*fY*/, float /*fZ*/, float /*fRotation*/)
 {
     // CNecessary::Log(OBFUSCATE("CPlayerPed (Line: %d): bytePlayerNumber: %d, iSkin: %d, XYZ: %.2f %.2f %.2f, fRotation: %.2f"), __LINE__, bytePlayerNumber, iSkin, fX, fY, fZ, fRotation);    
-
-    // uint32_t dwPlayerActorID = 0;
-    // int iPlayerNum = bytePlayerNumber;
-    // m_pPed = nullptr;
-	// m_pEntity = nullptr;
-    
-    // m_dwGTAId = 0;
-
-	// CScripting::ScriptCommand(&create_player, &iPlayerNum, fX, fY, fZ, &dwPlayerActorID);
-	// CScripting::ScriptCommand(&create_actor_from_player, &iPlayerNum, &dwPlayerActorID);
-    
-    // m_dwGTAId = dwPlayerActorID;
-    // m_pPed = CUtil::GamePool_Ped_GetAt(m_dwGTAId);
-    // m_pEntity = reinterpret_cast<CPhysicalGta*>(CUtil::GamePool_Ped_GetAt(m_dwGTAId));
-    // CPlayerPed::m_bytePlayerNumber = bytePlayerNumber;
-
-	// CPedPointerRecorder::Record(CPlayerPed::m_bytePlayerNumber, reinterpret_cast<uintptr_t>(m_pPed));
-
-	// CScripting::ScriptCommand(&set_actor_weapon_droppable, m_dwGTAId, 1);
-	// CScripting::ScriptCommand(&set_actor_immunities, m_dwGTAId, 0, 0, 1, 0, 0);
-	// CScripting::ScriptCommand(&set_actor_can_be_decapitated, m_dwGTAId, 0);
-
-	// CPlayerPed::SetModelIndex(iSkin);
-
-    // if (m_pPed && CUtil::GamePool_Ped_GetAt(m_dwGTAId))
-    // {
-	// 	CPlayerPedSlot::Set(CPlayerPed::m_bytePlayerNumber, 1);
-    // }
 }
 
 CPlayerPed::~CPlayerPed()
 {
     CNecessary::Log(OBFUSCATE("CPlayerPed Uninitialise"));
-
-	// CPedPointerRecorder::Record(CPlayerPed::m_bytePlayerNumber, 0);
-	// CPlayerPedSlot::Set(CPlayerPed::m_bytePlayerNumber, 0);
-
-    // if (!m_pPed || !CCommon::IsValidGamePed(m_pPed) || !CUtil::GamePool_Ped_GetAt(m_dwGTAId) || CCommon::IsGameEntityArePlaceable(m_pEntity))
-    // {
-    //     m_pPed = nullptr;
-    //     m_pEntity = nullptr;
-    //     m_dwGTAId = 0;
-        
-    //     return;
-    // }
-
-    // if (CPlayerPed::IsInVehicle())
-	// {
-	// 	CPlayerPed::RemoveFromVehicleAndPutAt(100.0f, 100.0f, 20.0f);
-	// }
-
-	// // แก้ไขปัญหาการลบตัวละครผู้เล่น
-	// uintptr_t dwPedPtr = reinterpret_cast<uintptr_t>(m_pPed);
-	// *reinterpret_cast<uint32_t*>(*reinterpret_cast<uintptr_t*>(dwPedPtr + 1344) + 76) = 0; // m_pPed->m_pPlayerData->m_nPlayerGroup
-
-	// // CPlayerPed::Destructor
-    // reinterpret_cast<void(*)(CPedGta*)>(*reinterpret_cast<void**>(GetPed()->vtable + 0x8))(m_pPed);
-
-    // m_pPed = nullptr;
-    // m_pEntity = nullptr;
-    // m_dwGTAId = 0;
 }
 
 bool CPlayerPed::VerifyInstance()
