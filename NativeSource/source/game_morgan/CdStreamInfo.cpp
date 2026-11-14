@@ -10,7 +10,7 @@ bool CdStreamInfo::IsAvailable()
     return CMemory::HasMappedInstruction(SA_ADDR(0x219F9C), "\x88\x69\xF8\x97") && CMemory::HasMappedInstruction(SA_ADDR(0x034754), "\x16\x00\x00\xF9");
 }
 
-int CdStreamInfo::CdStreamOpen(const char* fileName, bool isPlayerIMG, bool validateDirectory, std::uint32_t& largestEntry)
+int CdStreamInfo::CdStreamOpen(const char* fileName, bool isPlayerIMG)
 {
     const auto slide = _dyld_get_image_vmaddr_slide(0);
     auto** handles = reinterpret_cast<void**>(SA_ADDR(0x509500) + slide);
@@ -35,25 +35,32 @@ int CdStreamInfo::CdStreamOpen(const char* fileName, bool isPlayerIMG, bool vali
         return -1;
     }
 
-    if (validateDirectory)
-    {
-        std::FILE* file = nullptr;
-        std::memcpy(&file, handles[slot], sizeof(file));
+    return static_cast<int>(stream);
+}
 
-        if (!file || !CdStreamInfo::ValidateDirectory(file, largestEntry) || ::fseeko(file, 0, SEEK_SET) != 0)
-        {
-            const auto close = reinterpret_cast<int (*)(void*)>(SA_ADDR(0x034874) + slide);
-            auto* names = reinterpret_cast<char (*)[eMaxArchives::MAX_CD_STREAM_IMAGE_NAME_SIZE]>(SA_ADDR(0x7AE520) + slide);
-            close(handles[slot]);
-            handles[slot] = nullptr;
-            names[slot][0] = '\0';
-
-            CNecessary::Log(OBFUSCATE("IMG invalid directory or sectors: %s"), fileName);
-            return -1;
-        }
+bool CdStreamInfo::ValidateOpenArchive(std::uint32_t stream, const char* fileName, std::uint32_t& largestEntry)
+{
+    const auto slot = stream >> 24;
+    const auto slide = _dyld_get_image_vmaddr_slide(0);
+    auto** handles = reinterpret_cast<void**>(SA_ADDR(0x509500) + slide);
+    if (slot >= eMaxArchives::MAX_CD_HANDLE_ARCHIVES || !handles[slot]) {
+        return false;
     }
 
-    return static_cast<int>(stream);
+    std::FILE* file = nullptr;
+    std::memcpy(&file, handles[slot], sizeof(file));
+    if (file && CdStreamInfo::ValidateDirectory(file, largestEntry) && ::fseeko(file, 0, SEEK_SET) == 0) {
+        return true;
+    }
+
+    const auto close = reinterpret_cast<int (*)(void*)>(SA_ADDR(0x034874) + slide);
+    auto* names = reinterpret_cast<char (*)[eMaxArchives::MAX_CD_STREAM_IMAGE_NAME_SIZE]>(SA_ADDR(0x7AE520) + slide);
+    close(handles[slot]);
+    handles[slot] = nullptr;
+    names[slot][0] = '\0';
+
+    CNecessary::Log(OBFUSCATE("IMG invalid directory or sectors: %s"), fileName);
+    return false;
 }
 
 bool CdStreamInfo::ValidateDirectory(std::FILE* file, std::uint32_t& largestEntry)

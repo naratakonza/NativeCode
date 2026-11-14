@@ -105,9 +105,13 @@ int CStreaming::AddImageToList(const char* fileName, bool isPlayerIMG)
         return -1;
     }
 
-    std::uint32_t largestEntry = 0;
-    const int stream = CdStreamInfo::CdStreamOpen(fileName, false, morgan::fileio::CStorage::IsAssetFreeBundle(), largestEntry);
+    const int stream = CdStreamInfo::CdStreamOpen(fileName, false);
     if (stream < 0) {
+        return -1;
+    }
+
+    std::uint32_t largestEntry = 0;
+    if (morgan::fileio::CStorage::IsAssetFreeBundle() && !CdStreamInfo::ValidateOpenArchive(static_cast<std::uint32_t>(stream), fileName, largestEntry)) {
         return -1;
     }
 

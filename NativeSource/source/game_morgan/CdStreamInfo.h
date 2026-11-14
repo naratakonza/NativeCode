@@ -16,7 +16,8 @@ class CdStreamInfo
 {
 public:
     static bool IsAvailable();
-    static int CdStreamOpen(const char* fileName, bool isPlayerIMG, bool validateDirectory, std::uint32_t& largestEntry);
+    static int CdStreamOpen(const char* fileName, bool isPlayerIMG);
+    static bool ValidateOpenArchive(std::uint32_t stream, const char* fileName, std::uint32_t& largestEntry);
 
 private:
     static bool ValidateDirectory(std::FILE* file, std::uint32_t& largestEntry);
