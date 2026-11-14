@@ -1,6 +1,7 @@
 #include "../../../../Main.h"
 #include "CMultiPlayerOpcode.h"
 #include "RPCData/eRPCID.h"
+#include "../../Enums/eConnectionRejectedType.h"
 #include "../CMultiPlayer.h"
 #include "../CNetGame.h"
 #include "../Guis/CGui.h"
