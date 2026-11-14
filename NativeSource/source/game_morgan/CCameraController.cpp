@@ -8,9 +8,13 @@ bool CCameraController::m_bAimed = false;
 float CCameraController::fVerticalAngle;
 float CCameraController::fHorizontalAngle;
 
+static bool lockOnModeVerified = false;
+
 void CCameraController::Initialise()
 {
     CNecessary::Log(OBFUSCATE("CCameraController Initialise"));
+
+    lockOnModeVerified = CMemory::HasMappedInstruction(SA_ADDR(0x1EF7F8), "\xFD\x7B\xBF\xA9") && CMemory::HasMappedInstruction(SA_ADDR(0x1EF800), "\x52\x71\xFF\x97") && CMemory::HasMappedInstruction(SA_ADDR(0x1EF810), "\x08\x39\x40\xB9");
 }
 
 bool CCameraController::IsCameraAllAiming(bool reset, bool zoomOnly)
@@ -29,7 +33,6 @@ bool CCameraController::IsCameraAllAiming(bool reset, bool zoomOnly)
     {
         if (reset)
         {
-            static const bool lockOnModeVerified = CMemory::HasMappedInstruction(SA_ADDR(0x1EF7F8), "\xFD\x7B\xBF\xA9") && CMemory::HasMappedInstruction(SA_ADDR(0x1EF800), "\x52\x71\xFF\x97") && CMemory::HasMappedInstruction(SA_ADDR(0x1EF810), "\x08\x39\x40\xB9");
             if (lockOnModeVerified)
             {
                 const bool IsLockOnMode = reinterpret_cast<bool (*)()>(SA_ADDR(0x1EF7F8) + _dyld_get_image_vmaddr_slide(0))();
