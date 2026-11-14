@@ -2,7 +2,6 @@
 #include "CCameraAim.h"
 #include "Enums/eMaxItem.h"
 
-#include <iterator>
 #include <mach-o/dyld.h>
 
 static_assert(sizeof(CAMERA_AIM) == 0x30);
@@ -63,7 +62,7 @@ void CCameraAim::Initialise()
 
 void CCameraAim::GameResetLocalPlayerSkills()
 {
-    for (int i = 0; i < static_cast<int>(std::size(fLocalSkillLevel)); i++)
+    for (size_t i = 0; i < ARRAY_SIZE(fLocalSkillLevel); i++)
     {
         fLocalSkillLevel[i] = 999.0f;
     }
@@ -200,7 +199,7 @@ void CCameraAim::GameUpdateLocalPlayerSkill(int iSkillType, uint16_t wSkillLevel
         return;
     }
 
-    if (iSkillType >= 0 && iSkillType < static_cast<int>(std::size(fLocalSkillLevel)))
+    if (ARRAY_VALIDATE(fLocalSkillLevel, iSkillType))
     {
         pPlayerStats[69 + iSkillType] = (float)wSkillLevel;
     }
@@ -212,7 +211,7 @@ void CCameraAim::GameSetLocalPlayerSkills()
         return;
     }
 
-    for (int i = 0; i < static_cast<int>(std::size(fLocalSkillLevel)); i++)
+    for (size_t i = 0; i < ARRAY_SIZE(fLocalSkillLevel); i++)
     {
         pPlayerStats[69 + i] = fLocalSkillLevel[i];
     }
@@ -224,7 +223,7 @@ void CCameraAim::GameStoreLocalPlayerSkills()
         return;
     }
 
-    for (int i = 0; i < static_cast<int>(std::size(fLocalSkillLevel)); i++)
+    for (size_t i = 0; i < ARRAY_SIZE(fLocalSkillLevel); i++)
     {
         fLocalSkillLevel[i] = pPlayerStats[69 + i];
     }
@@ -236,7 +235,7 @@ void CCameraAim::GameSetRemotePlayerSkills(uint8_t bytePlayerNumber)
         return;
     }
 
-    for (int i = 0; i < static_cast<int>(std::size(fLocalSkillLevel)); i++)
+    for (size_t i = 0; i < ARRAY_SIZE(fLocalSkillLevel); i++)
     {
         pPlayerStats[69 + i] = fRemoteSkillLevel[bytePlayerNumber][i];
     }
@@ -248,7 +247,7 @@ void CCameraAim::GameStoreRemotePlayerSkills(uint8_t bytePlayerNumber, int iSkil
         return;
     }
 
-    if (iSkillType >= 0 && iSkillType < static_cast<int>(std::size(fLocalSkillLevel)))
+    if (ARRAY_VALIDATE(fLocalSkillLevel, iSkillType))
     {
         fRemoteSkillLevel[bytePlayerNumber][iSkillType] = (float)wSkillLevel;
     }
