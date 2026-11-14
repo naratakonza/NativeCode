@@ -6,10 +6,6 @@
 #include "../Enums/eSpecialVehicle.h"
 #include "../Models/CModelInfo.h"
 #include "../Scripts/CScripting.h"
-#include "../../utils/Necessary/CNecessary.h"
-
-#include <pthread.h>
-#include <unistd.h>
 
 void CEntity::Add()
 {

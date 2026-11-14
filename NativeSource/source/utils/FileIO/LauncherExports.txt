@@ -27,3 +27,4 @@ _OBJC_METACLASS_$_MGLauncherViewController
 _Render2dStuff_hook
 _MGTimerStartUserPause
 _MGTimerEndUserPause
+__ZN6CWorld28FindPlayerSlotWithPedPointerEP7CPedGta

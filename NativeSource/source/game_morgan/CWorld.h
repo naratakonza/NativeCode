@@ -3,13 +3,20 @@
 #include "CPlayerInfo.h"
 #include "Enums/eMaxItem.h"
 
+struct PlayerTable
+{
+    CPlayerInfo* players;
+    unsigned int slots;
+};
+
 class CWorld
 {
 public:
-    static inline CPlayerInfo Players[eMaxItem::MAX_PLAYERS];
+    static CPlayerInfo* Players;
+    static uint8_t& PlayerInFocus;
 
 public:
     static void Initialise();
     static CPedGta* GetPlayerPed(unsigned int slot);
-    static int32_t FindPlayerSlotWithPedPointer(CPedGta* pPlayersPed);
+    __attribute__((visibility("default"))) static int32_t FindPlayerSlotWithPedPointer(CPedGta* pPlayersPed);
 };

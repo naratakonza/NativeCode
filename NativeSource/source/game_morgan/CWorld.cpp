@@ -5,15 +5,36 @@
 #include <mach-o/dyld.h>
 #include <pthread.h>
 
-static constexpr unsigned int gamePlayerSlots = 2;
-static bool playerSlotsVerified = false;
+CPlayerInfo* CWorld::Players = nullptr;
+uint8_t& CWorld::PlayerInFocus = *reinterpret_cast<uint8_t*>(SA_ADDR(0x741E18) + _dyld_get_image_vmaddr_slide(0));
+
+static const PlayerTable& GetPlayerTable()
+{
+    static const PlayerTable table = []() -> PlayerTable
+    {
+        const auto slide = _dyld_get_image_vmaddr_slide(0);
+        if (CMemory::HasMappedBytes(SA_ADDR(0x190C1C), "\x6A\x48\x00\x90\x4A\x01\x00\x91\x0B\x3B\x80\x52\x29\x29\xAB\x9B", 16, "__text"))
+        {
+            return {reinterpret_cast<CPlayerInfo*>(SA_ADDR(0xA9C000) + slide), eMaxItem::MAX_PLAYERS};
+        }
+
+        if (CMemory::HasMappedBytes(SA_ADDR(0x190C1C), "\x8A\x2D\x00\xB0\x4A\xA1\x29\x91\x0B\x3B\x80\x52\x29\x29\xAB\x9B", 16, "__text"))
+        {
+            return {reinterpret_cast<CPlayerInfo*>(SA_ADDR(0x741A68) + slide), 2};
+        }
+
+        return {};
+    }();
+
+    return table;
+}
 
 void CWorld::Initialise()
 {
     CNecessary::Log(OBFUSCATE("CWorld Initialise"));
 
-    playerSlotsVerified = CMemory::HasMappedBytes(SA_ADDR(0x190C1C), "\x8A\x2D\x00\xB0\x4A\xA1\x29\x91\x0B\x3B\x80\x52\x29\x29\xAB\x9B", 16, "__text");
-    if (!playerSlotsVerified)
+    CWorld::Players = GetPlayerTable().players;
+    if (!CWorld::Players)
     {
         CNecessary::Log(OBFUSCATE("CWorld: iOS player slots unavailable"));
     }
@@ -21,38 +42,26 @@ void CWorld::Initialise()
 
 CPedGta* CWorld::GetPlayerPed(unsigned int slot)
 {
-    if (slot >= eMaxItem::MAX_PLAYERS || !pthread_main_np()) {
+    if (!pthread_main_np()) {
         return nullptr;
     }
 
-    if (slot < gamePlayerSlots)
-    {
-        // สองช่องแรกอ่านจากตารางที่ GTA iOS จัดการ
-        return playerSlotsVerified ? reinterpret_cast<const CPlayerInfo*>(SA_ADDR(0x741A68) + _dyld_get_image_vmaddr_slide(0))[slot].m_pPed : nullptr;
-    }
-
-    return CWorld::Players[slot].m_pPed;
+    const auto& table = GetPlayerTable();
+    return slot < table.slots ? table.players[slot].m_pPed : nullptr;
 }
 
 int32_t CWorld::FindPlayerSlotWithPedPointer(CPedGta* pPlayersPed)
 {
-    if (!pPlayersPed || !pthread_main_np()) {
+    if (!pPlayersPed) {
         return -1;
     }
 
-    for (unsigned int i = 0; i < gamePlayerSlots; ++i)
+    const auto& table = GetPlayerTable();
+    for (unsigned int i = 0; i < table.slots; ++i)
     {
-        if (CWorld::GetPlayerPed(i) == pPlayersPed)
+        if (table.players[i].m_pPed == pPlayersPed)
         {
             return static_cast<int32_t>(i);
-        }
-    }
-
-    for (int i = gamePlayerSlots; i < eMaxItem::MAX_PLAYERS; ++i)
-    {
-        if (CWorld::Players[i].m_pPed == pPlayersPed)
-        {
-            return i;
         }
     }
 
