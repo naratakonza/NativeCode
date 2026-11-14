@@ -124,7 +124,7 @@ void CMultiPlayer::SetThread(eThreadType type)
 		case eThreadType::THREAD_TYPE_START: {
 			CPatches::SetPatches(ePatchType::PATCH_TYPE_MENU);
 			CHooks::SetHooking(eHookType::HOOK_TYPE_START);
-			CGame::SetFramerate(CSetting::GetConfig()->GetIntValue(OBFUSCATE("SetFps")));
+			CGame::SetFramerate(static_cast<std::uint8_t>(std::clamp(CSetting::GetConfig()->GetIntValue(OBFUSCATE("SetFps")), 0, static_cast<int>(UINT8_MAX))));
 			CSensitivity::SetOnfootTouch(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("OnfootSensitivity"))));
 			CSensitivity::SetAimTouch(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("AimSensitivity"))));
 			CSensitivity::SetIncarTouch(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("IncarSensitivity"))));
