@@ -24,6 +24,11 @@ void CEntity::Remove()
 
 }
 
+bool CEntity::IsAdded()
+{
+    return m_pEntity && !CCommon::IsGameEntityArePlaceable(m_pEntity) && m_pEntity->dwUnkModelRel != 0;
+}
+
 void CEntity::SetMoveSpeedVector(CVector Vector)
 {
 	if (!IsAdded()) {
