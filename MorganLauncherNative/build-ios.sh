@@ -183,7 +183,10 @@ startup_symbols="$out/startup-calls.txt"
 check_call() {
     local caller="$1" callee="$2" imports
     imports="$(xcrun nm -u -j "$out/fileio-objects/$caller.o")"
-    grep -Fq "$callee" <<< "$imports"
+    if ! grep -Fq "$callee" <<< "$imports"; then
+        printf 'Missing required call from %s to %s\n' "$caller" "$callee" >&2
+        return 1
+    fi
     printf '%s -> %s\n' "$caller" "$callee" >> "$startup_symbols"
 }
 check_call MGLauncherRuntime 'InitialiseClient'
@@ -197,7 +200,7 @@ check_call CNetGame 'CNetGamePoolC1'
 check_call CNetGamePool 'CPlayerPoolC1'
 check_call CPlayerPool 'CLocalPlayerC1'
 check_call CPlayerPool 'CLocalPlayer7Process'
-check_call CLocalPlayer 'CChat15AddDebugMessage'
+check_call CLocalPlayer 'CPlayerPedC1'
 check_call CNetGame 'CMultiPlayerNetwork6Update'
 check_call raknet-RakPeer 'CMultiPlayerOpcode7Receive'
 check_call CMultiPlayerOpcode 'CEntryExitManager25DisableInteriorEnterExits'
