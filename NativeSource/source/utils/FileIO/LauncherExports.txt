@@ -29,3 +29,5 @@ _Render2dStuff_hook
 _MGTimerStartUserPause
 _MGTimerEndUserPause
 __ZN6CWorld28FindPlayerSlotWithPedPointerEP7CPedGta
+_CPad_AimWeaponLeftRight_hook
+_CPad_AimWeaponUpDown_hook

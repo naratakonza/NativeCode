@@ -70,7 +70,7 @@ xcodebuild -version
 xcrun --sdk iphoneos clang++ --version
 mkdir "$out/fileio-objects"
 for source in \
-    "$native/source/game_morgan/CCameraAim.cpp" "$native/source/game_morgan/CAspectRatio.cpp" "$native/source/game_morgan/CCameraController.cpp" "$native/source/game_morgan/CDraw.cpp" "$native/source/game_morgan/CSensitivity.cpp" \
+    "$native/source/game_morgan/CCameraAim.cpp" "$native/source/game_morgan/CAspectRatio.cpp" "$native/source/game_morgan/CCameraController.cpp" "$native/source/game_morgan/CDraw.cpp" "$native/source/game_morgan/CSensitivity.cpp" "$native/source/game_morgan/CGyro.cpp" \
     "$native/source/game_morgan/CdStreamInfo.cpp" \
     "$native/source/game_morgan/CCommon.cpp" "$native/source/game_morgan/Entity/CEntity.cpp" "$native/source/game_morgan/Entity/CPhysical.cpp" \
     "$native/source/game_morgan/Entity/Ped/CPed.cpp" "$native/source/game_morgan/Entity/Ped/CPlayerPed.cpp" "$native/source/game_morgan/Entity/Ped/CPlayerPedSlot.cpp" "$native/source/game_morgan/Entity/Ped/CPedPointerRecorder.cpp" \
@@ -100,7 +100,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
     -std=c++17 "${fileio_flags[@]}" -Wall -Wextra -Werror -fstack-protector-strong \
         -fvisibility=hidden -fvisibility-inlines-hidden -fobjc-arc \
     -c "$storage/CStorage.mm" -o "$out/fileio-objects/CStorage.o"
-for source in MGLauncherViewController MGLauncherRuntime MGStartupTickGate MGStartupKeychain MGFlutter; do
+for source in MGLauncherViewController MGLauncherRuntime MGStartupTickGate MGStartupKeychain MGFlutter MGGyro; do
     xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
         -std=c++17 "${launcher_flags[@]}" -fobjc-arc -fvisibility=hidden -fvisibility-inlines-hidden \
         -c "$launcher/$source.mm" -o "$out/fileio-objects/$source.o"
@@ -123,7 +123,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CdStreamInfo.o" \
     "$out/fileio-objects/CCommon.o" "$out/fileio-objects/CEntity.o" "$out/fileio-objects/CPhysical.o" \
     "$out/fileio-objects/CPed.o" "$out/fileio-objects/CPlayerPed.o" "$out/fileio-objects/CPlayerPedSlot.o" "$out/fileio-objects/CPedPointerRecorder.o" \
-    "$out/fileio-objects/CCameraAim.o" "$out/fileio-objects/CAspectRatio.o" "$out/fileio-objects/CCameraController.o" "$out/fileio-objects/CDraw.o" "$out/fileio-objects/CSensitivity.o" \
+    "$out/fileio-objects/CCameraAim.o" "$out/fileio-objects/CAspectRatio.o" "$out/fileio-objects/CCameraController.o" "$out/fileio-objects/CDraw.o" "$out/fileio-objects/CSensitivity.o" "$out/fileio-objects/CGyro.o" "$out/fileio-objects/MGGyro.o" \
     "$out/fileio-objects/CScripting.o" "$out/fileio-objects/CRunningScript.o" "$out/fileio-objects/CExceptions.o" \
     "$out/fileio-objects/CTiltedRadar.o" "$out/fileio-objects/CTiltedCameraController.o" "$out/fileio-objects/CTiltedRadarGeometry.o" "$out/fileio-objects/CTiltedRadarMath.o" \
     "$out/fileio-objects/CDebugInfo.o" "$out/fileio-objects/CGui.o" "$out/fileio-objects/CFontRender.o" \
@@ -137,7 +137,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CStorageZip.o" "$out/fileio-objects/CStorageDisk.o" \
     "$out/fileio-objects/FileOpenDiagnostics.o" "$out/fileio-objects/CHooks.o" "$out/fileio-objects/CHook.o" \
     -Xlinker -exported_symbols_list -Xlinker "$fileio/LauncherExports.txt" \
-    -framework UIKit -framework Foundation -framework CoreFoundation -framework CoreGraphics -framework QuartzCore -framework UniformTypeIdentifiers -framework Security -lz -lobjc -o "$dylib"
+    -framework UIKit -framework Foundation -framework CoreFoundation -framework CoreGraphics -framework QuartzCore -framework UniformTypeIdentifiers -framework Security -framework CoreMotion -lz -lobjc -o "$dylib"
 
 [[ "$(xcrun lipo -archs "$dylib")" == arm64 ]]
 xcrun otool -hv "$dylib" | tee "$out/macho-header.txt"

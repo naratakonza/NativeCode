@@ -7,6 +7,9 @@
 #include "../CCameraController.h"
 #include "../CDraw.h"
 #include "../CSensitivity.h"
+#include "../CGyro.h"
+#include "../CTimer.h"
+#include "../../../Launcher/MGGyro.h"
 #include "../CStartGameScreen.h"
 #include "../CTheZones.h"
 #include "../Entity/CPhysical.h"
@@ -31,6 +34,8 @@ void CMultiPlayer::Uninitialise()
 {
 	CNecessary::Log(OBFUSCATE("CMultiPlayer Uninitialise"));
 
+    CGyro::Enable(false);
+    MGUpdateGyro(false);
     CGui::Uninitialise();
 
 	SAFE_DELETE(CMultiPlayer::pNetGame);
@@ -48,6 +53,8 @@ void CMultiPlayer::Process()
 	{
         CGui::GetChat()->ProcessPendingChatInputs();
     }
+
+    MGUpdateGyro(CGyro::IsGyro() && !CTimer::IsUserPause());
 
     if (CMultiPlayer::IsSampInit())
     {
@@ -132,6 +139,11 @@ void CMultiPlayer::SetThread(eThreadType type)
 			CSensitivity::SetAimTouch(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("AimSensitivity"))));
 			CSensitivity::SetIncarTouch(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("IncarSensitivity"))));
 			CDraw::SetFov(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("SetFov"))));
+			CGyro::SetGyroMode(static_cast<eGyroMode>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("GyroMode"))));
+			CGyro::Enable(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("GyroScope")));
+			CGyro::SetAimSensitivity(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("GyroAimSensitivity"))));
+			CGyro::SetOnfootSensitivity(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("GyroOnfootSensitivity"))));
+			CGyro::SetIncarSensitivity(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("GyroIncarSensitivity"))));
 			CAspectRatio::SetSize((eAspectRatioType)CSetting::GetConfig()->GetIntValue(OBFUSCATE("AspectRatio")));
 
 			break;

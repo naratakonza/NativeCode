@@ -4,6 +4,7 @@
 #include "../../CAspectRatio.h"
 #include "../../CDraw.h"
 #include "../../CSensitivity.h"
+#include "../../CGyro.h"
 #include "../../Enums/eMaxConfig.h"
 #include "../CMultiPlayer.h"
 #include "../CNetGame.h"
@@ -22,6 +23,11 @@ void CCommand::Initialise()
     CCommand::Add(OBFUSCATE("/sens"), CCommand::SetSensitivity);
     CCommand::Add(OBFUSCATE("/aimsens"), CCommand::SetAimWeaponSensitivity);
     CCommand::Add(OBFUSCATE("/incarsens"), CCommand::SetIncarSensitivity);
+    CCommand::Add(OBFUSCATE("/gyroaimsens"), CCommand::SetAimWeaponGyroSensitivity);
+    CCommand::Add(OBFUSCATE("/gyroonfootsens"), CCommand::SetOnfootGyroSensitivity);
+    CCommand::Add(OBFUSCATE("/gyroincarsens"), CCommand::SetIncarGyroSensitivity);
+    CCommand::Add(OBFUSCATE("/gyromode"), CCommand::SetGyroMode);
+    CCommand::Add(OBFUSCATE("/gyro"), CCommand::SetGyroScope);
     CCommand::Add(OBFUSCATE("/rec"), CCommand::Reconnect);
     CCommand::Add(OBFUSCATE("/reconnect"), CCommand::Reconnect);
     CCommand::Add(OBFUSCATE("/q"), CCommand::QuitGame);
@@ -272,6 +278,143 @@ void CCommand::SetIncarSensitivity(const std::vector<std::string>& args)
     else
     {
         CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /incarsens <value>"));
+    }
+}
+
+void CCommand::SetAimWeaponGyroSensitivity(const std::vector<std::string>& args)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    if (args.size() >= 2)
+	{
+        char* end = nullptr;
+        const long type = std::strtol(args[1].c_str(), &end, 10);
+
+        if (end != args[1].c_str() && *end == '\0' && type >= 0 && type <= 200)
+		{
+            CGyro::SetAimSensitivity(static_cast<float>(type));
+            CSetting::GetConfig()->WriteIntValue(OBFUSCATE("GyroAimSensitivity"), static_cast<int>(type));
+
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> AimWeaponGyroSensitivity Limiter: %u"), static_cast<unsigned int>(type));
+        }
+		else
+		{
+            CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> AimWeaponGyroSensitivity Limiter: valid amounts are 0-200"));
+        }
+    }
+	else
+	{
+        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /gyroaimsens <value>"));
+    }
+}
+
+void CCommand::SetOnfootGyroSensitivity(const std::vector<std::string>& args)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    if (args.size() >= 2)
+	{
+        char* end = nullptr;
+        const long type = std::strtol(args[1].c_str(), &end, 10);
+
+        if (end != args[1].c_str() && *end == '\0' && type >= 0 && type <= 200)
+		{
+            CGyro::SetOnfootSensitivity(static_cast<float>(type));
+            CSetting::GetConfig()->WriteIntValue(OBFUSCATE("GyroOnfootSensitivity"), static_cast<int>(type));
+
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> OnfootGyroSensitivity Limiter: %u"), static_cast<unsigned int>(type));
+        }
+		else
+		{
+            CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> OnfootGyroSensitivity Limiter: valid amounts are 0-200"));
+        }
+    }
+	else
+	{
+        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /gyroonfootsens <value>"));
+    }
+}
+
+void CCommand::SetIncarGyroSensitivity(const std::vector<std::string>& args)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    if (args.size() >= 2)
+    {
+        char* end = nullptr;
+        const long type = std::strtol(args[1].c_str(), &end, 10);
+
+        if (end != args[1].c_str() && *end == '\0' && type >= 0 && type <= 200)
+        {
+            CGyro::SetIncarSensitivity(static_cast<float>(type));
+            CSetting::GetConfig()->WriteIntValue(OBFUSCATE("GyroIncarSensitivity"), static_cast<int>(type));
+
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> IncarGyroSensitivity Limiter: %u"), static_cast<unsigned int>(type));
+        }
+        else
+        {
+            CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> IncarGyroSensitivity Limiter: valid amounts are 0-200"));
+        }
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /gyroincarsens <value>"));
+    }
+}
+
+void CCommand::SetGyroMode(const std::vector<std::string>& args)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    if (args.size() >= 2)
+    {
+        char* end = nullptr;
+        const long mode = std::strtol(args[1].c_str(), &end, 10);
+
+        if (end != args[1].c_str() && *end == '\0' && mode >= 0 && mode <= 2)
+        {
+            CGyro::SetGyroMode((eGyroMode)mode);
+            CSetting::GetConfig()->WriteIntValue(OBFUSCATE("GyroMode"), static_cast<int>(mode));
+
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> GyroMode: %u"), static_cast<unsigned int>(mode));
+        }
+        else
+        {
+            CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> GyroMode: valid amounts are 0-2 (0: Onfoot, 1: Aim, 2: All)"));
+        }
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /gyromode <value>"));
+    }
+}
+
+void CCommand::SetGyroScope(const std::vector<std::string>& /*args*/)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    bool bGyroStyle = CSetting::GetConfig()->GetBoolValue(OBFUSCATE("GyroScope"));
+    bGyroStyle = !bGyroStyle;
+    CGyro::Enable(bGyroStyle);
+    CSetting::GetConfig()->WriteBoolValue(OBFUSCATE("GyroScope"), bGyroStyle);
+
+    if (bGyroStyle)
+    {
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> GyroScope Enabled"));
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> GyroScope Disabled"));
     }
 }
 
