@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math' as math;
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -47,66 +47,26 @@ class SpawnBridge {
   }
 }
 
-class SampSpawnMenu extends StatelessWidget {
-  const SampSpawnMenu({super.key});
+// Same font choice and fallback as Thunder's Thai UI.
+const _spawnTextStyle = TextStyle(
+  fontFamily: 'Sarabun',
+  fontFamilyFallback: ['sans-serif'],
+);
+
+class SampSpawnMenu extends StatefulWidget {
+  const SampSpawnMenu({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: SpawnState.isSpawnMenuVisible,
-      builder: (context, visible, child) {
-        if (!visible) {
-          return const SizedBox.shrink();
-        }
-
-        return LayoutBuilder(builder: (context, constraints) {
-          final width = constraints.maxWidth;
-          final height = constraints.maxHeight;
-          final safe = MediaQuery.viewPaddingOf(context);
-          final scale = (width / 970).clamp(0.9, 1.5).toDouble();
-          final safeWidth = width - safe.horizontal;
-          final panelWidth = math.min(310 * scale, safeWidth - 16);
-          final panelHeight = math.max(52 * scale, 52.0);
-          final bottom = height - safe.bottom - 23 * scale;
-
-          if (panelWidth <= 0 || bottom - panelHeight < safe.top) {
-            return const SizedBox.shrink();
-          }
-
-          final rect = Rect.fromLTWH(
-            safe.left + (safeWidth - panelWidth) / 2,
-            bottom - panelHeight,
-            panelWidth,
-            panelHeight,
-          );
-          return Stack(children: [
-            Positioned.fromRect(
-              rect: rect,
-              child: _SpawnPanel(rect: rect, scale: scale),
-            ),
-          ]);
-        });
-      },
-    );
-  }
+  State<SampSpawnMenu> createState() => _SampSpawnMenuState();
 }
 
-class _SpawnPanel extends StatefulWidget {
-  const _SpawnPanel({required this.rect, required this.scale});
-
-  final Rect rect;
-  final double scale;
-
-  @override
-  State<_SpawnPanel> createState() => _SpawnPanelState();
-}
-
-class _SpawnPanelState extends State<_SpawnPanel>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _fade;
-  late final Animation<Offset> _slide;
-  String? _activeAction;
+class _SampSpawnMenuState extends State<SampSpawnMenu> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _fadeAnimation;
+  final ValueNotifier<String?> _activeAction = ValueNotifier<String?>(null);
+  final GlobalKey _panelKey = GlobalKey();
+  Rect? _lastHitRegion;
 
   @override
   void initState() {
@@ -115,205 +75,400 @@ class _SpawnPanelState extends State<_SpawnPanel>
       vsync: this,
       duration: const Duration(milliseconds: 450),
     );
-    _fade = _controller.drive(CurveTween(curve: Curves.easeOut));
-    _slide = _controller
-        .drive(CurveTween(curve: Curves.easeOutQuint))
-        .drive(Tween(begin: const Offset(0, 1.2), end: Offset.zero));
-    _controller.forward().then((_) {
-      _publishHitRegion();
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 1.2), // เริ่มจากล่างจอ
+      end: Offset.zero,            // เลื่อนขึ้นมาที่เดิม
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutQuint,
+    ));
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    ));
+
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _reportHitRegion();
+      } else if (status == AnimationStatus.dismissed) {
+        setState(() {});
+      }
     });
-    HardwareKeyboard.instance.addHandler(_handleKey);
-  }
+    SpawnState.isSpawnMenuVisible.addListener(_handleVisibilityChange);
 
-  @override
-  void didUpdateWidget(covariant _SpawnPanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.rect != widget.rect && _controller.isCompleted) {
-      _publishHitRegion();
+    if (SpawnState.isSpawnMenuVisible.value) {
+      _controller.forward();
     }
+
+    HardwareKeyboard.instance.addHandler(_hardwareKeyHandler);
   }
 
-  void _publishHitRegion() {
+  bool _hardwareKeyHandler(KeyEvent event) {
+    if (!SpawnState.isSpawnMenuVisible.value) return false;
+
+    if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        _activeAction.value = 'PREV_SKIN';
+        SpawnBridge.sendSpawnAction('PREV_SKIN');
+        return true;
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+        _activeAction.value = 'NEXT_SKIN';
+        SpawnBridge.sendSpawnAction('NEXT_SKIN');
+        return true;
+      } else if (event.logicalKey == LogicalKeyboardKey.shiftLeft ||
+                 event.logicalKey == LogicalKeyboardKey.shiftRight) {
+        _activeAction.value = 'SPAWN_PLAYER';
+        SpawnBridge.sendSpawnAction('SPAWN_PLAYER');
+        return true;
+      }
+    } else if (event is KeyUpEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowLeft && _activeAction.value == 'PREV_SKIN') {
+        _activeAction.value = null;
+        return true;
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight && _activeAction.value == 'NEXT_SKIN') {
+        _activeAction.value = null;
+        return true;
+      } else if ((event.logicalKey == LogicalKeyboardKey.shiftLeft ||
+                  event.logicalKey == LogicalKeyboardKey.shiftRight) && _activeAction.value == 'SPAWN_PLAYER') {
+        _activeAction.value = null;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void _reportHitRegion() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && SpawnState.isSpawnMenuVisible.value) {
-        SpawnBridge.sendHitRegion(widget.rect);
+      if (!mounted || !SpawnState.isSpawnMenuVisible.value ||
+          !_controller.isCompleted) {
+        return;
+      }
+
+      final panel = _panelKey.currentContext?.findRenderObject();
+      if (panel is! RenderBox || !panel.hasSize) {
+        return;
+      }
+
+      final region = panel.localToGlobal(Offset.zero) & panel.size;
+      if (region != _lastHitRegion) {
+        _lastHitRegion = region;
+        SpawnBridge.sendHitRegion(region);
       }
     });
   }
 
-  bool _handleKey(KeyEvent event) {
-    if (!SpawnState.isSpawnMenuVisible.value) {
-      return false;
+  void _handleVisibilityChange() {
+    setState(() {});
+    if (SpawnState.isSpawnMenuVisible.value) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+      _activeAction.value = null;
+      _lastHitRegion = null;
+      SpawnBridge.sendHitRegion(Rect.zero);
     }
-
-    final action = switch (event.logicalKey) {
-      LogicalKeyboardKey.arrowLeft => 'PREV_SKIN',
-      LogicalKeyboardKey.arrowRight => 'NEXT_SKIN',
-      LogicalKeyboardKey.shiftLeft ||
-      LogicalKeyboardKey.shiftRight =>
-        'SPAWN_PLAYER',
-      _ => null,
-    };
-    if (action == null) {
-      return false;
-    }
-    if (event is KeyDownEvent) {
-      setState(() => _activeAction = action);
-      SpawnBridge.sendSpawnAction(action);
-    } else if (event is KeyUpEvent && _activeAction == action) {
-      setState(() => _activeAction = null);
-    }
-    return true;
   }
 
   @override
   void dispose() {
-    HardwareKeyboard.instance.removeHandler(_handleKey);
-    SpawnBridge.sendHitRegion(Rect.zero);
+    HardwareKeyboard.instance.removeHandler(_hardwareKeyHandler);
+    SpawnState.isSpawnMenuVisible.removeListener(_handleVisibilityChange);
     _controller.dispose();
+    _activeAction.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final scale = widget.scale;
-    final radius = BorderRadius.circular(12 * scale);
-    return FadeTransition(
-      opacity: _fade,
+    final media = MediaQuery.of(context);
+    final safeArea = media.viewPadding;
+    final double usableWidth = media.size.width - safeArea.horizontal;
+    final double scale = usableWidth / 970.0;
+    if (_controller.isCompleted) {
+      _reportHitRegion();
+    }
+
+    final double menuWidth = 310 * scale;
+    final double bottomPadding = safeArea.bottom + 23 * scale;
+    final double menuBorderRadius = 12.0 * scale;
+    final double paddingVertical = 6.0 * scale;
+    final double paddingHorizontal = 8.0 * scale;
+
+    final menu = FadeTransition(
+      opacity: _fadeAnimation,
       child: SlideTransition(
-        position: _slide,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: radius,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.65),
-                blurRadius: 24 * scale,
-                spreadRadius: 3 * scale,
-                offset: Offset(0, 8 * scale),
-              ),
-            ],
-          ),
-          child: Material(
-            type: MaterialType.transparency,
-            child: Ink(
-              decoration: BoxDecoration(
-                borderRadius: radius,
-                border: Border.all(color: Colors.white.withOpacity(0.08)),
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xE60D0F10), Color(0xE61F2428)],
-                ),
-              ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8 * scale),
-                child: Row(
-                  children: [
-                    _button('PREV_SKIN', 'ก่อนหน้า', 'เปลี่ยนตัวละคร',
-                        Icons.arrow_back_ios_new_rounded),
-                    _divider(),
-                    _button('SPAWN_PLAYER', 'เกิด', 'เข้าสู่เกม',
-                        Icons.check_rounded),
-                    _divider(),
-                    _button('NEXT_SKIN', 'ถัดไป', 'เปลี่ยนตัวละคร',
-                        Icons.arrow_forward_ios_rounded),
-                  ],
-                ),
-              ),
+        position: _slideAnimation,
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: safeArea.left,
+              right: safeArea.right,
+              bottom: bottomPadding,
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _divider() {
-    return VerticalDivider(
-      color: const Color(0x26FFB800),
-      width: 1,
-      thickness: 1,
-      indent: 10,
-      endIndent: 10,
-    );
-  }
-
-  Widget _button(String action, String title, String caption, IconData icon) {
-    final isSpawn = action == 'SPAWN_PLAYER';
-    final active = _activeAction == action;
-    final color = isSpawn ? const Color(0xFF00C853) : const Color(0xFFFFB800);
-    final scale = widget.scale;
-    return Expanded(
-      child: Semantics(
-        button: true,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8 * scale),
-          highlightColor: color.withOpacity(0.12),
-          onTap: () => SpawnBridge.sendSpawnAction(action),
-          child: AnimatedScale(
-            duration: const Duration(milliseconds: 100),
-            scale: active ? 0.925 : 1.0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (action != 'NEXT_SKIN') _icon(icon, active, color),
-                Flexible(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4 * scale),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: action == 'NEXT_SKIN'
-                          ? CrossAxisAlignment.end
-                          : CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontFamily: 'Kanit',
-                            fontSize: 13 * scale,
-                            fontWeight: FontWeight.w700,
+            child: Container(
+              key: _panelKey,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(menuBorderRadius),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.65),
+                    blurRadius: 24 * scale,
+                    spreadRadius: 3 * scale,
+                    offset: Offset(0, 8 * scale),
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFFFFB800).withOpacity(0.02),
+                    blurRadius: 16 * scale,
+                    spreadRadius: 1 * scale,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(menuBorderRadius),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                  child: Container(
+                    width: menuWidth,
+                    padding: EdgeInsets.symmetric(vertical: paddingVertical, horizontal: paddingHorizontal),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(menuBorderRadius),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.08),
+                        width: 1.0,
+                      ),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xE60D0F10),
+                          Color(0xE61F2428),
+                        ],
+                      ),
+                    ),
+                    child: IntrinsicHeight(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _SpawnButton(
+                              action: 'PREV_SKIN',
+                              mainText: 'ก่อนหน้า',
+                              subText: 'เปลี่ยนตัวละคร',
+                              icon: Icons.arrow_back_ios_new_rounded,
+                              isIconLeft: true,
+                              scale: scale,
+                              activeAction: _activeAction,
+                            ),
                           ),
-                        ),
-                        Text(
-                          caption,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.62),
-                            fontFamily: 'NotoSans',
-                            fontSize: 9 * scale,
+                          _buildVerticalDivider(scale),
+                          Expanded(
+                            child: _SpawnButton(
+                              action: 'SPAWN_PLAYER',
+                              mainText: 'เกิด',
+                              subText: 'เข้าสู่เกม',
+                              icon: Icons.check_rounded,
+                              isIconLeft: true,
+                              scale: scale,
+                              activeAction: _activeAction,
+                            ),
                           ),
-                        ),
-                      ],
+                          _buildVerticalDivider(scale),
+                          Expanded(
+                            child: _SpawnButton(
+                              action: 'NEXT_SKIN',
+                              mainText: 'ถัดไป',
+                              subText: 'เปลี่ยนตัวละคร',
+                              icon: Icons.arrow_forward_ios_rounded,
+                              isIconLeft: false,
+                              scale: scale,
+                              activeAction: _activeAction,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                if (action == 'NEXT_SKIN') _icon(icon, active, color),
-              ],
+              ),
             ),
           ),
         ),
       ),
     );
+
+    final visible = SpawnState.isSpawnMenuVisible.value;
+    return Offstage(
+      offstage: !visible && _controller.isDismissed,
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: Material(type: MaterialType.transparency, child: menu),
+      ),
+    );
   }
 
-  Widget _icon(IconData icon, bool active, Color color) {
-    final scale = widget.scale;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
-      width: 20 * scale,
-      height: 20 * scale,
-      decoration: BoxDecoration(
-        color: active ? color : Colors.white.withOpacity(0.06),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(
-        icon,
-        color: active ? Colors.black : Colors.white,
-        size: 11 * scale,
+  Widget _buildVerticalDivider(double scale) {
+    return VerticalDivider(
+      color: const Color(0xFFFFB800).withOpacity(0.15),
+      thickness: 0.8 * scale,
+      indent: 6.0 * scale,
+      endIndent: 6.0 * scale,
+    );
+  }
+}
+
+class _SpawnButton extends StatelessWidget {
+  final String action;
+  final String mainText;
+  final String subText;
+  final IconData icon;
+  final bool isIconLeft;
+  final double scale;
+  final ValueNotifier<String?> activeAction;
+
+  const _SpawnButton({
+    Key? key,
+    required this.action,
+    required this.mainText,
+    required this.subText,
+    required this.icon,
+    required this.isIconLeft,
+    required this.scale,
+    required this.activeAction,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final double buttonBorderRadius = 8.0 * scale;
+    final double mainFontSize = 8.3 * scale;
+    final double subFontSize = 5.4 * scale;
+    final double iconSize = 8.6 * scale;
+    final double iconBoxSize = 19.2 * scale;
+    final double elementSpacing = 6.2 * scale;
+    final double buttonPadding = 5.0 * scale;
+
+    return MouseRegion(
+      onEnter: (_) => activeAction.value = action,
+      onExit: (_) {
+        if (activeAction.value == action) activeAction.value = null;
+      },
+      child: GestureDetector(
+        onTapDown: (_) => activeAction.value = action,
+        onTapUp: (_) {
+          if (activeAction.value == action) activeAction.value = null;
+        },
+        onTapCancel: () {
+          if (activeAction.value == action) activeAction.value = null;
+        },
+        onTap: () => SpawnBridge.sendSpawnAction(action),
+        child: InkWell(
+          onTap: null,
+          borderRadius: BorderRadius.circular(buttonBorderRadius),
+          child: ValueListenableBuilder<String?>(
+            valueListenable: activeAction,
+            builder: (context, activeActionValue, child) {
+
+              bool active = activeActionValue == action;
+              bool isSpawn = action == 'SPAWN_PLAYER';
+
+              final Color buttonBgColor = active
+              ? (isSpawn
+                  ? const Color(0xFF00C853).withOpacity(0.12)
+                  : const Color(0xFFFFB800).withOpacity(0.08))
+              : Colors.transparent;
+
+              final Color hoveredColor = const Color(0xFFFFB800);
+              final Color iconColor = active ? Colors.black : Colors.white.withOpacity(0.7);
+              final Color iconBgColor = active
+              ? (isSpawn ? const Color(0xFF00C853) : hoveredColor)
+              : Colors.white.withOpacity(0.04);
+              final Color mainTextColor = isSpawn ? Colors.white : (active ? Colors.white : Colors.white.withOpacity(0.7));
+              final Color subTextColor = Colors.white.withOpacity(0.4);
+
+              final textColumn = Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: isIconLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    mainText,
+                    style: _spawnTextStyle.copyWith(
+                      color: mainTextColor,
+                      fontSize: mainFontSize,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.26 * scale,
+                    ),
+                  ),
+                  SizedBox(height: 1.0 * scale),
+                  Text(
+                    subText,
+                    style: _spawnTextStyle.copyWith(
+                      color: subTextColor,
+                      fontSize: subFontSize,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.105 * scale,
+                    ),
+                  ),
+                ],
+              );
+
+              final circularIcon = AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                width: iconBoxSize,
+                height: iconBoxSize,
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  shape: BoxShape.circle,
+                  boxShadow: active
+                      ? [
+                          BoxShadow(
+                            color: isSpawn
+                                ? const Color(0xFF00C853).withOpacity(0.35)
+                                : hoveredColor.withOpacity(0.35),
+                            blurRadius: 6.2 * scale,
+                            spreadRadius: 1.05 * scale,
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Icon(
+                  icon,
+                  color: iconColor,
+                  size: iconSize,
+                ),
+              );
+
+              final fittedText = Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: textColumn,
+                ),
+              );
+
+              return Ink(
+                padding: EdgeInsets.symmetric(vertical: buttonPadding, horizontal: buttonPadding),
+                decoration: BoxDecoration(
+                  color: buttonBgColor,
+                  borderRadius: BorderRadius.circular(buttonBorderRadius),
+                ),
+                child: AnimatedScale(
+                  scale: active ? 0.925 : 1.0,
+                  duration: const Duration(milliseconds: 100),
+                  curve: Curves.easeOutCubic,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: isIconLeft
+                        ? [circularIcon, SizedBox(width: elementSpacing), fittedText]
+                        : [fittedText, SizedBox(width: elementSpacing), circularIcon],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
       ),
     );
   }
