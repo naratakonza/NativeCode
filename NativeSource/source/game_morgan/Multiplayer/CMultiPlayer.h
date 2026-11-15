@@ -43,7 +43,7 @@ public:
 
 	static const char* GetPlayerName()
     {
-        return "Morgan_Artiwliz";
+        return "Morgan_ArtiwlizTHD";
     }
 
 private:
