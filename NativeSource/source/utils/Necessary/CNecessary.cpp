@@ -2,6 +2,7 @@
 #include "../Storage/CStorage.h"
 
 #include <chrono>
+#include <sys/time.h>
 
 void CNecessary::Log(const char* fmt, ...)
 {
