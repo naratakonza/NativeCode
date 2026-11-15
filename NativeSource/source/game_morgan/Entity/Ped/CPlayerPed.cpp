@@ -2,6 +2,7 @@
 #include "CPed.h"
 #include "CPlayerPedSlot.h"
 #include "CPedPointerRecorder.h"
+#include "../../CGame.h"
 #include "../../CUtil.h"
 #include "../../CCommon.h"
 #include "../../CStreaming.h"
@@ -102,6 +103,45 @@ void CPlayerPed::DestroyFollowPedTask()
         reinterpret_cast<void (*)(uintptr_t)>(SA_ADDR(0x360F5C) + slide)(ikManager);
         *reinterpret_cast<uintptr_t*>(pedIntelligence + 0x58) = 0;
     }
+}
+
+void CPlayerPed::SetMoney(int iAmount)
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    CScripting::ScriptCommand(&set_actor_money, m_dwGTAId, 0);
+    CScripting::ScriptCommand(&set_actor_money, m_dwGTAId, iAmount);
+}
+
+void CPlayerPed::SetInterior(uint8_t byteID, bool refresh)
+{
+    if (!CPlayerPed::VerifyInstance()) {
+	    return;
+    }
+
+    if (GetPed() && CPlayerPed::m_bytePlayerNumber != 0) 
+    {
+		CScripting::ScriptCommand(&link_actor_to_interior, m_dwGTAId, byteID);
+	}
+	else
+	{
+		CScripting::ScriptCommand(&select_interior, byteID);
+		CScripting::ScriptCommand(&link_actor_to_interior, m_dwGTAId, byteID);
+
+		if (refresh)
+		{
+			CPlayerPed::RefreshStreamingByPos();
+		}
+	}
+}
+
+void CPlayerPed::RefreshStreamingByPos() 
+{
+    CMatrix mat;
+    GetMatrix(&mat);
+    CGame::RefreshStreamingAt(mat.pos);
 }
 
 bool CPlayerPed::IsInVehicle()

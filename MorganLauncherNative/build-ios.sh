@@ -85,6 +85,7 @@ for source in \
     "$multiplayer/Texts/CDebugInfo.cpp" "$multiplayer/Guis/CGui.cpp" "$multiplayer/Guis/Font/CFontRender.cpp" \
     "$multiplayer/Guis/CChat.cpp" "$multiplayer/Guis/CCommand.cpp" "$multiplayer/Core/CMultiPlayerPacket.cpp" "$native/source/game_morgan/CUtil.cpp" "$native/source/game_morgan/CWorld.cpp" \
     "$multiplayer/Core/CMultiPlayerNetwork.cpp" "$multiplayer/Core/CMultiPlayerOpcode.cpp" "$native/source/game_morgan/CEntryExitManager.cpp" \
+    "$multiplayer/Pools/CNetGamePool.cpp" "$multiplayer/Pools/Process/CPlayerPool.cpp" \
     "$imgui/imgui_impl_renderware.cpp"; do
     object="${source##*/}"
     xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
@@ -131,6 +132,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CDebugInfo.o" "$out/fileio-objects/CGui.o" "$out/fileio-objects/CFontRender.o" \
     "$out/fileio-objects/CChat.o" "$out/fileio-objects/CCommand.o" "$out/fileio-objects/CMultiPlayerPacket.o" "$out/fileio-objects/CUtil.o" "$out/fileio-objects/CWorld.o" \
     "$out/fileio-objects/CMultiPlayerNetwork.o" "$out/fileio-objects/CMultiPlayerOpcode.o" "$out/fileio-objects/CEntryExitManager.o" \
+    "$out/fileio-objects/CNetGamePool.o" "$out/fileio-objects/CPlayerPool.o" \
     "$out/fileio-objects/imgui.o" "$out/fileio-objects/imgui_draw.o" "$out/fileio-objects/imgui_impl_renderware.o" \
     "$out/fileio-objects/Main.o" "$out/fileio-objects/RenderWare.o" "$out/fileio-objects/CMultiPlayer.o" "$out/fileio-objects/CNecessary.o" \
     "$out/fileio-objects/CPatches.o" "$out/fileio-objects/CUvAnim.o" "$out/fileio-objects/CFastLoad.o" "$out/fileio-objects/CMemory.o" \
@@ -183,6 +185,9 @@ check_call CMultiPlayer 'CServer12SetIpConnect'
 check_call CMultiPlayer 'CNetGameC1'
 check_call CMultiPlayer 'CNetGame7Process'
 check_call CNetGame 'RakNetworkFactory21GetRakClientInterface'
+check_call CNetGame 'CNetGamePoolC1'
+check_call CNetGamePool 'CPlayerPoolC1'
+check_call CPlayerPool 'CChat15AddDebugMessage'
 check_call CNetGame 'CMultiPlayerNetwork6Update'
 check_call raknet-RakPeer 'CMultiPlayerOpcode7Receive'
 check_call CMultiPlayerOpcode 'CEntryExitManager25DisableInteriorEnterExits'

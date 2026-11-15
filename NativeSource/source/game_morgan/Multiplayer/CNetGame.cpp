@@ -86,7 +86,7 @@ void CNetGame::InitialiseRakClient()
 
 void CNetGame::InitialisePools()
 {
-    // CNetGame::m_pNetGamePools = new CNetGamePool();
+    CNetGame::m_pNetGamePools = new CNetGamePool();
 }
 
 void CNetGame::InitialiseGameLogic(bool eJect)
@@ -138,12 +138,12 @@ void CNetGame::UninitialiseRakClient()
 
 void CNetGame::UninitialisePools()
 {
-    // SAFE_DELETE(CNetGame::m_pNetGamePools);
+    SAFE_DELETE(CNetGame::m_pNetGamePools);
 }
 
 void CNetGame::Process()
 {
-    if (!CNetGame::GetRakClient() /*|| !CNetGame::GetNetGamePools()*/) {
+    if (!CNetGame::GetRakClient() || !CNetGame::GetNetGamePools()) {
 		return;
 	}
 
@@ -196,10 +196,10 @@ void CNetGame::Process()
 
 void CNetGame::ProcessPools()
 {
-    // if (CNetGame::GetNetGamePools())
-    // {
-	// 	CNetGame::GetNetGamePools()->Process();
-	// }
+    if (CNetGame::GetNetGamePools())
+    {
+		CNetGame::GetNetGamePools()->Process();
+	}
 }
 
 void CNetGame::SetNetworkState(eNetworkState state)

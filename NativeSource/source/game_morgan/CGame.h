@@ -22,6 +22,10 @@ public:
     static std::uint8_t GetActiveInterior();
     static bool IsDrawingBigMap();
     static void MenuSwitchOff();
+    static void RefreshStreamingAt(CVector pos);
+	static int GetPlayerMoney();
+	static void AddPlayerMoney(int money);
+	static void ResetPlayerMoney();
     static void SetPlayerMaxStats();
     static void SetPlayerStatsLocked(bool locked);
 

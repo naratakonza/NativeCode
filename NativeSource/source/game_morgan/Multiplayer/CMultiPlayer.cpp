@@ -81,6 +81,14 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 		
 		CMultiPlayer::GetActiveNetwork()->InitialiseGameLogic();
 
+		if (CGame::GetPlayer())
+		{
+			CGame::GetPlayer()->SetInterior(0, true);
+			// CGame::GetPlayer()->SetDead(); เดียวมาทำต่อภายหลัง
+			CGame::GetPlayer()->SetArmour(0.0f);
+		}
+
+		CGame::ResetPlayerMoney();
 		CClock::EnableGameClock(false);
 		CTheZones::EnableZoneNames(false);
 		CPhysical::SetGravity(CMultiPlayer::GetActiveNetwork()->m_fGravity);

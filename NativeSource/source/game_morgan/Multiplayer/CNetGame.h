@@ -4,7 +4,7 @@
 #include "../Enums/eNetworkState.h"
 
 //pools
-// #include "Pools/CNetGamePool.h"
+#include "Pools/CNetGamePool.h"
 
 // raknet
 #include <raknet/RakClientInterface.h>
@@ -103,9 +103,9 @@ public:
 
 	RakClientInterface* GetRakClient() { return m_pRakClient; };
 
-	// CNetGamePool* GetNetGamePools() {
-	// 	return CNetGame::m_pNetGamePools;
-	// };
+	CNetGamePool* GetNetGamePools() {
+		return CNetGame::m_pNetGamePools;
+	};
 
 public:
 	char m_szHostName[0xFF];
@@ -115,7 +115,7 @@ public:
 private:
 	NetworkData m_networkData;
 	RakClientInterface* m_pRakClient = nullptr;
-	// CNetGamePool* m_pNetGamePools;
+	CNetGamePool* m_pNetGamePools;
 	eNetworkState m_iNetState = eNetworkState::GAMESTATE_NONE;
 	uint32_t m_dwLastConnectAttempt = 0;
 };

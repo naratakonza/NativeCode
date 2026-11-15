@@ -1,5 +1,6 @@
 #include "../../Main.h"
 #include "CGame.h"
+#include "CWorld.h"
 #include "CStreaming.h"
 #include "Entity/Ped/CPedPointerRecorder.h"
 #include "Entity/Ped/CPlayerPedSlot.h"
@@ -123,6 +124,35 @@ void CGame::MenuSwitchOff()
     }
 
     reinterpret_cast<void (*)()>(SA_ADDR(0x1EC924) + _dyld_get_image_vmaddr_slide(0))();
+}
+
+void CGame::RefreshStreamingAt(CVector pos) 
+{
+	CScripting::ScriptCommand(&refresh_streaming_at, pos.x, pos.y);
+}
+
+int CGame::GetPlayerMoney()
+{
+    if (!CWorld::Players) {
+        return 0;
+    }
+
+    return *reinterpret_cast<const int*>(reinterpret_cast<std::uintptr_t>(CWorld::Players) + 0xF0);
+}
+
+void CGame::AddPlayerMoney(int money)
+{
+	CScripting::ScriptCommand(&add_to_player_money, 0, money);
+}
+
+void CGame::ResetPlayerMoney()
+{
+	int iMoney = CGame::GetPlayerMoney();
+	if(!iMoney) {
+		return;
+	}
+
+	CGame::AddPlayerMoney(iMoney < 0 ? abs(iMoney) : -(iMoney));
 }
 
 void CGame::SetPlayerMaxStats()

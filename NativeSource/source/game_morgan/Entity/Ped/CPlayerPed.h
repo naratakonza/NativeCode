@@ -14,6 +14,9 @@ public:
 
     void SetModelIndex(unsigned int uiModel);
     void DestroyFollowPedTask();
+    void SetMoney(int iAmount);
+    void SetInterior(uint8_t byteID, bool refresh = false);
+    void RefreshStreamingByPos();
     bool IsInVehicle();
     void RemoveFromVehicleAndPutAt(float fX, float fY, float fZ);
 
