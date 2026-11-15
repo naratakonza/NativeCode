@@ -119,6 +119,17 @@ float CTiltedRadar::GetWidgetRightFraction()
     return screenWidth > 0 && radarRight > 0.0f && radarRight < screenWidth ? radarRight / screenWidth : 0.0f;
 }
 
+bool CTiltedRadar::GetWidgetBottomLeft(float& left, float& bottom)
+{
+    if (!radarReady || !CTiltedRadar::UpdateRadarWidgetBounds()) {
+        return false;
+    }
+
+    left = CTiltedRadar::m_fCenterX - CTiltedRadar::m_fRadiusX;
+    bottom = CTiltedRadar::m_fCenterY + CTiltedRadar::m_fRadiusY;
+    return true;
+}
+
 bool CTiltedRadar::BeginMap()
 {
     if (!CTiltedRadar::IsEnabled() || CGame::IsDrawingBigMap() || !CTiltedRadar::UpdateRadarWidgetBounds()) {

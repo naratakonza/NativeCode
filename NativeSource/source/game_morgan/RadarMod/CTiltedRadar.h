@@ -22,6 +22,7 @@ public:
     static void SetEnabled(bool bEnabled);
     static bool IsEnabled();
     static float GetWidgetRightFraction();
+    static bool GetWidgetBottomLeft(float& left, float& bottom);
     static bool BeginMap();
     static bool DrawTiles(int alpha);
     static void ProjectBlip(const void* worldPos, float& x, float& y);

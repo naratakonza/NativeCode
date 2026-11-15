@@ -147,7 +147,7 @@ void InitGame(RakNet::BitStream bsInitGame)
 
     CGame::GetCamera()->SetBehindPlayer();
     CGame::DisplayHUD(true);
-    CGame::GetPlayer()->SetModelIndex(309);
+    CGame::GetPlayer()->SetModelIndex(143);
 	CGame::GetPlayer()->SetHealth(100);
 	CGame::GetPlayer()->SetArmour(100);
 
