@@ -54,7 +54,6 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 @property(nonatomic, strong) UIViewController<MGLoadingController>* controller;
 @property(nonatomic, strong) id<MGLoadingChannel> channel;
 @property(nonatomic, strong) id<MGLoadingChannel> chatChannel;
-@property(nonatomic, strong) id<MGLoadingChannel> keyBarChannel;
 @property(nonatomic, strong) MGFlutterOverlayView* overlay;
 @property(nonatomic, strong) UITapGestureRecognizer* outsideChatTap;
 @property(nonatomic, strong) NSMutableArray<NSDictionary*>* pendingMessages;
@@ -67,15 +66,10 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 @property(nonatomic) BOOL paused;
 @property(nonatomic) BOOL loadingFinished;
 @property(nonatomic, strong) NSDictionary* chatLayout;
-@property(nonatomic) int keyBarRadarLeft;
-@property(nonatomic) int keyBarRadarBottom;
-@property(nonatomic) int sentKeyBarRadarLeft;
-@property(nonatomic) int sentKeyBarRadarBottom;
 - (BOOL)attachTo:(UIViewController*)parent;
 - (void)close;
 - (void)send:(NSString*)method value:(id)value;
 - (void)updateChatVisibility;
-- (void)updateKeyBarPreview;
 - (BOOL)isChatInteractive;
 @end
 
@@ -143,7 +137,6 @@ static NSString* MGChatColor(uint32_t rgba)
 
     self.channel = [channelClass methodChannelWithName:@"flutter_loadingscreen" binaryMessenger:[self.engine binaryMessenger]];
     self.chatChannel = [channelClass methodChannelWithName:@"flutter_chat" binaryMessenger:[self.engine binaryMessenger]];
-    self.keyBarChannel = [channelClass methodChannelWithName:@"flutter_keybar_preview" binaryMessenger:[self.engine binaryMessenger]];
     self.pendingMessages = [NSMutableArray array];
     self.controller = [[(id)controllerClass alloc] initWithEngine:self.engine nibName:nil bundle:nil];
     if (!self.channel || !self.chatChannel || !self.controller)
@@ -157,7 +150,6 @@ static NSString* MGChatColor(uint32_t rgba)
         if ([call.method isEqualToString:@"ready"] && screen && screen == flutter && !screen.ready)
         {
             screen.ready = YES;
-            [screen updateKeyBarPreview];
             if (screen.visible)
             {
                 [screen send:@"show" value:nil];
@@ -178,7 +170,6 @@ static NSString* MGChatColor(uint32_t rgba)
                 {
                     screen.loadingFinished = YES;
                     [screen updateChatVisibility];
-                    [screen updateKeyBarPreview];
                 }
             });
         }
@@ -338,38 +329,12 @@ static NSString* MGChatColor(uint32_t rgba)
     }
 }
 
-- (void)updateKeyBarPreview
-{
-    if (!self.ready || !self.keyBarChannel) {
-        return;
-    }
-
-    const bool show = self.loadingFinished && !self.visible && !self.paused && self.keyBarRadarBottom > 0;
-    const int left = show ? self.keyBarRadarLeft : 0;
-    const int bottom = show ? self.keyBarRadarBottom : 0;
-    if (self.sentKeyBarRadarLeft == left && self.sentKeyBarRadarBottom == bottom) {
-        return;
-    }
-
-    self.sentKeyBarRadarLeft = left;
-    self.sentKeyBarRadarBottom = bottom;
-    if (show)
-    {
-        [self.keyBarChannel invokeMethod:@"show" arguments:@{@"radarLeft": @(left), @"radarBottom": @(bottom)}];
-    }
-    else
-    {
-        [self.keyBarChannel invokeMethod:@"hide" arguments:nil];
-    }
-}
-
 - (void)close
 {
     [self.outsideChatTap.view removeGestureRecognizer:self.outsideChatTap];
     self.outsideChatTap = nil;
     [self.chatChannel setMethodCallHandler:nil];
     self.chatChannel = nil;
-    self.keyBarChannel = nil;
     [self.channel setMethodCallHandler:nil];
     self.channel = nil;
     [self.controller willMoveToParentViewController:nil];
@@ -424,7 +389,6 @@ void MGSetLoadingScreenVisible(bool visible)
         screen.visible = visible;
         screen.loadingFinished = NO;
         [screen updateChatVisibility];
-        [screen updateKeyBarPreview];
         [screen send:visible ? @"show" : @"hide" value:nil];
         if (!visible)
         {
@@ -435,7 +399,6 @@ void MGSetLoadingScreenVisible(bool visible)
                 {
                     pending.loadingFinished = YES;
                     [pending updateChatVisibility];
-                    [pending updateKeyBarPreview];
                 }
             });
         }
@@ -453,27 +416,8 @@ void MGSetFlutterPauseState(bool paused)
                 [screen.chatChannel invokeMethod:@"setPauseState" arguments:@(paused)];
             }
             [screen updateChatVisibility];
-            [screen updateKeyBarPreview];
         }
     });
-}
-
-void MGSetFlutterKeyBarPreview(bool visible, float radarLeft, float radarBottom)
-{
-    if (!NSThread.isMainThread || !flutter) {
-        return;
-    }
-
-    const bool valid = visible && std::isfinite(radarLeft) && std::isfinite(radarBottom) && radarLeft < 1.0f && radarBottom > 0.0f && radarBottom < 1.0f;
-    const int left = valid ? static_cast<int>(std::floor(std::max(0.0f, radarLeft) * 1000.0f)) : 0;
-    const int bottom = valid ? std::min(999, static_cast<int>(std::ceil(radarBottom * 1000.0f))) : 0;
-    if (flutter.keyBarRadarLeft == left && flutter.keyBarRadarBottom == bottom) {
-        return;
-    }
-
-    flutter.keyBarRadarLeft = left;
-    flutter.keyBarRadarBottom = bottom;
-    [flutter updateKeyBarPreview];
 }
 
 void MGSetFlutterChatVisible(bool visible)

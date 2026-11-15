@@ -12,7 +12,6 @@ void MGSetLoadingScreenVisible(bool visible);
 void MGUpdateLoadingScreenPercent(int percent);
 void MGUpdateLoadingScreenList(const char* text);
 void MGSetFlutterPauseState(bool paused);
-void MGSetFlutterKeyBarPreview(bool visible, float radarLeft, float radarBottom);
 void MGSetFlutterChatVisible(bool visible);
 void MGSetFlutterChatPosition(int position, float radarRight);
 void MGCloseFlutterChat();

@@ -1,8 +1,6 @@
 #include "../../../../../Main.h"
 #include "CFontRender.h"
 #include "../CGui.h"
-#include "../../../RadarMod/CTiltedRadar.h"
-#include "../../../../../Launcher/MGFlutter.h"
 #include "../../../../utils/Storage/CStorage.h"
 #include "../../../../vendor/imgui/imgui_impl_renderware.h"
 
@@ -93,13 +91,6 @@ void CFontRender::Render()
 	}
 
 	ImGuiIO& io = ImGui::GetIO();
-
-	// Temporary Flutter KeyBar preview, aligned beneath the iOS radar widget.
-	float radarLeft = 0.0f;
-	float radarBottom = 0.0f;
-	const bool showKeyBarPreview = !CGame::IsRadarActive() && CTiltedRadar::GetWidgetBottomLeft(radarLeft, radarBottom);
-	MGSetFlutterKeyBarPreview(showKeyBarPreview, radarLeft / io.DisplaySize.x, radarBottom / io.DisplaySize.y);
-
 	auto* settings = CSetting::GetConfig();
 	const float size = settings ? settings->GetFloatValue(OBFUSCATE("FontSize")) : atlasFontSize;
 	const float fontSize = std::isfinite(size) ? std::clamp(size, 1.0f, 80.0f) : atlasFontSize;
