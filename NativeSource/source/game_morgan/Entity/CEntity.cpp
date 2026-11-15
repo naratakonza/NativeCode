@@ -127,7 +127,7 @@ void CEntity::GetPosition(CVector* vecRet)
 	*vecRet = m_pEntity->mat->pos;
 }
 
-void CEntity::SetMatrix(CMatrix Matrix, bool checkValid)
+void CEntity::SetMatrix(CMatrix Matrix, [[maybe_unused]] bool checkValid)
 {
 	if (!m_pEntity || !m_pEntity->mat) {
 		return;
