@@ -195,6 +195,140 @@ void ConnectionRejected(RakNet::BitStream bsData)
 	}
 }
 
+void SetPlayerPos(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetPlayerPos"));
+
+	CVector vecPos;
+	bsData.Read(vecPos.x);
+	bsData.Read(vecPos.y);
+	bsData.Read(vecPos.z);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed())
+		{
+			// CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->EndSurfing();
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->TeleportTo(vecPos.x, vecPos.y, vecPos.z);
+		}
+	}
+}
+
+void SetPlayerFacingAngle(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetPlayerFacingAngle"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(float));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerFacingAngle"));
+        return;
+    }
+
+	float fAngle;
+
+	bsData.Read(fAngle);
+
+	if (CGame::GetPlayer()) 
+	{
+		CGame::GetPlayer()->ForceTargetRotation(fAngle);
+	}
+}
+
+void SetCameraPos(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetCameraPos"));
+
+	CVector vecPos = CVector();
+	bsData.Read(vecPos.x);
+	bsData.Read(vecPos.y);
+	bsData.Read(vecPos.z);
+
+	if (CGame::GetCamera())
+    {
+		CGame::GetCamera()->SetPosition(vecPos.x, vecPos.y, vecPos.z, 0.0f, 0.0f, 0.0f);
+	}
+}
+
+void SetCameraLookAt(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetCameraLookAt"));
+
+	CVector vecPos = CVector();
+	uint8_t mode;
+
+	bsData.Read(vecPos.x);
+	bsData.Read(vecPos.y);
+	bsData.Read(vecPos.z);
+
+	bsData.Read(mode);
+	if (mode < 1 || mode > 2)
+	{
+		mode = 2;
+	}
+
+	if (CGame::GetCamera())
+    {
+		CGame::GetCamera()->LookAtPoint(vecPos.x, vecPos.y, vecPos.z, mode);
+	}
+}
+
+void SetCameraBehindPlayer()
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetCameraBehindPlayer"));
+
+	if (CGame::GetCamera())
+    {
+		CGame::GetCamera()->SetBehindPlayer();
+	}
+}
+
+void InterpolateCamera(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: InterpolateCamera"));
+
+    bool bSetPos = true;
+    CVector vecFrom, vecDest;
+    int time;
+    uint8_t mode;
+
+    bsData.Read(bSetPos);
+    bsData.Read(vecFrom.x);
+    bsData.Read(vecFrom.y);
+    bsData.Read(vecFrom.z);
+    bsData.Read(vecDest.x);
+    bsData.Read(vecDest.y);
+    bsData.Read(vecDest.z);
+    bsData.Read(time);
+    bsData.Read(mode);
+
+    if (mode < 1 || mode > 2)
+	{
+        mode = 2;
+    }
+
+	if (CGame::GetCamera())
+    {
+		if (time > 0)
+		{
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->m_bSpectateProcessed = true;
+			}
+
+			if (bSetPos)
+			{
+				CGame::GetCamera()->InterpolateCameraPos(&vecFrom, &vecDest, time, mode);
+			}
+			else
+			{
+				CGame::GetCamera()->InterpolateCameraLookAt(&vecFrom, &vecDest, time, mode);
+			}
+		}
+	}
+}
+
 void TogglePlayerSpectating(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: TogglePlayerSpectating"));
@@ -650,35 +784,35 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_SetPlayerPos: {
-		//     SetPlayerPos(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerPos: {
+		    SetPlayerPos(*bsData);
+		    break;
+		}
 
-		// case RPC_SetPlayerFacingAngle: {
-		//     SetPlayerFacingAngle(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerFacingAngle: {
+		    SetPlayerFacingAngle(*bsData);
+		    break;
+		}
 
-		// case RPC_SetPlayerCameraPos: {
-		//     SetCameraPos(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerCameraPos: {
+		    SetCameraPos(*bsData);
+		    break;
+		}
 
-		// case RPC_SetPlayerCameraLookAt: {
-		//     SetCameraLookAt(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerCameraLookAt: {
+		    SetCameraLookAt(*bsData);
+		    break;
+		}
 
-		// case RPC_SetCameraBehindPlayer: {
-		//     SetCameraBehindPlayer();
-		//     break;
-		// }
+		case RPC_SetCameraBehindPlayer: {
+		    SetCameraBehindPlayer();
+		    break;
+		}
 
-		// case RPC_InterpolateCamera: {
-		//     InterpolateCamera(*bsData);
-		//     break;
-		// }
+		case RPC_InterpolateCamera: {
+		    InterpolateCamera(*bsData);
+		    break;
+		}
 
 		// case RPC_AttachCameraToObject: {
 		//     AttachCameraToObject(*bsData);
