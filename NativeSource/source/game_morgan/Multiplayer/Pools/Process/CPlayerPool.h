@@ -1,12 +1,12 @@
 #pragma once
 
-// #include "../../Syncs/CLocalPlayer.h"
+#include "../../Syncs/CLocalPlayer.h"
 // #include "../../Syncs/CRemotePlayer.h"
 
 class CPlayerPool
 {
 private:
-    // CLocalPlayer* m_pLocalPlayer;
+    CLocalPlayer* m_pLocalPlayer;
     int PlayersCount;
 
 public:
@@ -15,7 +15,7 @@ public:
 
     void Process();
 
-    // CLocalPlayer* GetLocalPlayer() {
-    //     return CPlayerPool::m_pLocalPlayer;
-    // }
+    CLocalPlayer* GetLocalPlayer() {
+        return CPlayerPool::m_pLocalPlayer;
+    }
 };

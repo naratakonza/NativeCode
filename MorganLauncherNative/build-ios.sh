@@ -77,6 +77,7 @@ for source in \
     "$native/source/game_morgan/Entity/Ped/CPed.cpp" "$native/source/game_morgan/Entity/Ped/CPlayerPed.cpp" "$native/source/game_morgan/Entity/Ped/CPlayerPedSlot.cpp" "$native/source/game_morgan/Entity/Ped/CPedPointerRecorder.cpp" \
     "$native/source/game_morgan/CStreaming.cpp" "$native/source/game_morgan/CClock.cpp" "$native/source/game_morgan/CTimer.cpp" "$native/source/game_morgan/COptimizeDistance.cpp" "$native/source/game_morgan/CGame.cpp" "$native/source/game_morgan/Models/CModelInfo.cpp" "$native/source/game_morgan/CPools.cpp" "$native/source/game_morgan/CSetting.cpp" "$multiplayer/CServer.cpp" "$multiplayer/CNetGame.cpp" "$native/source/game_morgan/CTheZones.cpp" "$native/source/game_morgan/CWeather.cpp" "$native/source/game_morgan/CCamera.cpp" "$hooks/CPad.cpp" \
     "$scripts/CScripting.cpp" "$scripts/CRunningScript.cpp" "$native/source/utils/Exceptions/CExceptions.cpp" \
+    "$native/source/utils/Quat/CQuaternion.cpp" \
     "$radar/CTiltedRadar.cpp" "$radar/CTiltedCameraController.cpp" "$radar/CTiltedRadarGeometry.cpp" "$radar/CTiltedRadarMath.cpp" \
     "$native/Main.cpp" "$native/source/game_morgan/RenderWare/RenderWare.cpp" "$multiplayer/CMultiPlayer.cpp" "$native/source/utils/Necessary/CNecessary.cpp" \
     "$native/source/game_morgan/CMainMenuScreen.cpp" "$native/source/game_morgan/CStartGameScreen.cpp" "$native/source/game_morgan/CLoadingScreen.cpp" "$hooks/CPatches.cpp" "$hooks/CUvAnim.cpp" "$hooks/Thread/CFastLoad.cpp" "$memory/CMemory.cpp" \
@@ -86,6 +87,7 @@ for source in \
     "$multiplayer/Guis/CChat.cpp" "$multiplayer/Guis/CCommand.cpp" "$multiplayer/Core/CMultiPlayerPacket.cpp" "$native/source/game_morgan/CUtil.cpp" "$native/source/game_morgan/CWorld.cpp" \
     "$multiplayer/Core/CMultiPlayerNetwork.cpp" "$multiplayer/Core/CMultiPlayerOpcode.cpp" "$native/source/game_morgan/CEntryExitManager.cpp" \
     "$multiplayer/Pools/CNetGamePool.cpp" "$multiplayer/Pools/Process/CPlayerPool.cpp" \
+    "$multiplayer/Syncs/CLocalPlayer.cpp" \
     "$imgui/imgui_impl_renderware.cpp"; do
     object="${source##*/}"
     xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
@@ -128,11 +130,13 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CPed.o" "$out/fileio-objects/CPlayerPed.o" "$out/fileio-objects/CPlayerPedSlot.o" "$out/fileio-objects/CPedPointerRecorder.o" \
     "$out/fileio-objects/CCameraAim.o" "$out/fileio-objects/CAspectRatio.o" "$out/fileio-objects/CCameraController.o" "$out/fileio-objects/CDraw.o" "$out/fileio-objects/CSensitivity.o" "$out/fileio-objects/CGyro.o" "$out/fileio-objects/MGGyro.o" \
     "$out/fileio-objects/CScripting.o" "$out/fileio-objects/CRunningScript.o" "$out/fileio-objects/CExceptions.o" \
+    "$out/fileio-objects/CQuaternion.o" \
     "$out/fileio-objects/CTiltedRadar.o" "$out/fileio-objects/CTiltedCameraController.o" "$out/fileio-objects/CTiltedRadarGeometry.o" "$out/fileio-objects/CTiltedRadarMath.o" \
     "$out/fileio-objects/CDebugInfo.o" "$out/fileio-objects/CGui.o" "$out/fileio-objects/CFontRender.o" \
     "$out/fileio-objects/CChat.o" "$out/fileio-objects/CCommand.o" "$out/fileio-objects/CMultiPlayerPacket.o" "$out/fileio-objects/CUtil.o" "$out/fileio-objects/CWorld.o" \
     "$out/fileio-objects/CMultiPlayerNetwork.o" "$out/fileio-objects/CMultiPlayerOpcode.o" "$out/fileio-objects/CEntryExitManager.o" \
     "$out/fileio-objects/CNetGamePool.o" "$out/fileio-objects/CPlayerPool.o" \
+    "$out/fileio-objects/CLocalPlayer.o" \
     "$out/fileio-objects/imgui.o" "$out/fileio-objects/imgui_draw.o" "$out/fileio-objects/imgui_impl_renderware.o" \
     "$out/fileio-objects/Main.o" "$out/fileio-objects/RenderWare.o" "$out/fileio-objects/CMultiPlayer.o" "$out/fileio-objects/CNecessary.o" \
     "$out/fileio-objects/CPatches.o" "$out/fileio-objects/CUvAnim.o" "$out/fileio-objects/CFastLoad.o" "$out/fileio-objects/CMemory.o" \
@@ -187,7 +191,9 @@ check_call CMultiPlayer 'CNetGame7Process'
 check_call CNetGame 'RakNetworkFactory21GetRakClientInterface'
 check_call CNetGame 'CNetGamePoolC1'
 check_call CNetGamePool 'CPlayerPoolC1'
-check_call CPlayerPool 'CChat15AddDebugMessage'
+check_call CPlayerPool 'CLocalPlayerC1'
+check_call CPlayerPool 'CLocalPlayer7Process'
+check_call CLocalPlayer 'CChat15AddDebugMessage'
 check_call CNetGame 'CMultiPlayerNetwork6Update'
 check_call raknet-RakPeer 'CMultiPlayerOpcode7Receive'
 check_call CMultiPlayerOpcode 'CEntryExitManager25DisableInteriorEnterExits'
