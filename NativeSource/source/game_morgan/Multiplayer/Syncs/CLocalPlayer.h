@@ -13,7 +13,7 @@
 // #include "../../Enums/eSurfingMode.h"
 // #include "../../Enums/eSurfingType.h"
 // #include "../../Enums/eSpecialAction.h"
-#include "../../../vendor/raknet/BitStream.h"
+#include <raknet/BitStream.h>
 
 #define SPECTATE_TYPE_NONE				0
 #define SPECTATE_TYPE_PLAYER			1
