@@ -28,7 +28,7 @@ Widget _game(VoidCallback tap) {
 }
 
 void main() {
-  testWidgets('shows below the radar and keeps game touches available',
+  testWidgets('shows one transparent button and passes touches to the game',
       (tester) async {
     tester.view
       ..devicePixelRatio = 3
@@ -41,24 +41,33 @@ void main() {
 
     await _native(tester, 'show', {'radarLeft': 20, 'radarBottom': 345});
     final bar = tester.getRect(find.byKey(_bar));
-    expect(bar.left, 55);
+    final inset = 7 * (844 / 850) + 1;
+    expect(bar.left, closeTo(55 + inset, 0.01));
     expect(bar.top, greaterThan(390 * 0.345 + 12));
     expect(bar.right, lessThanOrEqualTo(844 - 47 - 8));
-    expect(tester.getTopLeft(find.text('TAB')).dy,
-        tester.getTopLeft(find.text('2')).dy);
-    expect(find.text('SHIFT'), findsOneWidget);
-    await tester.tapAt(tester.getCenter(find.text('TAB')));
+    final labels = find.descendant(
+      of: find.byType(SampKeysBar),
+      matching: find.byType(Text),
+    );
+    expect(labels, findsOneWidget);
+    expect(tester.widget<Text>(labels).data, '…');
+    final decoration =
+        tester.widget<Container>(find.byKey(_bar)).decoration as BoxDecoration;
+    expect(decoration.color, isNull);
+    expect(decoration.gradient, isNull);
+    expect(decoration.image, isNull);
+    await tester.tapAt(tester.getCenter(find.text('…')));
     expect(gameTaps, 1);
 
     await _native(tester, 'show', {'radarLeft': 150, 'radarBottom': 450});
     final moved = tester.getRect(find.byKey(_bar));
-    expect(moved.left, closeTo(844 * 0.15, 0.01));
+    expect(moved.left, closeTo(844 * 0.15 + inset, 0.01));
     expect(moved.top, greaterThan(bar.top));
     await _native(tester, 'hide');
     expect(find.byKey(_bar), findsNothing);
   });
 
-  testWidgets('wraps within a narrow safe area and hides when it cannot fit',
+  testWidgets('respects the safe area and hides when there is no room',
       (tester) async {
     tester.view
       ..devicePixelRatio = 1
@@ -68,8 +77,7 @@ void main() {
     await tester.pumpWidget(_game(() {}));
     await _native(tester, 'show', {'radarLeft': 0, 'radarBottom': 500});
 
-    expect(tester.getTopLeft(find.text('2')).dy,
-        greaterThan(tester.getTopLeft(find.text('TAB')).dy));
+    expect(find.text('…'), findsOneWidget);
     final bar = tester.getRect(find.byKey(_bar));
     expect(bar.right, lessThanOrEqualTo(390 - 20 - 8));
     expect(bar.bottom, lessThanOrEqualTo(250 - 16 - 8));

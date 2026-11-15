@@ -13,18 +13,6 @@ class SampKeysBar extends StatefulWidget {
 }
 
 class _SampKeysBarState extends State<SampKeysBar> {
-  static const _labels = [
-    'TAB',
-    'ALT',
-    'SPC',
-    'SHIFT',
-    'F',
-    'C',
-    'H',
-    'Y',
-    'N',
-    '2'
-  ];
   Offset? _radarAnchor;
 
   @override
@@ -79,18 +67,12 @@ class _SampKeysBarState extends State<SampKeysBar> {
         final scale = (width / 850).clamp(0.85, 1.15).toDouble();
         final capWidth = 39 * scale;
         final capHeight = 27 * scale;
-        final gap = 6 * scale;
-        final padding = 7 * scale + 1; // Includes the panel's 1 dp border.
-        final left = math.max(safe.left + 8, width * anchor.dx);
-        final top = math.max(safe.top, height * anchor.dy) + 13 * scale;
-        final availableWidth = width - safe.right - 8 - left - 2 * padding;
-        final columns = math.min(_labels.length,
-            ((availableWidth + gap) / (capWidth + gap)).floor());
-        if (columns < 1) return const SizedBox.shrink();
-
-        final rows = (_labels.length / columns).ceil();
-        final barHeight = rows * capHeight + (rows - 1) * gap + 2 * padding;
-        if (top + barHeight > height - safe.bottom - 8) {
+        // Keep the first button in its previous position below the radar.
+        final inset = 7 * scale + 1;
+        final left = math.max(safe.left + 8, width * anchor.dx) + inset;
+        final top = math.max(safe.top, height * anchor.dy) + 13 * scale + inset;
+        if (left + capWidth > width - safe.right - 8 ||
+            top + capHeight > height - safe.bottom - 8) {
           return const SizedBox.shrink();
         }
 
@@ -99,39 +81,25 @@ class _SampKeysBarState extends State<SampKeysBar> {
             Positioned(
               left: left,
               top: top,
-              width: columns * (capWidth + gap) - gap + 2 * padding + 0.01,
               child: IgnorePointer(
-                child: RepaintBoundary(
-                  child: Container(
-                    key: const ValueKey('samp_keys_bar'),
-                    padding: EdgeInsets.all(padding - 1),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(13 * scale),
-                      border: Border.all(color: const Color(0x60CFE7FF)),
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0x94324053), Color(0xA9141823)],
-                      ),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x33000000),
-                          offset: Offset(0, 3),
-                          blurRadius: 8,
-                        ),
-                      ],
-                    ),
-                    child: Wrap(
-                      spacing: gap,
-                      runSpacing: gap,
-                      children: [
-                        for (final label in _labels)
-                          _KeyCap(
-                            label: label,
-                            width: capWidth,
-                            height: capHeight,
-                            scale: scale,
-                          ),
+                child: Container(
+                  key: const ValueKey('samp_keys_bar'),
+                  width: capWidth,
+                  height: capHeight,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(7 * scale),
+                    border: Border.all(color: const Color(0x80E7F1FF)),
+                  ),
+                  child: Text(
+                    '…',
+                    style: TextStyle(
+                      fontSize: 18 * scale,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFFF3F8FF),
+                      decoration: TextDecoration.none,
+                      shadows: const [
+                        Shadow(color: Color(0xB3000000), blurRadius: 2),
                       ],
                     ),
                   ),
@@ -141,51 +109,6 @@ class _SampKeysBarState extends State<SampKeysBar> {
           ],
         );
       },
-    );
-  }
-}
-
-class _KeyCap extends StatelessWidget {
-  const _KeyCap({
-    required this.label,
-    required this.width,
-    required this.height,
-    required this.scale,
-  });
-
-  final String label;
-  final double width;
-  final double height;
-  final double scale;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(7 * scale),
-        border: Border.all(color: const Color(0x5EE7F1FF)),
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0x46F0F7FF), Color(0x146680A5)],
-        ),
-      ),
-      child: Text(
-        label,
-        maxLines: 1,
-        style: TextStyle(
-          fontFamily: 'Rajdhani',
-          fontSize: 13 * scale,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.25,
-          color: const Color(0xFFF3F8FF),
-          decoration: TextDecoration.none,
-          shadows: const [Shadow(color: Color(0x99000000), blurRadius: 2)],
-        ),
-      ),
     );
   }
 }
