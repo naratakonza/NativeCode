@@ -10,6 +10,8 @@
 #include "../CStreaming.h"
 #include "../Entity/Ped/CPlayerPed.h"
 #include "../Entity/CPhysical.h"
+#include "../CStats.h"
+#include "../FrontEnd/CWidgetPlayerInfo.h"
 #include "../RadarMod/CTiltedRadar.h"
 #include "../../utils/Memory/CHook.h"
 #include "../../utils/Storage/CStorage.h"
@@ -182,10 +184,12 @@ void CHooks::SetHooking(eHookType type)
 
         case eHookType::HOOK_TYPE_START: {
             CHooks::InstallMenu();
+            CWidgetPlayerInfo::Initialise();
             CStreaming::Initialise();
             CAspectRatio::Initialise();
             CDraw::Initialise();
             CPhysical::Initialise();
+            CStats::Initialise();
 
             break;
         }
