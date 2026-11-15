@@ -1,6 +1,7 @@
 #include "../../Main.h"
 #include "CGame.h"
 #include "CWorld.h"
+#include "CTimer.h"
 #include "CStreaming.h"
 #include "Entity/Ped/CPedPointerRecorder.h"
 #include "Entity/Ped/CPlayerPedSlot.h"
@@ -60,6 +61,11 @@ void CGame::SetFramerate(std::uint8_t fps)
     {
         CNecessary::Log(OBFUSCATE("CGame::SetFramerate: GTA iOS display link hook unavailable"));
     }
+}
+
+uint8_t CGame::IsMenuActive() 
+{
+    return CTimer::IsUserPause() == 1;
 }
 
 bool CGame::IsRadarActive()
@@ -273,4 +279,11 @@ void CGame::LoadAnimationsAndModels()
     {
         CStreaming::RequestModel(330);
     }
+}
+
+float CGame::FindGroundZForCoord(float x, float y, float z)
+{
+	float fGroundZ;
+	CScripting::ScriptCommand(&get_ground_z, x, y, z, &fGroundZ);
+	return fGroundZ;
 }

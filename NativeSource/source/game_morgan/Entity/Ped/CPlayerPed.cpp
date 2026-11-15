@@ -6,6 +6,7 @@
 #include "../../CUtil.h"
 #include "../../CCommon.h"
 #include "../../CStreaming.h"
+#include "../../Enums/eSpecialVehicle.h"
 #include "../../Scripts/CScripting.h"
 #include "../../../utils/Necessary/CNecessary.h"
 
@@ -149,6 +150,20 @@ bool CPlayerPed::IsInVehicle()
     return CPlayerPed::VerifyInstance() && GetPed()->bInVehicle;
 }
 
+bool CPlayerPed::IsAPassenger()
+{
+	if (CPlayerPed::IsInVehicle() && GetPed()->pVehicle)
+	{
+		CVehicleGta *pVehicle = GetPed()->pVehicle;
+
+        if (pVehicle->pDriver != GetPed() || pVehicle->nModelIndex == eSpecialVehicle::TRAIN_PASSENGER || pVehicle->nModelIndex == eSpecialVehicle::TRAIN_FREIGHT) {
+            return true;
+        }
+	}
+
+	return false;
+}
+
 void CPlayerPed::ProcessAnimGroups(bool bUseCJWalk)
 {
     static const bool verified = CMemory::HasMappedInstruction(SA_ADDR(0x26FCB8), "\x27\x9E\x08\x14") && CMemory::HasMappedBytes(SA_ADDR(0x497554), "\xC9\x33\x00\x90\x29\xE1\x73\x39\x49\x00\x00\x35\x68\x32\x06\xB9\xD6\x61\xF7\x17", 20, "__mg_gameproc");
@@ -201,4 +216,118 @@ float CPlayerPed::GetArmour()
 	}
 
 	return GetPed()->fArmour;
+}
+
+bool CPlayerPed::IsDead()
+{
+	if (!CPlayerPed::VerifyInstance()) {
+		return false;
+	}
+
+	if (GetPed()->fHealth > 0.0f) {
+		return false;
+	}
+
+	return true;
+}
+
+void CPlayerPed::SetActionTrigger(uint8_t action)
+{
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
+
+	GetPed()->m_nPedState = static_cast<ePedState>(action);
+}
+
+uint8_t CPlayerPed::GetActionTrigger()
+{
+	return GetPed()->m_nPedState;
+}
+
+void CPlayerPed::RestartIfWastedAt(CVector *vecRestart, float fRotation)
+{
+	CScripting::ScriptCommand(&restart_if_wasted_at, vecRestart->x, vecRestart->y, vecRestart->z, fRotation, 0);
+}
+
+void CPlayerPed::SetInitialState()
+{
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
+
+	static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x26CD04), "\xF8\x5F\xBC\xA9\xF6\x57\x01\xA9\xF4\x4F\x02\xA9\xFD\x7B\x03\xA9\xFD\xC3\x00\x91\xF4\x03\x01\xAA\xF3\x03\x00\xAA", 28, "__text");
+	if (!verified) {
+		return;
+	}
+
+	reinterpret_cast<void (*)(CPedGta*, bool)>(SA_ADDR(0x26CD04) + _dyld_get_image_vmaddr_slide(0))(GetPed(), false);
+}
+
+void CPlayerPed::ResetDamageEntity()
+{
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
+
+    GetPed()->pLastDamageEntity = nullptr;
+	GetPed()->LastDamagedWeaponType = -1;
+}
+
+void CPlayerPed::LockControl(bool bLock)
+{
+	CPlayerPed::m_bLockControl = bLock;
+}
+
+void CPlayerPed::ToggleControllable(bool bToggle)
+{
+	CNecessary::Log(OBFUSCATE("CPlayerPed ToggleControllable %d"), bToggle);
+
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
+
+	CMatrix mat;
+
+	if (!bToggle)
+	{
+		CScripting::ScriptCommand(&toggle_player_controllable, m_bytePlayerNumber, 0);
+		CScripting::ScriptCommand(&lock_actor, m_dwGTAId, 1);
+	}
+	else
+	{
+		if (!CPlayerPed::m_bLockControl)
+		{
+			CScripting::ScriptCommand(&toggle_player_controllable, m_bytePlayerNumber, 1);
+			CScripting::ScriptCommand(&lock_actor, m_dwGTAId, 0);
+
+			if (!CPlayerPed::IsInVehicle()) 
+            {
+                GetMatrix(&mat);
+                TeleportTo(mat.pos.x, mat.pos.y, mat.pos.z);
+		    }
+		}
+	}
+}
+
+void CPlayerPed::ForceTargetRotation(float fRotation)
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    GetPed()->m_fCurrentHeading = CUtil::DegToRad(fRotation);
+    GetPed()->m_fDesiredHeading = CUtil::DegToRad(fRotation);
+
+    CScripting::ScriptCommand(&set_actor_z_angle, m_dwGTAId, fRotation);
+}
+
+void CPlayerPed::SetRotation(float fRotation)
+{
+	if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    GetPed()->m_fCurrentHeading = CUtil::DegToRad(fRotation);
+    GetPed()->m_fDesiredHeading = CUtil::DegToRad(fRotation);
 }

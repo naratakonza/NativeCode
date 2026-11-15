@@ -5,7 +5,7 @@
 
 #include "../Main.h"
 #include "../source/game_morgan/CTimer.h"
-#include "../source/game_morgan/Multiplayer/Guis/CChat.h"
+#include "../source/game_morgan/Multiplayer/Guis/CGui.h"
 
 @protocol MGLoadingProject <NSObject>
 - (instancetype)initWithPrecompiledDartBundle:(NSBundle*)bundle;
@@ -40,12 +40,14 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 
 @interface MGFlutterOverlayView : UIView
 @property(nonatomic) CGRect chatArea;
+@property(nonatomic) CGRect spawnArea;
 @end
 
 @implementation MGFlutterOverlayView
 - (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent*)event
 {
-    return [super pointInside:point withEvent:event] && CGRectContainsPoint(self.chatArea, point);
+    return [super pointInside:point withEvent:event] &&
+        (CGRectContainsPoint(self.chatArea, point) || CGRectContainsPoint(self.spawnArea, point));
 }
 @end
 
@@ -54,6 +56,7 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 @property(nonatomic, strong) UIViewController<MGLoadingController>* controller;
 @property(nonatomic, strong) id<MGLoadingChannel> channel;
 @property(nonatomic, strong) id<MGLoadingChannel> chatChannel;
+@property(nonatomic, strong) id<MGLoadingChannel> spawnChannel;
 @property(nonatomic, strong) MGFlutterOverlayView* overlay;
 @property(nonatomic, strong) UITapGestureRecognizer* outsideChatTap;
 @property(nonatomic, strong) NSMutableArray<NSDictionary*>* pendingMessages;
@@ -63,17 +66,21 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 @property(nonatomic) BOOL visible;
 @property(nonatomic) BOOL chatReady;
 @property(nonatomic) BOOL chatVisible;
+@property(nonatomic) BOOL spawnReady;
+@property(nonatomic) BOOL spawnPresented;
 @property(nonatomic) BOOL paused;
 @property(nonatomic) BOOL loadingFinished;
 @property(nonatomic, strong) NSDictionary* chatLayout;
 - (BOOL)attachTo:(UIViewController*)parent;
 - (void)close;
 - (void)send:(NSString*)method value:(id)value;
-- (void)updateChatVisibility;
+- (void)updateOverlayVisibility;
+- (void)updateSpawnVisibility;
 - (BOOL)isChatInteractive;
 @end
 
 static MGFlutter* flutter;
+static bool spawnVisible;
 static NSString* const flutterEngineRevision = @"55eae6864b296dd9f43b2cc7577ec256e5c32a8d";
 
 static void MGRunLoadingOnMain(dispatch_block_t work)
@@ -91,6 +98,47 @@ static void MGRunLoadingOnMain(dispatch_block_t work)
 static NSString* MGChatColor(uint32_t rgba)
 {
     return [NSString stringWithFormat:@"{%06X}", static_cast<unsigned>(rgba >> 8)];
+}
+
+static CGRect MGFlutterHitRegion(NSDictionary* args, CGRect bounds)
+{
+    if (![args[@"x"] isKindOfClass:NSNumber.class] || ![args[@"y"] isKindOfClass:NSNumber.class] ||
+        ![args[@"width"] isKindOfClass:NSNumber.class] || ![args[@"height"] isKindOfClass:NSNumber.class])
+    {
+        return CGRectZero;
+    }
+
+    const auto x = [args[@"x"] doubleValue];
+    const auto y = [args[@"y"] doubleValue];
+    const auto width = [args[@"width"] doubleValue];
+    const auto height = [args[@"height"] doubleValue];
+    if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(width) || !std::isfinite(height) || width <= 0 || height <= 0)
+    {
+        return CGRectZero;
+    }
+    return CGRectIntersection(CGRectMake(x, y, width, height), bounds);
+}
+
+static bool MGHandleSpawnAction(NSString* action)
+{
+    CSpawnScreen* screen = CGui::GetSpawnScreen();
+    if (!screen)
+    {
+        return false;
+    }
+    if ([action isEqualToString:@"PREV_SKIN"])
+    {
+        return screen->HandleAction(eSpawnAction::PREV_SKIN);
+    }
+    if ([action isEqualToString:@"NEXT_SKIN"])
+    {
+        return screen->HandleAction(eSpawnAction::NEXT_SKIN);
+    }
+    if ([action isEqualToString:@"SPAWN_PLAYER"])
+    {
+        return screen->HandleAction(eSpawnAction::SPAWN_PLAYER);
+    }
+    return false;
 }
 
 @implementation MGFlutter
@@ -137,9 +185,10 @@ static NSString* MGChatColor(uint32_t rgba)
 
     self.channel = [channelClass methodChannelWithName:@"flutter_loadingscreen" binaryMessenger:[self.engine binaryMessenger]];
     self.chatChannel = [channelClass methodChannelWithName:@"flutter_chat" binaryMessenger:[self.engine binaryMessenger]];
+    self.spawnChannel = [channelClass methodChannelWithName:@"flutter_spawn" binaryMessenger:[self.engine binaryMessenger]];
     self.pendingMessages = [NSMutableArray array];
     self.controller = [[(id)controllerClass alloc] initWithEngine:self.engine nibName:nil bundle:nil];
-    if (!self.channel || !self.chatChannel || !self.controller)
+    if (!self.channel || !self.chatChannel || !self.spawnChannel || !self.controller)
     {
         return NO;
     }
@@ -169,7 +218,7 @@ static NSString* MGChatColor(uint32_t rgba)
                 if (screen && screen == flutter && !screen.visible)
                 {
                     screen.loadingFinished = YES;
-                    [screen updateChatVisibility];
+                    [screen updateOverlayVisibility];
                 }
             });
         }
@@ -194,7 +243,7 @@ static NSString* MGChatColor(uint32_t rgba)
                 [screen.chatChannel invokeMethod:@"ChatPosition" arguments:screen.chatLayout];
             }
             [screen.chatChannel invokeMethod:@"setPauseState" arguments:@(screen.paused)];
-            [screen updateChatVisibility];
+            [screen updateOverlayVisibility];
             result(@YES);
             return;
         }
@@ -217,23 +266,48 @@ static NSString* MGChatColor(uint32_t rgba)
         }
         if ([call.method isEqualToString:@"hitRegion"])
         {
-            CGRect area = CGRectZero;
-            if ([screen isChatInteractive] && [args[@"x"] isKindOfClass:NSNumber.class] && [args[@"y"] isKindOfClass:NSNumber.class] &&
-                [args[@"width"] isKindOfClass:NSNumber.class] && [args[@"height"] isKindOfClass:NSNumber.class])
-            {
-                const auto x = [args[@"x"] doubleValue];
-                const auto y = [args[@"y"] doubleValue];
-                const auto width = [args[@"width"] doubleValue];
-                const auto height = [args[@"height"] doubleValue];
-                if (std::isfinite(x) && std::isfinite(y) && std::isfinite(width) && std::isfinite(height) && width > 0 && height > 0) {
-                    area = CGRectIntersection(CGRectMake(x, y, width, height), screen.overlay.bounds);
-                }
-            }
-            screen.overlay.chatArea = area;
+            screen.overlay.chatArea = [screen isChatInteractive] ? MGFlutterHitRegion(args, screen.overlay.bounds) : CGRectZero;
             result(@YES);
             return;
         }
         result(@NO);
+    }];
+    [self.spawnChannel setMethodCallHandler:^(id<MGLoadingCall> call, MGLoadingResult result) {
+        MGRunLoadingOnMain(^{
+            MGFlutter* screen = weakSelf;
+            if (!screen || screen != flutter)
+            {
+                result(@NO);
+                return;
+            }
+            if ([call.method isEqualToString:@"ready"])
+            {
+                screen.spawnReady = YES;
+                [screen updateSpawnVisibility];
+                result(@YES);
+                return;
+            }
+            if (!screen.spawnPresented)
+            {
+                result(@NO);
+                return;
+            }
+
+            NSDictionary* args = [call.arguments isKindOfClass:NSDictionary.class] ? call.arguments : nil;
+            if ([call.method isEqualToString:@"hitRegion"])
+            {
+                screen.overlay.spawnArea = MGFlutterHitRegion(args, screen.overlay.bounds);
+                result(@YES);
+                return;
+            }
+            if ([call.method isEqualToString:@"onSpawnAction"])
+            {
+                NSString* action = [args[@"action"] isKindOfClass:NSString.class] ? args[@"action"] : nil;
+                result(@(MGHandleSpawnAction(action)));
+                return;
+            }
+            result(@NO);
+        });
     }];
 
     [self.controller setViewOpaque:NO];
@@ -315,10 +389,10 @@ static NSString* MGChatColor(uint32_t rgba)
     return self.chatVisible && self.loadingFinished && !self.visible && !self.paused;
 }
 
-- (void)updateChatVisibility
+- (void)updateOverlayVisibility
 {
+    [self updateSpawnVisibility];
     const BOOL interactive = [self isChatInteractive];
-    self.controller.viewIfLoaded.accessibilityElementsHidden = !interactive;
     if (!interactive) {
         self.overlay.chatArea = CGRectZero;
         self.outsideChatTap.enabled = NO;
@@ -329,10 +403,24 @@ static NSString* MGChatColor(uint32_t rgba)
     }
 }
 
+- (void)updateSpawnVisibility
+{
+    const BOOL show = self.spawnReady && spawnVisible && self.loadingFinished && !self.visible && !self.paused;
+    self.controller.viewIfLoaded.accessibilityElementsHidden = ![self isChatInteractive] && !show;
+    if (self.spawnPresented != show)
+    {
+        self.spawnPresented = show;
+        self.overlay.spawnArea = CGRectZero;
+        [self.spawnChannel invokeMethod:@"toggleSpawnMenu" arguments:@(show)];
+    }
+}
+
 - (void)close
 {
     [self.outsideChatTap.view removeGestureRecognizer:self.outsideChatTap];
     self.outsideChatTap = nil;
+    [self.spawnChannel setMethodCallHandler:nil];
+    self.spawnChannel = nil;
     [self.chatChannel setMethodCallHandler:nil];
     self.chatChannel = nil;
     [self.channel setMethodCallHandler:nil];
@@ -388,7 +476,7 @@ void MGSetLoadingScreenVisible(bool visible)
         }
         screen.visible = visible;
         screen.loadingFinished = NO;
-        [screen updateChatVisibility];
+        [screen updateOverlayVisibility];
         [screen send:visible ? @"show" : @"hide" value:nil];
         if (!visible)
         {
@@ -398,7 +486,7 @@ void MGSetLoadingScreenVisible(bool visible)
                 if (pending && pending == flutter && !pending.visible)
                 {
                     pending.loadingFinished = YES;
-                    [pending updateChatVisibility];
+                    [pending updateOverlayVisibility];
                 }
             });
         }
@@ -415,7 +503,7 @@ void MGSetFlutterPauseState(bool paused)
             if (screen.chatReady) {
                 [screen.chatChannel invokeMethod:@"setPauseState" arguments:@(paused)];
             }
-            [screen updateChatVisibility];
+            [screen updateOverlayVisibility];
         }
     });
 }
@@ -427,7 +515,18 @@ void MGSetFlutterChatVisible(bool visible)
         if (screen && screen.chatVisible != visible)
         {
             screen.chatVisible = visible;
-            [screen updateChatVisibility];
+            [screen updateOverlayVisibility];
+        }
+    });
+}
+
+void MGSetFlutterSpawnVisible(bool visible)
+{
+    MGRunLoadingOnMain(^{
+        if (spawnVisible != visible)
+        {
+            spawnVisible = visible;
+            [flutter updateSpawnVisibility];
         }
     });
 }

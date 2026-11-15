@@ -22,6 +22,14 @@ CPedGta* CUtil::GamePool_Ped_GetAt(int iID)
     return reinterpret_cast<CPedGta* (*)(int)>(SA_ADDR(0x16DA74) + _dyld_get_image_vmaddr_slide(0))(iID);
 }
 
+float CUtil::DegToRad(float fDegrees)
+{
+    if (fDegrees > 360.0f || fDegrees < 0.0f) return 0.0f;
+    
+    if (fDegrees > 180.0f) return (float)(-(PI - (((fDegrees - 180.0f) * PI) / 180.0f)));
+    else return (float)((fDegrees * PI) / 180.0f);
+}
+
 CVector CUtil::Multiply3x3(const CMatrix *m, const CVector *v)
 {
     return reinterpret_cast<CVector (*)(const CMatrix *, const CVector *)>(SA_ADDR(0x22B874) + _dyld_get_image_vmaddr_slide(0))(m, v);

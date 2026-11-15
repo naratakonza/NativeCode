@@ -10,3 +10,11 @@
 #define SAFE_RELEASE(p)	{ if (p) { (p)->Release(); (p) = nullptr; } }
 
 #define IS_VEHICLE_MOD(x) (x >= 1000 && x <= 1193)
+
+#pragma pack(push, 1)
+typedef struct _VECTOR
+{
+    float x, y, z;
+} VECTOR, *PVECTOR;
+#pragma pack(pop)
+static_assert(sizeof(VECTOR) == 12);

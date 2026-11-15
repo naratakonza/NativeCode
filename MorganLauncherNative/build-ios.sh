@@ -84,6 +84,8 @@ for source in \
     "$fileio/FileIO.cpp" "$storage/PosixFileIO.cpp" "$storage/CStorageZip.cpp" "$storage/CStorageDisk.cpp" \
     "$fileio/HookAdapter.cpp" "$hooks/CHooks.cpp" "$fileio/FileOpenDiagnostics.cpp" "$memory/CHook.cpp" \
     "$multiplayer/Texts/CDebugInfo.cpp" "$multiplayer/Guis/CGui.cpp" "$multiplayer/Guis/Font/CFontRender.cpp" \
+    "$multiplayer/Guis/CSpawnScreen.cpp" \
+    "$hooks/MultiTouch/CTouchEvent.cpp" \
     "$multiplayer/Guis/CChat.cpp" "$multiplayer/Guis/CCommand.cpp" "$multiplayer/Core/CMultiPlayerPacket.cpp" "$native/source/game_morgan/CUtil.cpp" "$native/source/game_morgan/CWorld.cpp" \
     "$multiplayer/Core/CMultiPlayerNetwork.cpp" "$multiplayer/Core/CMultiPlayerOpcode.cpp" "$native/source/game_morgan/CEntryExitManager.cpp" \
     "$multiplayer/Pools/CNetGamePool.cpp" "$multiplayer/Pools/Process/CPlayerPool.cpp" \
@@ -133,6 +135,8 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CQuaternion.o" \
     "$out/fileio-objects/CTiltedRadar.o" "$out/fileio-objects/CTiltedCameraController.o" "$out/fileio-objects/CTiltedRadarGeometry.o" "$out/fileio-objects/CTiltedRadarMath.o" \
     "$out/fileio-objects/CDebugInfo.o" "$out/fileio-objects/CGui.o" "$out/fileio-objects/CFontRender.o" \
+    "$out/fileio-objects/CSpawnScreen.o" \
+    "$out/fileio-objects/CTouchEvent.o" \
     "$out/fileio-objects/CChat.o" "$out/fileio-objects/CCommand.o" "$out/fileio-objects/CMultiPlayerPacket.o" "$out/fileio-objects/CUtil.o" "$out/fileio-objects/CWorld.o" \
     "$out/fileio-objects/CMultiPlayerNetwork.o" "$out/fileio-objects/CMultiPlayerOpcode.o" "$out/fileio-objects/CEntryExitManager.o" \
     "$out/fileio-objects/CNetGamePool.o" "$out/fileio-objects/CPlayerPool.o" \

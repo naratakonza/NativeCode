@@ -1,8 +1,10 @@
 #include "../../../../Main.h"
 #include "CLocalPlayer.h"
 #include "../../CGame.h"
+#include "../../CTheZones.h"
 #include "../CMultiPlayer.h"
 #include "../Guis/CGui.h"
+#include "../../Base/CPad.h"
 #include "../../Scripts/CScripting.h"
 
 uint32_t dwEnterVehTimeElasped = -1;
@@ -14,26 +16,625 @@ CLocalPlayer::CLocalPlayer()
 
     CLocalPlayer::m_pPlayerPed = CGame::GetPlayer();
 
-    if (CGui::GetChat())
-    {
-        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("CLocalPlayer Initialise"));
-    }
+	CLocalPlayer::m_bInRCMode = false;
+	CLocalPlayer::m_bIsActive = false;
+	CLocalPlayer::m_bIsWasted = false;
+	CLocalPlayer::m_bIsSpectating = false;
+	CLocalPlayer::m_iDisplayZoneTick = 0;
+	CLocalPlayer::m_byteSpectateType = SPECTATE_TYPE_NONE;
+	CLocalPlayer::m_SpectateID = 0xFFFFFFFF;
+	CLocalPlayer::m_bSpawnDialogShowed = false;
+
+	// CLocalPlayer::m_surfData.bIsActive = false;
+	// CLocalPlayer::m_surfData.lastUpdate = CNecessary::GetTickCount();
+	// CLocalPlayer::m_surfData.iSyncMode = eSurfingMode::SURFING_MODE_NONE;
+
+	CLocalPlayer::m_dwLastAnySendTick = CNecessary::GetTickCount();
+	CLocalPlayer::m_dwLastSendTick = CNecessary::GetTickCount();
+	CLocalPlayer::m_dwLastSendAimTick = CNecessary::GetTickCount();
+	CLocalPlayer::m_dwLastSendSpecTick = CNecessary::GetTickCount();
+	CLocalPlayer::m_dwLastStatsUpdateTick = CNecessary::GetTickCount();
+	CLocalPlayer::m_dwLastUpdateModelTick = CNecessary::GetTickCount();
+	CLocalPlayer::m_headData.m_dwLastHeadUpdate = CNecessary::GetTickCount();
+	CLocalPlayer::m_headData.m_dwLastHeadLook = CNecessary::GetTickCount();
+
+	CLocalPlayer::ResetData();
+	// CLocalPlayer::ApplySpecialAction(eSpecialAction::SPECIAL_ACTION_NONE);
+
+	CLocalPlayer::SetLocalScore(0);
+	CLocalPlayer::SetLocalPing(0);
+
+	for (uint8_t i = 0; i < 13; i++)
+	{
+		CLocalPlayer::m_weaponsData.m_byteLastWeapon[i] = 0;
+		CLocalPlayer::m_weaponsData.m_dwLastAmmo[i] = 0;
+	}
+
+	CLocalPlayer::m_byteTeamId = NO_TEAM;
+
+    // if (CGui::GetChat())
+    // {
+    //     CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("CLocalPlayer Initialise"));
+    // }
 }
 
 CLocalPlayer::~CLocalPlayer()
 {
     CNecessary::Log(OBFUSCATE("CLocalPlayer Uninitialise"));
 
-    CLocalPlayer::m_pPlayerPed = nullptr;
+	// CLocalPlayer::ApplySpecialAction(eSpecialAction::SPECIAL_ACTION_NONE);
+	CLocalPlayer::ResetData();
+	CLocalPlayer::m_pPlayerPed = nullptr;
 }
 
 void CLocalPlayer::ResetData()
 {
-	
+	CLocalPlayer::m_bHasSpawnInfo = false;
+	CLocalPlayer::m_bWaitingForSpawnRequestReply = false;
+	CLocalPlayer::m_bEnableAfterDeath = false;
+    CLocalPlayer::m_iSelectedClass = 0;
+    CLocalPlayer::m_byteCurInterior = 0;
+    CLocalPlayer::m_LastVehicle = eInvalidId::INVALID_VEHICLE_ID;
+    CLocalPlayer::m_bInRCMode = false;
+	CLocalPlayer::m_damageData.m_nVehicleUpdating = eInvalidId::INVALID_VEHICLE_ID;
+	CLocalPlayer::m_cameraTargetData.m_nObject = eInvalidId::INVALID_OBJECT_ID;
+	CLocalPlayer::m_cameraTargetData.m_nVehicle = eInvalidId::INVALID_VEHICLE_ID;
+	CLocalPlayer::m_cameraTargetData.m_nPlayer = eInvalidId::INVALID_PLAYER_ID;
+	CLocalPlayer::m_cameraTargetData.m_nActor = eInvalidId::INVALID_ACTOR_ID;
+	CLocalPlayer::m_headData.m_vecHeadDir.x = 0.0f;
+	CLocalPlayer::m_headData.m_vecHeadDir.y = 0.0f;
+	CLocalPlayer::m_headData.m_vecHeadDir.z = 0.0f;
+	CLocalPlayer::m_weaponsData.m_nAimedPlayer = eInvalidId::INVALID_PLAYER_ID;
+	CLocalPlayer::m_weaponsData.m_nAimedActor = eInvalidId::INVALID_ACTOR_ID;
+	CLocalPlayer::m_weaponsData.m_nCurrentWeapon = 0;
+
+	// memset(&m_OnFootData, 0, sizeof(ONFOOT_SYNC_DATA));
+	// memset(&m_InCarData, 0, sizeof(INCAR_SYNC_DATA));
+	// memset(&m_PassengerData, 0, sizeof(PASSENGER_SYNC_DATA));
+	// memset(&m_aimData, 0, sizeof(AIM_SYNC_DATA));
+	// memset(&m_TrailerData, 0, sizeof(TRAILER_SYNC_DATA));
+	// memset(&m_UnoccupiedData, 0, sizeof(UNOCCUPIED_SYNC_DATA));
+
+	CLocalPlayer::m_dwAnimationValue = 0;
+	CLocalPlayer::m_bAnimationReset = false;
+
+	CLocalPlayer::m_dwLastWeaponsUpdateTick = CNecessary::GetTickCount();
+	CLocalPlayer::m_dwLastCameraTargetUpdateTick = CNecessary::GetTickCount();
+
+	// CLocalPlayer::m_surfData.pVehicle = nullptr;
+	// CLocalPlayer::m_surfData.bIsStuck = false;
 }
 
 bool CLocalPlayer::Process()
 {
+	uint32_t dwThisTick = CNecessary::GetTickCount();
+
+	assert(CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool() != (CPlayerPool*)nullptr);
+	// assert(CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetVehiclePool() != (CVehiclePool*)nullptr);
+
+    if (CLocalPlayer::m_bIsActive && CLocalPlayer::GetPlayerPed() && CLocalPlayer::GetPlayerPed()->VerifyInstance())
+	{
+        if ((!CLocalPlayer::m_bIsWasted && CLocalPlayer::GetPlayerPed()->GetActionTrigger() == eAction::ACTION_DEATH) || CLocalPlayer::GetPlayerPed()->IsDead())
+		{
+			CLocalPlayer::HandleDead();
+			return true;
+		}
+
+        CLocalPlayer::DisplayZone(dwThisTick);
+
+        CLocalPlayer::HandleInteriorChanging();
+
+        if (CLocalPlayer::IsSpectating())
+		{
+			// CLocalPlayer::ProcessSpectating();
+			CLocalPlayer::m_bPassengerDriveByMode = false;
+		}
+		else if (CLocalPlayer::GetPlayerPed()->IsInVehicle() && !CLocalPlayer::GetPlayerPed()->IsAPassenger())
+		{
+			// CLocalPlayer::ProcessDriver(dwThisTick);
+		}
+		else if (CLocalPlayer::GetPlayerPed()->GetActionTrigger() == eAction::ACTION_NORMAL || CLocalPlayer::GetPlayerPed()->GetActionTrigger() == eAction::ACTION_SCOPE)
+		{
+			// CLocalPlayer::ProcessOnFoot(dwThisTick);
+			// CLocalPlayer::ProcessAimSync(dwThisTick);
+		}
+		else if (CLocalPlayer::GetPlayerPed()->IsInVehicle() && CLocalPlayer::GetPlayerPed()->IsAPassenger())
+		{
+			// CLocalPlayer::ProcessPassenger(dwThisTick);
+		}
+    }
+
+    if (CLocalPlayer::IsSpectating() && !CLocalPlayer::m_bIsActive)
+	{
+		if (CLocalPlayer::IsSpawnDialog())
+		{
+			CLocalPlayer::m_bSpawnDialogShowed = false;
+
+			if (CGui::GetSpawnScreen())
+			{
+				CGui::GetSpawnScreen()->Enable(false);
+			}
+		}
+
+		// CLocalPlayer::ProcessSpectating();
+		return true;
+	}
+
+    if (CLocalPlayer::m_bIsWasted && CLocalPlayer::GetPlayerPed()->GetActionTrigger() != eAction::ACTION_WASTED && CLocalPlayer::GetPlayerPed()->GetActionTrigger() != eAction::ACTION_DEATH)
+	{
+		CLocalPlayer::HandleNeedsToRespawn();
+		return true;
+	}
+
+	CLocalPlayer::HandleInitialSpawnConditions();
 
 	return true;
+}
+
+void CLocalPlayer::HandleNeedsToRespawn()
+{
+	// if (CLocalPlayer::GetPlayerPed()->HasAccessory())
+	// {
+	// 	CLocalPlayer::GetPlayerPed()->DeleteAllAccessories(true);
+	// }
+
+	// if (CLocalPlayer::GetPlayerPed()->IsCuffed())
+	// {
+	// 	CLocalPlayer::GetPlayerPed()->ToggleCuffed(false);
+	// }
+
+	if (CLocalPlayer::m_bClearedToSpawn && !CLocalPlayer::m_bEnableAfterDeath && CMultiPlayer::GetActiveNetwork()->GetNetworkState() == eNetworkState::GAMESTATE_CONNECTED)
+	{
+		if (CLocalPlayer::GetPlayerPed()->GetHealth() > 0.0f) 
+		{
+			CLocalPlayer::Spawn();
+		}
+	}
+	else
+	{
+		if (!CGame::IsMenuActive())
+		{
+			CGame::DisplayHUD(false);
+			CPad::DisplayWidgets(false);
+		}
+
+        // if (CGui::GetButton() && CGui::GetDebug() && CGui::GetXSing() && CGui::GetGButton() && CGui::GetDialog())
+		// {
+		// 	CGui::GetDebug()->SetRenderFramerate(false);
+		// 	CGui::GetDebug()->SetRenderMemory(false);
+		// 	CGui::GetButton()->Enable(false);
+		// 	CGui::GetXSing()->Enable(false);
+		// 	CGui::GetGButton()->Enable(false);
+		// 	CGui::GetDialog()->Enable(false);
+		// }
+
+        // CVoice::Enable(false);
+
+		CLocalPlayer::m_bIsWasted = false;
+		CLocalPlayer::HandleClassSelection();
+		CLocalPlayer::m_bEnableAfterDeath = false;
+	}
+}
+
+void CLocalPlayer::HandleInitialSpawnConditions()
+{
+	if (CLocalPlayer::GetPlayerPed()->GetActionTrigger() != eAction::ACTION_WASTED && CLocalPlayer::GetPlayerPed()->GetActionTrigger() != eAction::ACTION_DEATH)
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetworkState() == eNetworkState::GAMESTATE_CONNECTED && !CLocalPlayer::m_bIsActive && !CLocalPlayer::IsSpectating())
+		{
+            uint32_t dwTicksSinceLastSelection;
+            uint32_t dwThisTick = CNecessary::GetTickCount();
+
+			if (!CGame::IsMenuActive())
+			{
+				CGame::DisplayHUD(false);
+				CPad::DisplayWidgets(false);
+			}
+
+			// if (CGui::GetDialog() && CGui::GetDialog()->GetActiveDialog()) {
+			// 	return;
+			// }
+
+            if ((dwThisTick - CLocalPlayer::m_dwInitialSelectionTick) < 2000) {
+                return;
+            }
+
+			if (!CLocalPlayer::m_bSpawnDialogShowed)
+			{
+				if (CGui::GetSpawnScreen())
+				{
+					CGui::GetSpawnScreen()->Enable(true);
+				}
+				
+				CLocalPlayer::RequestClass(CLocalPlayer::m_iSelectedClass);
+				CLocalPlayer::m_bSpawnDialogShowed = true;
+			}
+            else
+            {
+                if (!CLocalPlayer::m_bClearedToSpawn || !CGui::GetSpawnScreen()) {
+                    return;
+                }
+
+                if (!CLocalPlayer::m_bWaitingForSpawnRequestReply && CGui::GetSpawnScreen()->m_bSendSpawn)
+                {
+                    CGui::GetSpawnScreen()->m_bSendSpawn = false;
+                    CLocalPlayer::SendSpawnRequest();
+                }
+                else
+		        {
+                    dwTicksSinceLastSelection = dwThisTick - CLocalPlayer::m_dwLastSpawnSelectionTick;
+
+                    if (dwTicksSinceLastSelection > 250)
+                    {
+                        if (CGui::GetSpawnScreen()->m_bSendPrev)
+                        {
+                            CLocalPlayer::m_dwLastSpawnSelectionTick = dwThisTick;
+
+                            CGui::GetSpawnScreen()->m_bSendPrev = false;
+                            CLocalPlayer::PrevClass();
+                        }
+                        else if (CGui::GetSpawnScreen()->m_bSendNext)
+                        {
+                            CLocalPlayer::m_dwLastSpawnSelectionTick = dwThisTick;
+
+                            CGui::GetSpawnScreen()->m_bSendNext = false;
+                            CLocalPlayer::NextClass();
+                        }
+                    }
+                }
+            }
+		}
+	}
+}
+
+void CLocalPlayer::HandleInteriorChanging()
+{
+	if (CGame::GetActiveInterior() != CLocalPlayer::m_byteCurInterior) 
+	{
+		CLocalPlayer::UpdateRemoteInterior(CGame::GetActiveInterior());
+	}
+}
+
+void CLocalPlayer::DisplayZone(uint32_t dwThisTick)
+{
+	if (dwThisTick >= static_cast<uint32_t>(CLocalPlayer::m_iDisplayZoneTick))
+	{
+		CTheZones::EnableZoneNames(CMultiPlayer::GetActiveNetwork()->m_bZoneNames);
+	}
+}
+
+void CLocalPlayer::HandleDead()
+{
+	CLocalPlayer::EnableSpectating(false);
+
+	// if (CLocalPlayer::GetPlayerPed()->IsDancing())
+	// {
+	// 	CLocalPlayer::GetPlayerPed()->StopDancing();
+	// }
+
+	// if (CLocalPlayer::GetPlayerPed()->IsCellphoneEnabled())
+	// {
+	// 	CLocalPlayer::GetPlayerPed()->ToggleCellphone(0);
+	// }
+
+	// if (CLocalPlayer::GetPlayerPed()->IsPissing())
+	// {
+	// 	CLocalPlayer::GetPlayerPed()->StopPissing();
+	// }
+
+	// if (CLocalPlayer::GetPlayerPed()->GetStuff()) 
+	// {
+	// 	CLocalPlayer::GetPlayerPed()->DropStuff();
+	// }
+
+	// CLocalPlayer::GetPlayerPed()->SetDrunkLevel(0);
+	CLocalPlayer::GetPlayerPed()->LockControl(false);
+	CLocalPlayer::GetPlayerPed()->ToggleControllable(true);
+
+	// CLocalPlayer::UpdateRCMode(eRcModeType::RC_MODE_OFF);
+
+	// if (CLocalPlayer::GetPlayerPed()->IsInVehicle() && !CLocalPlayer::GetPlayerPed()->IsAPassenger())
+	// {
+	// 	CLocalPlayer::SendInCarFullSyncData();
+	// 	CLocalPlayer::m_LastVehicle = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetVehiclePool()->FindIDFromGtaPtr((CVehicleGta*)CLocalPlayer::GetPlayerPed()->GetVehicle());
+	// }
+
+	// CLocalPlayer::GetPlayerPed()->ExtinguishFire();
+	// CLocalPlayer::SendWastedNotification();
+
+	CLocalPlayer::m_bIsActive = false;
+	CLocalPlayer::m_bIsWasted = true;
+	CTheZones::EnableZoneNames(false);
+}
+
+void CLocalPlayer::HandleClassSelection()
+{
+	CNecessary::Log(OBFUSCATE("CLocalPlayer HandleClassSelection"));
+
+	CLocalPlayer::m_bClearedToSpawn = false;
+
+	if (CLocalPlayer::GetPlayerPed())
+	{
+		CLocalPlayer::GetPlayerPed()->SetInitialState();
+		CLocalPlayer::GetPlayerPed()->SetHealth(100.0f);
+		CLocalPlayer::GetPlayerPed()->ToggleControllable(false);
+	}
+
+    CLocalPlayer::m_dwInitialSelectionTick = CNecessary::GetTickCount();
+    CLocalPlayer::m_dwLastSpawnSelectionTick = CNecessary::GetTickCount();
+}
+
+void CLocalPlayer::HandleClassSelectionOutcome(bool bToggle)
+{
+	if (bToggle)
+	{
+		if (CLocalPlayer::GetPlayerPed())
+		{
+			// CLocalPlayer::GetPlayerPed()->ClearAllWeapons();
+			CLocalPlayer::GetPlayerPed()->SetModelIndex(CLocalPlayer::m_SpawnInfo.iSkin);
+		}
+
+		CLocalPlayer::m_bClearedToSpawn = true;
+	}
+}
+
+void CLocalPlayer::UpdateRemoteInterior(uint8_t byteInterior)
+{
+	CNecessary::Log(OBFUSCATE("CLocalPlayer UpdateRemoteInterior : %d"), byteInterior);
+
+	CLocalPlayer::m_byteCurInterior = byteInterior;
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		RakNet::BitStream bsUpdateInterior;
+		bsUpdateInterior.Write(byteInterior);
+		CMultiPlayer::GetActiveNetwork()->GetRakClient()->RPC(&RPC_SetInteriorId, &bsUpdateInterior, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, NULL);
+	}
+}
+
+void CLocalPlayer::SetSpawnInfo(PLAYER_SPAWN_INFO *pSpawn)
+{
+	CNecessary::Log(OBFUSCATE("CLocalPlayer SetSpawnInfo : %d %d %f %f %f %f"), pSpawn->byteTeam, pSpawn->iSkin, pSpawn->vecPos.x, pSpawn->vecPos.y, pSpawn->vecPos.z, pSpawn->fRotation);
+
+	memcpy(&m_SpawnInfo, pSpawn, sizeof(PLAYER_SPAWN_INFO));
+	CLocalPlayer::m_bHasSpawnInfo = true;
+}
+
+void CLocalPlayer::EnableSpectating(bool bToggle)
+{
+	CNecessary::Log(OBFUSCATE("CLocalPlayer EnableSpectating : %d"), bToggle);
+
+	if (!bToggle)
+	{
+		if (CLocalPlayer::IsSpectating() && !CLocalPlayer::m_bEnableAfterDeath)
+		{
+			CLocalPlayer::Spawn();
+		}
+		else if (CLocalPlayer::m_bEnableAfterDeath)
+        {
+            CLocalPlayer::m_bIsActive = false;
+            CLocalPlayer::m_bHasSpawnInfo = false;
+        }
+	}
+
+	CLocalPlayer::m_bIsSpectating = bToggle;
+	CLocalPlayer::m_byteSpectateType = SPECTATE_TYPE_NONE;
+	CLocalPlayer::m_SpectateID = eInvalidId::INVALID_ID;
+	CLocalPlayer::m_bSpectateProcessed = false;
+}
+
+bool CLocalPlayer::Spawn()
+{
+    if (!CLocalPlayer::IsSpawnInfo()) {
+		return false;
+	}
+
+    CNecessary::Log(OBFUSCATE("CLocalPlayer Spawn"));
+
+    if (CLocalPlayer::IsSpawnDialog())
+	{
+		CLocalPlayer::m_bSpawnDialogShowed = false;
+
+		if (CGui::GetSpawnScreen())
+		{
+			CGui::GetSpawnScreen()->Enable(false);
+		}
+	}
+
+	if (CGame::GetCamera() && CGame::GetPlayer())
+    {
+		CGame::GetCamera()->Restore();
+		CGame::GetCamera()->SetBehindPlayer();
+	}
+
+    CLocalPlayer::GetPlayerPed()->LockControl(false);
+	CLocalPlayer::GetPlayerPed()->ToggleControllable(true);
+
+	CGame::DisplayHUD(true);
+	// CWidgets::SetToggle(true);
+
+    if (!bFirstSpawn)
+	{
+		CLocalPlayer::GetPlayerPed()->SetInitialState();
+	}
+	else
+	{
+		bFirstSpawn = false;
+	}
+
+	CGame::RefreshStreamingAt(CLocalPlayer::m_SpawnInfo.vecPos);
+
+	// if (CLocalPlayer::GetPlayerPed()->IsCuffed())
+	// {
+	// 	CLocalPlayer::GetPlayerPed()->ToggleCuffed(false);
+	// }
+
+	CLocalPlayer::GetPlayerPed()->RestartIfWastedAt(&m_SpawnInfo.vecPos, m_SpawnInfo.fRotation);
+	CLocalPlayer::GetPlayerPed()->SetModelIndex(CLocalPlayer::m_SpawnInfo.iSkin);
+	// CLocalPlayer::GetPlayerPed()->ClearAllWeapons();
+	CLocalPlayer::GetPlayerPed()->ResetDamageEntity();
+
+	// CLocalPlayer::ApplySpecialAction(eSpecialAction::SPECIAL_ACTION_NONE);
+
+	// CLocalPlayer::m_surfData.bIsActive = false;
+	// CLocalPlayer::m_surfData.vecPosition.x = 0.0;
+	// CLocalPlayer::m_surfData.vecPosition.y = 0.0;
+	// CLocalPlayer::m_surfData.vecPosition.z = 0.0;
+	// CLocalPlayer::m_surfData.entityId = eInvalidId::INVALID_ID;
+	// CLocalPlayer::m_surfData.pVehicle = nullptr;
+	// CLocalPlayer::m_surfData.bIsStuck = false;
+
+	CScripting::ScriptCommand(&enable_train_traffic, 0);
+
+	// if (CLocalPlayer::m_SpawnInfo.iSpawnWeapons[2] != eInvalidId::INVALID_ID)
+	// {
+	// 	CLocalPlayer::GetPlayerPed()->GiveWeapon(CLocalPlayer::m_SpawnInfo.iSpawnWeapons[2], CLocalPlayer::m_SpawnInfo.iSpawnWeaponsAmmo[2]);
+	// }
+
+	// if (CLocalPlayer::m_SpawnInfo.iSpawnWeapons[1] != eInvalidId::INVALID_ID)
+	// {
+	// 	CLocalPlayer::GetPlayerPed()->GiveWeapon(CLocalPlayer::m_SpawnInfo.iSpawnWeapons[1], CLocalPlayer::m_SpawnInfo.iSpawnWeaponsAmmo[1]);
+	// }
+
+	// if (CLocalPlayer::m_SpawnInfo.iSpawnWeapons[0] != eInvalidId::INVALID_ID)
+	// {
+	// 	CLocalPlayer::GetPlayerPed()->GiveWeapon(CLocalPlayer::m_SpawnInfo.iSpawnWeapons[0], CLocalPlayer::m_SpawnInfo.iSpawnWeaponsAmmo[0]);
+	// }
+
+	// CCamera::Fade
+	CMemory::makeRET(SA_ADDR(0x13524C));
+
+	CLocalPlayer::GetPlayerPed()->TeleportTo(CLocalPlayer::m_SpawnInfo.vecPos.x, CLocalPlayer::m_SpawnInfo.vecPos.y, CLocalPlayer::m_SpawnInfo.vecPos.z + 0.5f);
+	CLocalPlayer::GetPlayerPed()->ForceTargetRotation(CLocalPlayer::m_SpawnInfo.fRotation);
+
+	CNecessary::Log(OBFUSCATE("CLocalPlayer Spawn : %d %d %f %f %f %f"), CLocalPlayer::m_SpawnInfo.byteTeam, CLocalPlayer::m_SpawnInfo.iSkin, CLocalPlayer::m_SpawnInfo.vecPos.x, CLocalPlayer::m_SpawnInfo.vecPos.y, CLocalPlayer::m_SpawnInfo.vecPos.z, CLocalPlayer::m_SpawnInfo.fRotation);
+
+	CLocalPlayer::m_bIsWasted = false;
+	CLocalPlayer::m_bIsActive = true;
+	CLocalPlayer::m_bWaitingForSpawnRequestReply = false;
+
+    // if (CGui::GetButton() && CGui::GetDebug() && CGui::GetXSing() && CGui::GetGButton())
+	// {
+	// 	CGui::GetDebug()->SetRenderFramerate(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("ShowFps")));
+	// 	CGui::GetDebug()->SetRenderMemory(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("ShowMem")));
+	// 	CGui::GetButton()->Enable(true);
+	// 	CGui::GetXSing()->Enable(true);
+	// 	CGui::GetGButton()->Enable(true);
+	// }
+
+	// CVoice::Enable(true);
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		RakNet::BitStream bsSendSpawn;
+		CMultiPlayer::GetActiveNetwork()->GetRakClient()->RPC(&RPC_Spawn, &bsSendSpawn, HIGH_PRIORITY, RELIABLE_SEQUENCED, 0, false, UNASSIGNED_NETWORK_ID, NULL);
+	}
+
+	CLocalPlayer::m_iDisplayZoneTick = CNecessary::GetTickCount() + 1000;
+
+    return true;
+}
+
+void CLocalPlayer::NextClass()
+{
+	CNecessary::Log(OBFUSCATE("CLocalPlayer NextClass"));
+
+	if (!CLocalPlayer::IsSpawnDialog()) {
+		return;
+	}
+
+	CMatrix matPlayer;
+	CLocalPlayer::m_bClearedToSpawn = false;
+
+	if (CLocalPlayer::GetPlayerPed())
+	{
+		CLocalPlayer::GetPlayerPed()->GetMatrix(&matPlayer);
+	}
+
+	if (static_cast<uint32_t>(CLocalPlayer::m_iSelectedClass) == CMultiPlayer::GetActiveNetwork()->m_iSpawnsAvailable - 1)
+	{
+		CLocalPlayer::m_iSelectedClass = 0;
+	}
+	else 
+	{
+		CLocalPlayer::m_iSelectedClass++;
+	}
+
+	// CAudio::Play(1052, matPlayer.pos.x, matPlayer.pos.y, matPlayer.pos.z);
+	CLocalPlayer::RequestClass(CLocalPlayer::m_iSelectedClass);
+}
+
+void CLocalPlayer::PrevClass()
+{
+	CNecessary::Log(OBFUSCATE("CLocalPlayer PrevClass"));
+
+	if (!CLocalPlayer::IsSpawnDialog()) {
+		return;
+	}
+
+	CMatrix matPlayer;
+	CLocalPlayer::m_bClearedToSpawn = false;
+	
+	if (CLocalPlayer::GetPlayerPed())
+	{
+		CLocalPlayer::GetPlayerPed()->GetMatrix(&matPlayer);
+	}
+
+	if (CLocalPlayer::m_iSelectedClass == 0) 
+	{
+		CLocalPlayer::m_iSelectedClass = (CMultiPlayer::GetActiveNetwork()->m_iSpawnsAvailable - 1);
+	}
+	else 
+	{
+		CLocalPlayer::m_iSelectedClass--;
+	}
+
+	// CAudio::Play(1053, matPlayer.pos.x, matPlayer.pos.y, matPlayer.pos.z);
+	CLocalPlayer::RequestClass(CLocalPlayer::m_iSelectedClass);
+}
+
+void CLocalPlayer::SendSpawnRequest()
+{
+	CNecessary::Log(OBFUSCATE("CLocalPlayer SendSpawnRequest"));
+
+	if (!CLocalPlayer::IsSpawnDialog()) {
+		return;
+	}
+
+	CLocalPlayer::RequestSpawn();
+	CLocalPlayer::m_bWaitingForSpawnRequestReply = true;
+}
+
+void CLocalPlayer::RequestClass(int iClass)
+{
+	CNecessary::Log(OBFUSCATE("CLocalPlayer RequestClass"));
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		RakNet::BitStream bsSpawnRequest;
+		bsSpawnRequest.Write(iClass);
+
+		CMultiPlayer::GetActiveNetwork()->GetRakClient()->RPC(&RPC_RequestClass, &bsSpawnRequest, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, 0);
+	}
+}
+
+void CLocalPlayer::RequestSpawn()
+{
+	CNecessary::Log(OBFUSCATE("CLocalPlayer RequestSpawn"));
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		RakNet::BitStream bsSpawnRequest;
+		CMultiPlayer::GetActiveNetwork()->GetRakClient()->RPC(&RPC_RequestSpawn, &bsSpawnRequest, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, 0);
+	}
+}
+
+bool CLocalPlayer::NeedsToUpdate(const void *pOld, const void *pNew, unsigned int nLen, uint32_t tickDef)
+{
+	if (CNecessary::GetTickCount() - CLocalPlayer::m_dwLastAnySendTick > tickDef || memcmp(pOld, pNew, nLen))
+	{
+		CLocalPlayer::m_dwLastAnySendTick = CNecessary::GetTickCount();
+		return true;
+	}
+
+	return false;
 }

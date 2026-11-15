@@ -2,7 +2,7 @@
 
 #include "../CPhysicalGta.h"
 #include "../../RenderWare/rwplcore.h"
-// #include "../Vehicle/CVehicleGta.h"
+#include "../Vehicle/CVehicleGta.h"
 // #include "../../CPedIntelligence.h"
 
 #include "../../Enums/ePedState.h"
@@ -219,7 +219,7 @@ struct CPedGta : CPhysicalGta
     CEntityGta *m_pEntityStandingOn;
     float m_fHitHeadHeight;
     uint8_t pad03[4];
-    uintptr_t* pVehicle; // 0x708
+    CVehicleGta* pVehicle; // 0x708
     uintptr_t m_pMyAccidentVehicle;
     uintptr_t *m_pAccident;
     uint32_t dwPedType;

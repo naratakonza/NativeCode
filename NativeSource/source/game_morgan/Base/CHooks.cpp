@@ -1,5 +1,6 @@
 #include "../../../Main.h"
 #include "CHooks.h"
+#include "MultiTouch/CTouchEvent.h"
 #include "../CAspectRatio.h"
 #include "../CDraw.h"
 #include "../CCameraController.h"
@@ -79,12 +80,12 @@ extern "C" __attribute__((visibility("default"))) void CGame_Process_hook(void (
     }
     catch (const std::exception& error)
     {
-        CExceptions::Print(OBFUSCATE("CGame Process"), error.what());
+        CExceptions::Print(OBFUSCATE("s007"), error.what());
         throw;
     }
     catch (...)
     {
-        CExceptions::Print(OBFUSCATE("CGame Process"), OBFUSCATE("unknown C++ exception"));
+        CExceptions::Print(OBFUSCATE("s007"), OBFUSCATE("unknown C++ exception"));
         throw;
     }
 
@@ -186,6 +187,7 @@ void CHooks::SetHooking(eHookType type)
             CHooks::InstallMenu();
             CWidgetPlayerInfo::Initialise();
             CStreaming::Initialise();
+            CTouchEvent::Initialise();
             CAspectRatio::Initialise();
             CDraw::Initialise();
             CPhysical::Initialise();

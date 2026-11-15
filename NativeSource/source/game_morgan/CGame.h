@@ -14,6 +14,7 @@ public:
     static void Uninitialise();
     static void SetFramerate(std::uint8_t fps);
     static void ToggleRadar(bool iToggle);
+    static uint8_t IsMenuActive();
     static bool IsRadarActive();
     static void DisplayHUD(bool bDisp);
     static bool IsAnimationLoaded(const char* animation);
@@ -28,6 +29,7 @@ public:
 	static void ResetPlayerMoney();
     static void SetPlayerMaxStats();
     static void SetPlayerStatsLocked(bool locked);
+    static float FindGroundZForCoord(float x, float y, float z);
 
 public:
 	static CCamera* GetCamera() {

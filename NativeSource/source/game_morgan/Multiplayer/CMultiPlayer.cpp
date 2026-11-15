@@ -77,8 +77,17 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 {
     if (CMultiPlayer::GetActiveNetwork())
 	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->ResetData();
+			// CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->EnableSpectating(false);
+		}
+
 		CCameraAim::GameResetLocalPlayerSkills();
+
+		CGui::GetSpawnScreen()->Enable(false);
 		
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->DeleteAll();
 		CMultiPlayer::GetActiveNetwork()->InitialiseGameLogic();
 
 		if (CGame::GetPlayer())
@@ -112,9 +121,9 @@ void CMultiPlayer::StartSAMP()
 
 	CNecessary::Log(OBFUSCATE("CMultiPlayer StartSAMP"));
 
-    CServer::SetIpConnect(OBFUSCATE("morgan-games.com"));
+    CServer::SetIpConnect(OBFUSCATE("play.uifserver.net"));
 	CServer::SetPassConnect("");
-	CServer::SetPortConnect(7777);
+	CServer::SetPortConnect(7776);
 
     CScripting::Init();
 

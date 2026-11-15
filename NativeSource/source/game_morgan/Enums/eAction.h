@@ -1,0 +1,10 @@
+#pragma once
+
+enum eAction {
+	ACTION_NONE,
+	ACTION_NORMAL,
+	ACTION_SCOPE = 12,
+	ACTION_INCAR = 50,
+	ACTION_DEATH = 54,
+	ACTION_WASTED
+};

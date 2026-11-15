@@ -1,19 +1,19 @@
 #pragma once
 
-#include "../../../utils/Quat/CQuaternion.h"
+#include "../utils/Quat/CQuaternion.h"
 
 // #include "../Core/CMultiPlayerShot.h"
 #include "../../Entity/Ped/CPlayerPed.h"
 #include "../../Entity/Ped/CPlayerPedSlot.h"
 // #include "../../Entity/Vehicle/CVehicle.h"
-// #include "../../Enums/eMaxItem.h"
-// #include "../../Enums/eAction.h"
-// #include "../../Enums/eInvalidId.h"
-// #include "../../Enums/eRcModeType.h"
-// #include "../../Enums/eSurfingMode.h"
-// #include "../../Enums/eSurfingType.h"
-// #include "../../Enums/eSpecialAction.h"
-#include <raknet/BitStream.h>
+#include "../../Enums/eMaxItem.h"
+#include "../../Enums/eAction.h"
+#include "../../Enums/eInvalidId.h"
+#include "../../Enums/eRcModeType.h"
+#include "../../Enums/eSurfingMode.h"
+#include "../../Enums/eSurfingType.h"
+#include "../../Enums/eSpecialAction.h"
+#include "../vendor/raknet/BitStream.h"
 
 #define SPECTATE_TYPE_NONE				0
 #define SPECTATE_TYPE_PLAYER			1
@@ -147,16 +147,228 @@ typedef struct _CAMERA_TARGET_DATA
 class CLocalPlayer
 {
 private:
+	uint16_t m_LocalPlayerID;
+	int Score;
+	int Ping;
 
 public:
 	CLocalPlayer();
 	~CLocalPlayer();
-    void ResetData();
 
     bool Process();
+	void UpdateRemoteInterior(uint8_t byteInterior);
+	void HandleDrunkState();
+	void HandleAfterDeathToggle();
+	void HandleNeedsToRespawn();
+	void HandleInitialSpawnConditions();
+	void HandleDancing();
+	void HandleUrinating();
+	void HandleHandsUp();
+	void HandleStuff();
+	void HandleVehicleEntryTimeout(uint32_t dwThisTick);
+	void HandlePassengerEntry();
+	void HandleInteriorChanging();
+	void DisplayZone(uint32_t dwThisTick);
+	void SendStats(uint32_t dwThisTick);
+	void UpdateWeapons();
+	void UpdateCameraTarget();
+	void GetCameraTarget(CAMERA_TARGET_DATA* target);
+	void UpdateModel(uint32_t dwThisTick);
+	void HandleDead();
+	bool NeedsToUpdate(const void *pOld, const void *pNew, unsigned int nLen, uint32_t tickDef = 500);
+	void ProcessVehicleDamageUpdates(uint16_t CurrentVehicle);
+	void ProcessOnFoot(uint32_t dwThisTick);
+	void ProcessDriver(uint32_t dwThisTick);
+	void ProcessPassenger(uint32_t dwThisTick);
+	void ProcessAimSync(uint32_t dwThisTick);
+	void ProcessAnimation();
+
+    void SetLocalID(uint16_t ID) {
+		m_LocalPlayerID = ID;
+	};
+
+	uint16_t GetLocalID() {
+		return m_LocalPlayerID;
+	};
+
+	int GetLocalScore() {
+		return Score;
+	};
+
+	int GetLocalPing() {
+		return Ping;
+	};
+
+	void SetLocalPing(int ping) {
+		Ping = ping;
+	};
+
+	void SetLocalScore(int score) {
+		Score = score;
+	};
+
+	void Deactivate()
+	{
+		m_bIsActive = false;
+		m_iSelectedClass = 0;
+	};
+
+	void EnableSpectating(bool bToggle);
+	void SpectateForPlayer(uint16_t playerId);
+	void SpectateForVehicle(uint16_t VehicleID);
+	void HandleClassSelection();
+	void HandleClassSelectionOutcome(bool bToggle);
+	void RequestClass(int iClass);
+	void SetSpawnInfo(PLAYER_SPAWN_INFO *pSpawn);
+	void RequestSpawn();
+	void NextClass();
+	void PrevClass();
+	void SendSpawnRequest();
+	bool Spawn();
+
+	void ResetData();
+	void ReturnToClassSelection() { m_bEnableAfterDeath = true; };
+	CPlayerPed * GetPlayerPed() { return m_pPlayerPed; };
+	bool IsSpectating() { return m_bIsSpectating; };
+	bool IsSpawnDialog() { return m_bSpawnDialogShowed; };
+	bool IsSpawnInfo() { return m_bHasSpawnInfo; };
+	bool IsInRCMode() { return m_bInRCMode; };
+
+	void SendWastedNotification();
+	void SendOnFootFullSyncData();
+	void SendPassengerFullSyncData();
+	void SendInCarFullSyncData();
+	void SendAimSyncData();
+	void SendTrailerData(uint16_t vehicleId);
+	void SendUnoccupiedData(uint16_t vehicleId, uint8_t syncMode);
+
+	// void EndSurfing();
+	// void ProcessSurfing();
+	// void SetSurfing(bool bStuck, CVehicle* pVehicle);
+	// void UpdateSurfing();
+
+	void UpdateRCMode(eRcModeType type);
+	void ProcessOnFootWorldBounds();
+	void ProcessInCarWorldBounds();
+	void ProcessPassengerDriveBy();
+	// bool ProcessUnoccupied(uint16_t vehicleId, CVehicle* pVehicle);
+	void ApplySpecialAction(uint8_t byteSpecialAction);
+	uint8_t GetSpecialAction();
+	void SetLocalTeam(uint8_t byteTeam);
+	uint8_t GetLocalTeam();
+	void ProcessHead();
+	bool NeedsToSendOnfootData(uint16_t wKeys, uint16_t lrAnalog, uint16_t udAnalog);
+	int GetOptimumOnFootSendRate();
+	int GetOptimumInCarSendRate();
+	int GetOptimumUnoccupiedSendRate();
+	uint8_t DetermineNumberOfPlayersInLocalRange();
+	void ProcessSpectating();
+	uint32_t GetPlayerColor();
+	void SetPlayerColor(uint32_t dwColor);
+	uint32_t GetPlayerColorAsARGB();
+
+	void SendTakeDamage(uint16_t PlayerID, float fDamageFactor, uint32_t weaponType, uint32_t pedPieceType);
+	void SendGiveDamage(uint16_t PlayerID, float fDamageFactor, uint32_t weaponType, uint32_t pedPieceType);
+	void SendGiveDamageActor(uint16_t ActorID, float fDamageFactor, uint32_t weaponType, uint32_t pedPieceType);
+	void SendEnterVehicleNotification(uint16_t VehicleID, bool bPassenger);
+	void SendExitVehicleNotification(uint16_t VehicleID);
+	void SendSCMEvent(RakNet::BitStream bsData);
 
 public:
+	bool				m_bWaitingForSpawnRequestReply;
+	uint8_t 			m_byteTeamId;
+
+	bool				m_bIsSpectating;
+	uint8_t				m_byteSpectateMode;
+	uint8_t				m_byteSpectateType;
+	uint32_t			m_SpectateID;
+	bool				m_bSpectateProcessed;
+	int32_t				m_dwAnimationValue;
+	bool				m_bAnimationReset;
+
+	uint16_t			m_CurrentVehicle;
+	uint16_t 			m_LastVehicle;
+
+    bool				m_bIsActive;
+
+	// struct  
+	// {
+	// 	uint16_t     entityId;
+	// 	uint32_t     lastUpdate;
+
+	// 	union {
+	// 		CVehicle* pVehicle;
+	// 		CObject*  pObject;
+	// 	};
+
+	// 	bool         bIsStuck;
+	// 	bool         bIsActive;
+	// 	CVector      vecPosition;
+	// 	int          iUnknown;
+	// 	int          iSyncMode;
+	// } m_surfData;
+
+	struct  
+	{
+		CVector m_vecHeadDir;
+		uint32_t m_dwLastHeadUpdate;
+		uint32_t m_dwLastHeadLook;
+	} m_headData;
+
+	struct  
+	{
+		uint16_t m_nAimedPlayer;
+		uint16_t m_nAimedActor;
+		uint8_t m_nCurrentWeapon;
+		uint8_t	m_byteLastWeapon[13];
+		uint32_t m_dwLastAmmo[13];
+	} m_weaponsData;
+
+	struct  
+	{
+		uint16_t m_nVehicleUpdating;
+		uint32_t m_nPanel;
+		uint32_t m_nDoor;
+		uint8_t m_bLight;
+		uint8_t m_bTire;
+	} m_damageData;
+
+	CAMERA_TARGET_DATA 	m_cameraTargetData;
 
 private:
 	CPlayerPed*			m_pPlayerPed;
+
+	bool				m_bIsWasted;
+	uint8_t				m_byteCurInterior;
+	bool				m_bInRCMode;
+	bool				m_bSpawnDialogShowed;
+	bool				m_bCheckShowUISpectating;
+	bool				m_bPassengerDriveByMode;
+	unsigned long		m_ulThisSyncFrame;
+	unsigned long		m_ulLastSyncFrame;
+
+	PLAYER_SPAWN_INFO 	m_SpawnInfo;
+	// ONFOOT_SYNC_DATA 	m_OnFootData;
+	// INCAR_SYNC_DATA 	m_InCarData;
+	// PASSENGER_SYNC_DATA m_PassengerData;
+	// AIM_SYNC_DATA		m_aimData;
+	// TRAILER_SYNC_DATA 	m_TrailerData;
+	// UNOCCUPIED_SYNC_DATA m_UnoccupiedData;
+
+	int					m_iSelectedClass;
+	bool				m_bHasSpawnInfo;
+	bool				m_bEnableAfterDeath;
+	bool				m_bClearedToSpawn;
+
+	int					m_iDisplayZoneTick;
+	uint32_t 			m_dwLastAnySendTick;
+	uint32_t 			m_dwLastSendTick;
+	uint32_t			m_dwLastSendSpecTick;
+	uint32_t			m_dwLastSendAimTick;
+	uint32_t			m_dwLastStatsUpdateTick;
+	uint32_t			m_dwLastUpdateModelTick;
+	uint32_t			m_dwLastWeaponsUpdateTick;
+	uint32_t			m_dwLastCameraTargetUpdateTick;
+	uint32_t			m_dwLastSpawnSelectionTick;
+	uint32_t			m_dwInitialSelectionTick;
 };

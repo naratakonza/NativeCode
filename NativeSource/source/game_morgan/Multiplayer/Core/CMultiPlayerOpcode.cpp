@@ -7,6 +7,7 @@
 #include "../Guis/CGui.h"
 #include "../../CGame.h"
 #include "../../CClock.h"
+#include "../../CTimer.h"
 #include "../../CWeather.h"
 #include "../../CTheZones.h"
 #include "../../CEntryExitManager.h"
@@ -123,19 +124,19 @@ void InitGame(RakNet::BitStream bsInitGame)
 
     CMultiPlayer::GetActiveNetwork()->SetNetworkState(eNetworkState::GAMESTATE_CONNECTED);
 
-	// if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) 
-	// {
-	// 	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()) 
-	// 	{
-	// 		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->SetLocalID(MyPlayerID);
-	// 		CNecessary::Log(OBFUSCATE("LocalID : %d"), MyPlayerID);
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) 
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()) 
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->SetLocalID(MyPlayerID);
+			CNecessary::Log(OBFUSCATE("LocalID : %d"), MyPlayerID);
 
-	// 		if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsSpectating()) 
-	// 		{
-	// 			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->HandleClassSelection();
-	// 		}
-	// 	}
-	// }
+			if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsSpectating()) 
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->HandleClassSelection();
+			}
+		}
+	}
 
 	// CGame::EnableStuntBonus(bStuntBonus);
     CClock::SetGameTime(CMultiPlayer::GetActiveNetwork()->m_byteWorldTime, 0);
@@ -144,12 +145,6 @@ void InitGame(RakNet::BitStream bsInitGame)
     CTheZones::EnableZoneNames(CMultiPlayer::GetActiveNetwork()->m_bZoneNames);
 
     CNecessary::Log(OBFUSCATE("Connected to {B9C9BF}%.64s"), CMultiPlayer::GetActiveNetwork()->GetNetworkData().HostName);
-
-    CGame::GetCamera()->SetBehindPlayer();
-    CGame::DisplayHUD(true);
-    CGame::GetPlayer()->SetModelIndex(143);
-	CGame::GetPlayer()->SetHealth(100);
-	CGame::GetPlayer()->SetArmour(100);
 
 	if (CGui::GetChat())
 	{
@@ -200,6 +195,44 @@ void ConnectionRejected(RakNet::BitStream bsData)
 	}
 }
 
+void TogglePlayerSpectating(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: TogglePlayerSpectating"));
+
+	if (bsData.GetNumberOfUnreadBits() < 32) {
+		CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for TogglePlayerSpectating"));
+		return;
+	}
+
+	uint32_t bToggle;
+	bsData.Read(bToggle);
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->EnableSpectating(bToggle);
+		}
+	}
+}
+
+void SetInterior(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetInterior"));
+
+	if (bsData.GetNumberOfUnreadBits() < bytesToBits(sizeof(uint8_t))) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetInterior"));
+        return;
+    }
+
+	uint8_t byteInterior;
+	bsData.Read(byteInterior);
+
+	if (CGame::GetPlayer())
+    {
+		CGame::GetPlayer()->SetInterior(byteInterior, true);
+	}
+}
+
 void ClientMessage(RakNet::BitStream bsClientMessage)
 {
     uint32_t dwStrLen;
@@ -236,6 +269,338 @@ void SetGravity(RakNet::BitStream bsData)
 	float gravity;
 	bsData.Read(gravity);
 	CPhysical::SetGravity(gravity);
+}
+
+void ToggleClock(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ToggleClock"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint8_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for ToggleClock"));
+        return;
+    }
+
+	uint8_t toggle;
+	bsData.Read(toggle);
+
+	if (toggle)
+	{
+		CMultiPlayer::GetActiveNetwork()->m_bHoldTime = false;
+	}
+	else
+	{
+		CMultiPlayer::GetActiveNetwork()->m_bHoldTime = true;
+		CClock::GetWorldTime((int*)&CMultiPlayer::GetActiveNetwork()->m_byteWorldTime, (int*)&CMultiPlayer::GetActiveNetwork()->m_byteWorldMinute);
+	}
+}
+
+void RequestSpawn(RakNet::BitStream bsRS)
+{
+	CNecessary::Log(OBFUSCATE("RPC: RequestSpawn"));
+
+	uint8_t byteRequestOutcome = 0;
+	bsRS.Read(byteRequestOutcome);
+
+	CNecessary::Log(OBFUSCATE("RPC: byteRequestOutcome = %d"), byteRequestOutcome);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
+		{
+			if (byteRequestOutcome == 2 || (byteRequestOutcome && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->m_bWaitingForSpawnRequestReply))
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->Spawn();
+			}
+			else
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->m_bWaitingForSpawnRequestReply = false;
+			}
+		}
+	}
+}
+
+void RequestClass(RakNet::BitStream bsRC)
+{
+	CNecessary::Log(OBFUSCATE("RPC: RequestClass"));
+
+    uint8_t byteRequestOutcome = 0;
+    bsRC.Read(byteRequestOutcome);
+
+	PLAYER_SPAWN_INFO SpawnInfo;
+
+	if (bsRC.GetNumberOfUnreadBits() < bytesToBits(sizeof(PLAYER_SPAWN_INFO))) {
+		CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetSpawnInfo (RequestClass)"));
+		return;
+	}
+
+	bsRC.Read((char*)&SpawnInfo, sizeof(PLAYER_SPAWN_INFO));
+
+	if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) {
+		return;
+	}
+
+	if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()) {
+		return;
+	}
+
+    if (byteRequestOutcome) 
+	{
+        CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->SetSpawnInfo(&SpawnInfo);
+        CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->HandleClassSelectionOutcome(true);
+    }
+	else
+	{
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->HandleClassSelectionOutcome(false);
+	}
+}
+
+void ForceSpawnSelection()
+{
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()) 
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->ReturnToClassSelection();
+		}
+	}
+}
+
+void SetSpawnInfo(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetSpawnInfo"));
+
+	PLAYER_SPAWN_INFO SpawnInfo;
+
+	if (bsData.GetNumberOfUnreadBits() < bytesToBits(sizeof(PLAYER_SPAWN_INFO))) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetSpawnInfo"));
+        return;
+    }
+
+	bsData.Read((char*)&SpawnInfo, sizeof(PLAYER_SPAWN_INFO));
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()) 
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->SetSpawnInfo(&SpawnInfo);
+		}
+	}
+}
+
+void SetPlayerSkin(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetPlayerSkin"));
+
+	int iPlayerID;
+	unsigned int uiSkin;
+
+	int bitsTotal =
+		bytesToBits(sizeof(int)) +
+		bytesToBits(sizeof(unsigned int));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerSkin"));
+        return;
+    }
+
+	if (!bsData.Read(iPlayerID) || !bsData.Read(uiSkin)) {
+		CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerSkin (2)"));
+		return;
+	}
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) 
+	{
+		if (iPlayerID == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID()) 
+		{
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()) 
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->SetModelIndex(uiSkin);
+			}
+		} 
+		else
+		{
+			// if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(iPlayerID) && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(iPlayerID)->GetGamePlayer()) 
+			// {
+			// 	CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(iPlayerID)->GetGamePlayer()->SetModelIndex(uiSkin);
+			// }
+		}
+	}
+}
+
+void SetPlayerPosFindZ(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetPlayerPosFindZ"));
+
+	alignas(float) VECTOR vecPos = VECTOR();
+	if (bsData.GetNumberOfUnreadBits() >= 96) 
+	{
+		bsData.Read(vecPos.x);
+		bsData.Read(vecPos.y);
+		bsData.Read(vecPos.z);
+	} 
+	else 
+	{
+		CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerPosFindZ"));
+	}
+
+	vecPos.z = CGame::FindGroundZForCoord(vecPos.x, vecPos.y, vecPos.z);
+	vecPos.z += 1.5f;
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) 
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()) 
+		{
+			// CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->EndSurfing();
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->TeleportTo(vecPos.x, vecPos.y, vecPos.z);
+		}
+	}
+}
+
+void SetPlayerHealth(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetPlayerHealth"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(float));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerHealth"));
+        return;
+    }
+
+	if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) {
+		return;
+	}
+
+	if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer() || !CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()) {
+		return;
+	}
+
+	float fHealth;
+	if (!bsData.Read(fHealth)) {
+		CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerHealth (2)"));
+		return;
+	}
+
+	if (fHealth > 8000000 && fHealth <= 8000100)
+	{
+		float fHealthFix = static_cast<int>(fHealth) % 1000;
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->SetHealth(fHealthFix);
+	}
+	else
+	{
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->SetHealth(fHealth);
+	}
+}
+
+void SetPlayerArmour(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetPlayerArmour"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(float));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerArmour"));
+        return;
+    }
+
+	if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) {
+		return;
+	}
+
+	if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer() || !CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()) {
+		return;
+	}
+
+	float fArm;
+	if (!bsData.Read(fArm)) {
+		CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerArmour (2)"));
+		return;
+	}
+
+	CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->SetArmour(fArm);
+}
+
+void TogglePlayerControllable(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: TogglePlayerControllable"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint8_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+		CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for TogglePlayerControllable"));
+        return;
+    }
+
+	uint8_t byteControllable;
+	bsData.Read(byteControllable);
+	if (CGame::GetPlayer())
+	{
+		CGame::GetPlayer()->LockControl(!byteControllable);
+		CGame::GetPlayer()->ToggleControllable(static_cast<int>(byteControllable));
+	}
+}
+
+void SetGameTime(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetGameTime"));
+
+	uint8_t byteHour;
+	bsData.Read(byteHour);
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		CMultiPlayer::GetActiveNetwork()->m_byteWorldTime = byteHour;
+	}
+}
+
+void SetPlayerTime(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetPlayerTime"));
+
+	uint8_t byteHour;
+	uint8_t byteMinute;
+
+	bsData.Read(byteHour);
+	bsData.Read(byteMinute);
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		CMultiPlayer::GetActiveNetwork()->m_byteWorldTime = byteHour;
+		CMultiPlayer::GetActiveNetwork()->m_byteWorldMinute = byteMinute;
+		CClock::SetGameTime(byteHour, byteMinute);
+	}
+}
+
+void SetGameWeather(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetGameWeather"));
+
+	uint8_t byteWeather;
+
+	bsData.Read(byteWeather);
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		CMultiPlayer::GetActiveNetwork()->m_byteWeather = byteWeather;
+		CWeather::SetGameWeather(static_cast<eWeatherType>(byteWeather));
+	}
+}
+
+void SendGameTimeUpdate(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SendGameTimeUpdate"));
+
+	int32_t time = 0;
+
+	bsData.Read(time);
+	
+	CTimer::SetGameTimer(time);
 }
 
 bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
@@ -320,15 +685,15 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_TogglePlayerSpectating: {
-		//     TogglePlayerSpectating(*bsData);
-		//     break;
-		// }
+		case RPC_TogglePlayerSpectating: {
+		    TogglePlayerSpectating(*bsData);
+		    break;
+		}
 
-		// case RPC_SetPlayerInterior: {
-		//     SetInterior(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerInterior: {
+		    SetInterior(*bsData);
+		    break;
+		}
 
 		// case RPC_SetPlayerColor: {
 		//     SetPlayerColor(*bsData);
@@ -405,10 +770,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		// 	break;
 		// }
 
-		// case RPC_ToggleClock: {
-		// 	ToggleClock(*bsData);
-		// 	break;
-		// }
+		case RPC_ToggleClock: {
+			ToggleClock(*bsData);
+			break;
+		}
 
 		// case RPC_SetPlayerMapIcon: {
 		//     SetMapIcon(*bsData);
@@ -495,25 +860,25 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		// 	break;
 		// }
 
-		// case RPC_RequestSpawn: {
-		//     RequestSpawn(*bsData);
-		//     break;
-		// }
+		case RPC_RequestSpawn: {
+		    RequestSpawn(*bsData);
+		    break;
+		}
 
-		// case RPC_RequestClass: {
-		// 	RequestClass(*bsData);
-		// 	break;
-		// }
+		case RPC_RequestClass: {
+			RequestClass(*bsData);
+			break;
+		}
 
-		// case RPC_ForceClassSelection: {
-		//     ForceSpawnSelection();
-		//     break;
-		// }
+		case RPC_ForceClassSelection: {
+		    ForceSpawnSelection();
+		    break;
+		}
 
-		// case RPC_SetSpawnInfo: {
-		//     SetSpawnInfo(*bsData);
-		//     break;
-		// }
+		case RPC_SetSpawnInfo: {
+		    SetSpawnInfo(*bsData);
+		    break;
+		}
 
 		// case RPC_WorldPlayerAdd: {
 		//     WorldPlayerAdd(*bsData);
@@ -655,25 +1020,25 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_SetPlayerSkin: {
-		//     SetPlayerSkin(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerSkin: {
+		    SetPlayerSkin(*bsData);
+		    break;
+		}
 
-		// case RPC_SetPlayerPosFindZ: {
-		//     SetPlayerPosFindZ(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerPosFindZ: {
+		    SetPlayerPosFindZ(*bsData);
+		    break;
+		}
 
-		// case RPC_SetPlayerHealth: {
-		//     SetPlayerHealth(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerHealth: {
+		    SetPlayerHealth(*bsData);
+		    break;
+		}
 
-		// case RPC_SetPlayerArmour: {
-		//     SetPlayerArmour(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerArmour: {
+		    SetPlayerArmour(*bsData);
+		    break;
+		}
 
 		// case RPC_CreateObject: {
 		//     CreateObject(*bsData);
@@ -710,10 +1075,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_TogglePlayerControllable: {
-		//     TogglePlayerControllable(*bsData);
-		//     break;
-		// }
+		case RPC_TogglePlayerControllable: {
+		    TogglePlayerControllable(*bsData);
+		    break;
+		}
 
 		// case RPC_AttachObjectToPlayer: {
 		//     AttachObjectToPlayer(*bsData);
@@ -725,20 +1090,20 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_SetWorldTime: {
-		//     SetGameTime(*bsData);
-		//     break;
-		// }
+		case RPC_SetWorldTime: {
+		    SetGameTime(*bsData);
+		    break;
+		}
 
-		// case RPC_SetPlayerTime: {
-		//     SetPlayerTime(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerTime: {
+		    SetPlayerTime(*bsData);
+		    break;
+		}
 
-		// case RPC_SetPlayerWeather: {
-		//     SetGameWeather(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerWeather: {
+		    SetGameWeather(*bsData);
+		    break;
+		}
 
 		// case RPC_ShowPlayerNameTag: {
 		//     ShowPlayerNameTag(*bsData);
@@ -760,10 +1125,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_PlayerUpdate: {
-		//     SendGameTimeUpdate(*bsData);
-		//     break;
-		// }
+		case RPC_PlayerUpdate: {
+		    SendGameTimeUpdate(*bsData);
+		    break;
+		}
 
 		// case RPC_GivePlayerWeapon: {
 		//     GivePlayerWeapon(*bsData);

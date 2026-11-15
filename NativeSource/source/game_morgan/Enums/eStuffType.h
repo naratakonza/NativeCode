@@ -1,0 +1,9 @@
+#pragma once
+
+enum eStuffType {
+	STUFF_TYPE_NONE,
+	STUFF_TYPE_BEER,
+	STUFF_TYPE_DYN_BEER,
+	STUFF_TYPE_PINT_GLASS,
+	STUFF_TYPE_CIGGI
+};

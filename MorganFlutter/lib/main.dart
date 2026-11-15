@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 
 import 'ui/game_loading_screen.dart';
 import 'ui/samp_chat.dart';
+import 'ui/spawn.dart';
 
-void main() => runApp(const SAGameApp());
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SpawnBridge.init();
+  runApp(const SAGameApp());
+}
 
 class SAGameApp extends StatelessWidget {
   const SAGameApp({super.key});
@@ -24,6 +29,7 @@ class SAGameApp extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           SampChat(),
+          SampSpawnMenu(),
           IgnorePointer(child: GameLoadingScreen(isVisible: false)),
         ],
       ),

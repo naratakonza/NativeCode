@@ -26,6 +26,17 @@ void CPlayerPool::Process()
 {
     if (CPlayerPool::GetLocalPlayer())
     {
-        CPlayerPool::GetLocalPlayer()->Process();
+        try
+        {
+            CPlayerPool::GetLocalPlayer()->Process();
+        }
+        catch (const std::exception& error)
+        {
+            CExceptions::Print(OBFUSCATE("s002"), error.what());
+        }
+        catch (...)
+        {
+            CExceptions::Print(OBFUSCATE("s002"), OBFUSCATE("unknown C++ exception"));
+        }
     }
 }

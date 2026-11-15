@@ -29,8 +29,10 @@ void CNecessary::Log(const char* fmt, ...)
 
 std::uint32_t CNecessary::GetTickCount()
 {
-    const auto elapsed = std::chrono::steady_clock::now().time_since_epoch();
-    return static_cast<std::uint32_t>(std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+
+    return static_cast<uint32_t>(tv.tv_sec * 1000 + tv.tv_usec / 1000);
 }
 
 std::size_t CNecessary::MPSTRLEN(const char* str)
