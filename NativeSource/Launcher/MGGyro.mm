@@ -14,6 +14,7 @@ static void MGStopGyro()
     {
         [motionManager stopGyroUpdates];
     }
+    
     CGyro::SetGyroMoveSpeed(0.0f, 0.0f, 0.0f);
 }
 
