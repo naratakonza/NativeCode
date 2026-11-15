@@ -17,7 +17,7 @@ void CDebugInfo::RenderTitle()
     const auto now = CNecessary::GetTickCount();
     if (now - CDebugInfo::m_dwLastTitleUpdateTick > 1000)
     {
-        std::snprintf(CDebugInfo::m_szTitle, sizeof(CDebugInfo::m_szTitle), "%s", static_cast<const char*>(OBFUSCATE("Morgan Game - GTA SA IOS 2.2.21 (Build 4.0)")));
+        std::snprintf(CDebugInfo::m_szTitle, sizeof(CDebugInfo::m_szTitle), "%s", static_cast<const char*>(OBFUSCATE("NOXARTH STUDIO - GTA SA IOS 2.2.21 (Build 4.0)")));
         CDebugInfo::m_dwLastTitleUpdateTick = now;
     }
 
