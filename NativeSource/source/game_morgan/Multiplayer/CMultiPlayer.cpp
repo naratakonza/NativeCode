@@ -127,7 +127,7 @@ void CMultiPlayer::StartSAMP()
 
 	CNecessary::Log(OBFUSCATE("CMultiPlayer StartSAMP"));
 
-    CServer::SetIpConnect(OBFUSCATE("morgan-games.com"));
+    CServer::SetIpConnect(OBFUSCATE("gta-irz.com"));
 	CServer::SetPassConnect("");
 	CServer::SetPortConnect(7777);
 

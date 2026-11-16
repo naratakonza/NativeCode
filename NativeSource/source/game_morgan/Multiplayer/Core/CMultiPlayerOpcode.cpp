@@ -203,41 +203,61 @@ void ShowDialog(RakNet::BitStream bsDialog)
 		return;
 	}
 
-    int16_t wDialogID = -1;
-    if (!bsDialog.Read(wDialogID)) {
+	int bitsTotal =
+		bytesToBits(sizeof(int16_t)) +
+		bytesToBits(sizeof(uint8_t) * 4);
+
+	if (bsDialog.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for ShowDialog"));
         return;
     }
 
-    CDialog* dialog = CGui::GetDialog();
-    dialog->Close();
-    if (wDialogID < 0) {
-        return;
-    }
+	int16_t wDialogID = -1;
+	uint8_t byteDialogStyle = 0;
+	uint8_t len;
 
-    uint8_t byteDialogStyle = 0;
-    if (!bsDialog.Read(byteDialogStyle) || byteDialogStyle > DIALOG_STYLE_TABLIST_HEADERS) {
-        return;
-    }
+	char szBuff[4096 + 1] = { '\0' };
+    char title[256 + 1]   = { '\0' };
+    char info[4096 + 1]   = { '\0' };
+    char button1[256 + 1] = { '\0' };
+    char button2[256 + 1] = { '\0' };
 
-    char szBuff[4096 + 1]{};
-    for (auto* field : {&dialog->m_utf8Title, &dialog->m_utf8Button1, &dialog->m_utf8Button2})
-    {
-        uint8_t length = 0;
-        if (!bsDialog.Read(length) || (length != 0 && !bsDialog.Read(szBuff, length))) {
-            return;
-        }
-        szBuff[length] = '\0';
-        CNecessary::ConvertLocalizedEncodingToUTF8(*field, szBuff, sizeof(*field));
-    }
+	CGui::GetDialog()->Close();
 
-    if (!stringCompressor || !stringCompressor->DecodeString(szBuff, 4096, &bsDialog)) {
-        return;
-    }
+	bsDialog.Read(wDialogID);
 
-    dialog->m_wDialogID = wDialogID;
-    dialog->m_byteDialogStyle = byteDialogStyle;
-    dialog->SetInfo(szBuff, CNecessary::MPSTRLEN(szBuff));
-    dialog->Show();
+	if (wDialogID < 0) {
+		return;
+	}
+
+	bsDialog.Read(byteDialogStyle);
+	CGui::GetDialog()->m_wDialogID = wDialogID;
+	CGui::GetDialog()->m_byteDialogStyle = byteDialogStyle;
+
+	bsDialog.Read(len);
+	bsDialog.Read(szBuff, len);
+
+	szBuff[len] = '\0';
+	CNecessary::ConvertLocalizedEncodingToUTF8(title, szBuff, sizeof(title));
+	CNecessary::ConvertLocalizedEncodingToUTF8(CGui::GetDialog()->m_utf8Title, szBuff, sizeof(CGui::GetDialog()->m_utf8Title));
+
+	bsDialog.Read(len);
+	bsDialog.Read(szBuff, len);
+	szBuff[len] = '\0';
+	CNecessary::ConvertLocalizedEncodingToUTF8(button1, szBuff, sizeof(button1));
+	CNecessary::ConvertLocalizedEncodingToUTF8(CGui::GetDialog()->m_utf8Button1, szBuff, sizeof(CGui::GetDialog()->m_utf8Button1));
+
+	bsDialog.Read(len);
+	bsDialog.Read(szBuff, len);
+	szBuff[len] = '\0';
+	CNecessary::ConvertLocalizedEncodingToUTF8(button2, szBuff, sizeof(button2));
+	CNecessary::ConvertLocalizedEncodingToUTF8(CGui::GetDialog()->m_utf8Button2, szBuff, sizeof(CGui::GetDialog()->m_utf8Button2));
+
+	stringCompressor->DecodeString(szBuff, 4096, &bsDialog);
+	CNecessary::ConvertLocalizedEncodingToUTF8(info, szBuff, sizeof(info));
+	CGui::GetDialog()->SetInfo(szBuff, CNecessary::MPSTRLEN(szBuff));
+
+	CGui::GetDialog()->Show();
 }
 
 void SetPlayerPos(RakNet::BitStream bsData)
