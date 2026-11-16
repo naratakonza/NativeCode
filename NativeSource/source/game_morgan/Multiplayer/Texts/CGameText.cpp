@@ -10,7 +10,7 @@ uint16_t CGameText::wszGameTextGXT[0xFF]{};
 void CGameText::Print(char* szStr, int iTime, eMessageStyle iType)
 {
     static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x3D5B88), "\x08\x29\x00\x90\x08\x81\x19\x91\x09\x24\x80\x52\x48\x20\xA9\x9B", 16, "__text");
-    if (!verified || !pthread_main_np() || !szStr || iTime < 0 || iType > eMessageStyle::STYLE_LIGHTBLUE_TOP) {
+    if (!verified || !pthread_main_np() || !szStr) {
         return;
     }
 
@@ -23,6 +23,6 @@ void CGameText::Print(char* szStr, int iTime, eMessageStyle iType)
     CGameText::wszGameTextGXT[0] = 0;
     CFont::AsciiToGxtChar(ascii, CGameText::wszGameTextGXT);
 
-    // CMessages::AddBigMessage retains the GXT pointer in the style queue.
+    // CMessages::AddBigMessage
     reinterpret_cast<void (*)(const uint16_t*, int, unsigned int)>(SA_ADDR(0x3D5B88) + _dyld_get_image_vmaddr_slide(0))(CGameText::wszGameTextGXT, iTime, iType);
 }

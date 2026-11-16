@@ -154,6 +154,15 @@ bool CPlayerPed::IsInVehicle()
     return CPlayerPed::VerifyInstance() && GetPed()->bInVehicle;
 }
 
+bool CPlayerPed::IsInWater()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return false;
+    }
+
+    return CScripting::ScriptCommand(&is_actor_in_the_water, m_dwGTAId);
+}
+
 bool CPlayerPed::IsAPassenger()
 {
 	if (CPlayerPed::IsInVehicle() && GetPed()->pVehicle)

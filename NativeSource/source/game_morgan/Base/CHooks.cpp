@@ -1,5 +1,6 @@
 #include "../../../Main.h"
 #include "CHooks.h"
+#include "CWidgets.h"
 #include "MultiTouch/CTouchEvent.h"
 #include "../CAspectRatio.h"
 #include "../CDraw.h"
@@ -349,6 +350,7 @@ void CHooks::SetHooking(eHookType type)
             CWidgetPlayerInfo::Initialise();
             CStreaming::Initialise();
             CTouchEvent::Initialise();
+            CWidgets::Initialise();
             CAspectRatio::Initialise();
             CDraw::Initialise();
             CHud::Initialise();

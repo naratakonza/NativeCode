@@ -40,6 +40,7 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 
 @interface MGFlutterOverlayView : UIView
 @property(nonatomic) CGRect chatArea;
+@property(nonatomic) BOOL chatInteractive;
 @property(nonatomic) CGRect spawnArea;
 @property(nonatomic) BOOL dialogPresented;
 @end
@@ -48,7 +49,7 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 - (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent*)event
 {
     return [super pointInside:point withEvent:event] &&
-        (self.dialogPresented || CGRectContainsPoint(self.chatArea, point) || CGRectContainsPoint(self.spawnArea, point));
+        (self.dialogPresented || (self.chatInteractive && CGRectContainsPoint(self.chatArea, point)) || CGRectContainsPoint(self.spawnArea, point));
 }
 @end
 
@@ -84,6 +85,7 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 - (void)updateDialogVisibility;
 - (void)publishDialog;
 - (BOOL)isChatInteractive;
+- (void)updateChatInteraction;
 @end
 
 static MGFlutter* flutter;
@@ -274,7 +276,7 @@ static bool MGHandleSpawnAction(NSString* action)
         }
         if ([call.method isEqualToString:@"hitRegion"])
         {
-            screen.overlay.chatArea = [screen isChatInteractive] ? MGFlutterHitRegion(args, screen.overlay.bounds) : CGRectZero;
+            screen.overlay.chatArea = MGFlutterHitRegion(args, screen.overlay.bounds);
             result(@YES);
             return;
         }
@@ -443,15 +445,21 @@ static bool MGHandleSpawnAction(NSString* action)
     return self.chatVisible && self.loadingFinished && !self.visible && !self.paused && !self.overlay.dialogPresented;
 }
 
+- (void)updateChatInteraction
+{
+    // Flutter only sends hitRegion when the layout changes.
+    self.overlay.chatInteractive = [self isChatInteractive];
+    if (!self.overlay.chatInteractive)
+    {
+        self.outsideChatTap.enabled = NO;
+    }
+}
+
 - (void)updateOverlayVisibility
 {
     [self updateDialogVisibility];
+    [self updateChatInteraction];
     [self updateSpawnVisibility];
-    const BOOL interactive = [self isChatInteractive];
-    if (!interactive) {
-        self.overlay.chatArea = CGRectZero;
-        self.outsideChatTap.enabled = NO;
-    }
     if (self.chatReady) {
         const BOOL show = self.chatVisible && self.loadingFinished && !self.visible;
         [self.chatChannel invokeMethod:show ? @"show" : @"hide" arguments:nil];
@@ -476,9 +484,9 @@ static bool MGHandleSpawnAction(NSString* action)
     if (self.overlay.dialogPresented != show)
     {
         self.overlay.dialogPresented = show;
+        [self updateChatInteraction];
         if (show)
         {
-            self.outsideChatTap.enabled = NO;
             [self.chatChannel invokeMethod:@"HideInputChat" arguments:nil];
         }
         [self.dialogChannel invokeMethod:@"setDialogVisible" arguments:@(show)];

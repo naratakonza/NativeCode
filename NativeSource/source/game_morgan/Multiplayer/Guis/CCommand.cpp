@@ -1,5 +1,6 @@
 #include "../../../../Main.h"
 #include "CCommand.h"
+#include "../../Base/CWidgets.h"
 #include "CGui.h"
 #include "../Audio/CAudio.h"
 #include "../../CAspectRatio.h"
@@ -31,6 +32,7 @@ void CCommand::Initialise()
     CCommand::Add(OBFUSCATE("/gyroincarsens"), CCommand::SetIncarGyroSensitivity);
     CCommand::Add(OBFUSCATE("/gyromode"), CCommand::SetGyroMode);
     CCommand::Add(OBFUSCATE("/gyro"), CCommand::SetGyroScope);
+    CCommand::Add(OBFUSCATE("/wgalpha"), CCommand::SetWidgetAlpha);
     CCommand::Add(OBFUSCATE("/audiomsg"), CCommand::SetAudioMessages);
     CCommand::Add(OBFUSCATE("/chip"), CCommand::SetConnect);
     CCommand::Add(OBFUSCATE("/rec"), CCommand::Reconnect);
@@ -399,6 +401,36 @@ void CCommand::SetGyroMode(const std::vector<std::string>& args)
     else
     {
         CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /gyromode <value>"));
+    }
+}
+
+void CCommand::SetWidgetAlpha(const std::vector<std::string>& args)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    if (args.size() >= 2)
+    {
+        const char* value = args[1].c_str();
+        char* end = nullptr;
+        const long type = std::strtol(value, &end, 10);
+
+        if (end != value && *end == '\0' && type >= 0 && type <= eMaxConfig::MAX_WIDGETALPHA)
+        {
+            CWidgets::SetAlpha(static_cast<int>(type));
+            CSetting::GetConfig()->WriteIntValue(OBFUSCATE("WidgetAlpha"), static_cast<int>(type));
+
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> WidgetAlpha Limiter: %u"), static_cast<unsigned>(type));
+        }
+        else
+        {
+            CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> WidgetAlpha Limiter: valid amounts are 0-255"));
+        }
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /wgalpha <value>"));
     }
 }
 

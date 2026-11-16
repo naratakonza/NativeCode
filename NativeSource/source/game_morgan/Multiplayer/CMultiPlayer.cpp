@@ -17,6 +17,7 @@
 #include "../Entity/CPhysical.h"
 #include "../Base/CPatches.h"
 #include "../Base/CHooks.h"
+#include "../Base/CWidgets.h"
 #include "../COptimizeDistance.h"
 
 CNetGame* CMultiPlayer::pNetGame = nullptr;
@@ -136,7 +137,7 @@ void CMultiPlayer::ChangeServer(const char* ip, int port)
         CMultiPlayer::Reconnect();
 
         SAFE_DELETE(CMultiPlayer::pNetGame);
-		
+
         CMultiPlayer::pNetGame = new CNetGame(ip, port, CMultiPlayer::GetPlayerName(), OBFUSCATE(""), 576, true);
     }
 }
@@ -184,6 +185,7 @@ void CMultiPlayer::SetThread(eThreadType type)
 		case eThreadType::THREAD_TYPE_START: {
 			CPatches::SetPatches(ePatchType::PATCH_TYPE_MENU);
 			CHooks::SetHooking(eHookType::HOOK_TYPE_START);
+			CWidgets::SetAlpha(CSetting::GetConfig()->GetIntValue(OBFUSCATE("WidgetAlpha")));
 			CHud::SetAlpha(CSetting::GetConfig()->GetIntValue(OBFUSCATE("HudAlpha")));
 			CGame::SetFramerate(static_cast<std::uint8_t>(std::clamp(CSetting::GetConfig()->GetIntValue(OBFUSCATE("SetFps")), 0, static_cast<int>(UINT8_MAX))));
 			CSensitivity::SetOnfootTouch(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("OnfootSensitivity"))));

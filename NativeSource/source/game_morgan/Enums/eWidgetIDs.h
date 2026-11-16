@@ -1,0 +1,16 @@
+#pragma once
+
+#include <cstdint>
+
+enum eWidgetIDs : int32_t
+{
+    WIDGET_ATTACK = 0x01,
+    WIDGET_ACCELERATE = 0x02,
+    WIDGET_BRAKE = 0x03,
+    WIDGET_VEHICLE_SHOOT_LEFT = 0x10,
+    WIDGET_VEHICLE_SHOOT_RIGHT = 0x11,
+    WIDGET_BUTTON_SPRINT = 0x1F,
+    WIDGET_BUTTON_DIVE = 0x21,
+    WIDGET_BUTTON_SWIM = 0x22,
+    WIDGET_RADAR = 0xA1
+};

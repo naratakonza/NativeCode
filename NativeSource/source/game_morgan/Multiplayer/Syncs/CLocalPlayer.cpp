@@ -6,6 +6,7 @@
 #include "../Audio/CAudio.h"
 #include "../Guis/CGui.h"
 #include "../../Base/CPad.h"
+#include "../../Base/CWidgets.h"
 #include "../../Scripts/CScripting.h"
 
 uint32_t dwEnterVehTimeElasped = -1;
@@ -471,7 +472,7 @@ bool CLocalPlayer::Spawn()
 	CLocalPlayer::GetPlayerPed()->ToggleControllable(true);
 
 	CGame::DisplayHUD(true);
-	// CWidgets::SetToggle(true);
+	CWidgets::SetToggle(true);
 
     if (!bFirstSpawn)
 	{

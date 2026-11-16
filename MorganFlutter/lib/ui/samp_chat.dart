@@ -120,20 +120,25 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
   }
 
   void hideInput() {
+    _focusNode.unfocus();
     if (!chatInputstatus) return;
     setState(() {
       chatInputstatus = false;
       _showNewMessageButton.value = false;
     });
-    _focusNode.unfocus();
     unawaited(SampChatController.notify('inputActive', false));
     _scrollToBottom();
   }
 
   void showInput() {
+    if (!_visible || _paused || chatstatus || chatInputstatus) return;
     setState(() => chatInputstatus = true);
-    _focusNode.requestFocus();
     unawaited(SampChatController.notify('inputActive', true));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _visible && !_paused && chatInputstatus) {
+        _focusNode.requestFocus();
+      }
+    });
   }
 
   void _onHoldComplete() {

@@ -96,6 +96,7 @@ class _SampDialogState extends State<SampDialog> with SingleTickerProviderStateM
 
   final Map<int, GlobalKey> _itemKeys = {};
   final FocusNode _focusNode = FocusNode();
+  final FocusNode _inputFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -204,6 +205,7 @@ class _SampDialogState extends State<SampDialog> with SingleTickerProviderStateM
     _canScrollDown.dispose();
     _bounceController.dispose();
     controller.dispose();
+    _inputFocusNode.dispose();
     _focusNode.dispose();
     super.dispose();
   }
@@ -562,6 +564,8 @@ class _SampDialogState extends State<SampDialog> with SingleTickerProviderStateM
               children: [
                 TextField(
                   controller: controller,
+                  focusNode: _inputFocusNode,
+                  onTapOutside: (_) => _inputFocusNode.unfocus(),
                   obscureText: (style == 3 && _obscurePassword),
                   obscuringCharacter: '•',
                   maxLines: 1,
@@ -591,9 +595,11 @@ class _SampDialogState extends State<SampDialog> with SingleTickerProviderStateM
                     ),
                   ),
                 ),
-                Padding(
-                  padding: EdgeInsets.only(right: 6 * scale),
-                  child: _buildSuffixIcon(style, scale),
+                TextFieldTapRegion(
+                  child: Padding(
+                    padding: EdgeInsets.only(right: 6 * scale),
+                    child: _buildSuffixIcon(style, scale),
+                  ),
                 ),
               ],
             ),

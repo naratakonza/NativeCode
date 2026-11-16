@@ -54,6 +54,18 @@ void main() {
     expect(tester.widget<TextField>(field).obscureText, isTrue);
     expect(tester.getTopLeft(field).dx, greaterThan(safePadding.left));
     await tester.enterText(field, 'ทดสอบ');
+    final inputFocus = tester.widget<TextField>(field).focusNode!;
+    await tester.tap(find.byIcon(Icons.visibility_off));
+    await tester.pumpAndSettle();
+    expect(inputFocus.hasFocus, isTrue);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(inputFocus.hasFocus, isFalse);
+    expect(tester.testTextInput.isVisible, isFalse);
+    await tester.tap(field);
+    await tester.pumpAndSettle();
+    expect(inputFocus.hasFocus, isTrue);
+
     metrics.value = metrics.value.copyWith(viewInsets: const EdgeInsets.only(bottom: 270));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);

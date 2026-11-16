@@ -37,3 +37,7 @@ _CWidgetPlayerInfo_RenderArmorBar_hook
 _CHud_DrawCrosshairs_hook
 _CWidgetPlayerInfo_Draw_hook
 _LoadFullTexture_hook
+_CWidgetButton_Draw_hook
+_CWidget_Update_hook
+_CWidget_SetEnabled_hook
+_CWidget_ManageAlpha_hook
