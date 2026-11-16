@@ -3,9 +3,7 @@
 #include "../../CFont.h"
 #include "../../Scripts/CScripting.h"
 
-#include <cstring>
 #include <mach-o/dyld.h>
-#include <pthread.h>
 
 uint16_t CGameText::wszGameTextGXT[0xFF]{};
 

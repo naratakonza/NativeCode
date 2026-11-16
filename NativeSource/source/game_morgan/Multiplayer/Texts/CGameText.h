@@ -2,8 +2,6 @@
 
 #include "../../Enums/eMessageStyle.h"
 
-#include <cstdint>
-
 class CGameText
 {
 public:

@@ -489,7 +489,7 @@ void ShowGameText(RakNet::BitStream bsData)
 	bsData.Read(iTime);
 
 	bsData.Read(iLength);
-	if (iLength >= ARRAY_SIZE(szMessage)) {
+	if (static_cast<std::size_t>(iLength) >= ARRAY_SIZE(szMessage)) {
 		return;
 	}
 
