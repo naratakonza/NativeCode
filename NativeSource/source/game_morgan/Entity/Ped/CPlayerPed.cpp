@@ -4,13 +4,16 @@
 #include "CPedPointerRecorder.h"
 #include "../../CGame.h"
 #include "../../CUtil.h"
+#include "../../CWorld.h"
 #include "../../CCommon.h"
 #include "../../CStreaming.h"
+#include "../../CWeapon.h"
 #include "../../Enums/eSpecialVehicle.h"
 #include "../../Scripts/CScripting.h"
 #include "../../../utils/Necessary/CNecessary.h"
 
 #include <mach-o/dyld.h>
+#include <unistd.h>
 
 bool CPlayerPed::m_bRebuildPlayer = true;
 
@@ -308,6 +311,129 @@ void CPlayerPed::ToggleControllable(bool bToggle)
 		    }
 		}
 	}
+}
+
+void CPlayerPed::GiveWeapon(int iWeaponID, int iAmmo)
+{
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
+
+	if (!CUtil::GamePool_FindPlayerPed()) {
+		return;
+	}
+
+	int iModelID = 0;
+	iModelID = CWeapon::GameGetWeaponModelIDFromWeaponID(iWeaponID);
+
+	if (iModelID == -1) {
+		return;
+	}
+
+	if (!CStreaming::IsModelLoaded(iModelID))
+	{
+		CStreaming::RequestModel(iModelID);
+		CStreaming::LoadAllRequestedModels();
+		while (!CStreaming::IsModelLoaded(iModelID)) usleep(1000);
+	}
+	
+	CWorld::PlayerInFocus = CPlayerPed::m_bytePlayerNumber;
+
+	CCameraAim::GameStoreLocalPlayerSkills();
+    CCameraAim::GameSetRemotePlayerSkills(CPlayerPed::m_bytePlayerNumber);
+	
+	CPed::GiveWeapon(GetPed(), iWeaponID, iAmmo, true);
+
+	CCameraAim::GameSetLocalPlayerSkills();
+
+	CPlayerPed::SetArmedWeapon(iWeaponID);
+
+	CWorld::PlayerInFocus = 0;
+}
+
+void CPlayerPed::SetArmedWeapon(int iWeaponID, bool unk)
+{
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
+
+	if (!CUtil::GamePool_FindPlayerPed()) {
+		return;
+	}
+
+	CWorld::PlayerInFocus = CPlayerPed::m_bytePlayerNumber;
+	
+	CCameraAim::GameStoreLocalPlayerSkills();
+    CCameraAim::GameSetRemotePlayerSkills(CPlayerPed::m_bytePlayerNumber);
+
+	if (unk)
+	{
+		CPed::SetCurrentWeapon(GetPed(), iWeaponID);
+	}
+	else
+	{
+		CScripting::ScriptCommand(&set_actor_armed_weapon, m_dwGTAId, iWeaponID);
+	}
+
+	CCameraAim::GameSetLocalPlayerSkills();
+	CWorld::PlayerInFocus = 0;
+}
+
+void CPlayerPed::SetWeaponSkill(uint32_t iWeaponType, uint16_t byteSkill)
+{
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
+
+	if (CPlayerPed::m_bytePlayerNumber == 0)
+	{
+		CCameraAim::GameUpdateLocalPlayerSkill(iWeaponType, byteSkill);
+	}
+	else
+	{
+		CCameraAim::GameStoreRemotePlayerSkills(CPlayerPed::m_bytePlayerNumber, iWeaponType, byteSkill);
+	}
+}
+
+void CPlayerPed::SetAmmo(uint8_t bWeaponID, uint16_t wAmmo)
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    WEAPON_SLOT_TYPE* WeaponSlot = CPlayerPed::FindWeaponSlot(bWeaponID);
+    if (WeaponSlot)
+    {
+        WeaponSlot->dwAmmo = static_cast<uint32_t>(wAmmo);
+    }
+}
+
+WEAPON_SLOT_TYPE* CPlayerPed::FindWeaponSlot(uint32_t dwWeapon)
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return nullptr;
+    }
+
+    for (uint8_t i = 0; i < 13; i++)
+    {
+        if (GetPed()->WeaponSlots[i].dwType == dwWeapon)
+        {
+            return &GetPed()->WeaponSlots[i];
+        }
+    }
+
+    return nullptr;
+}
+
+void CPlayerPed::ClearAllWeapons()
+{
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
+
+	CWorld::PlayerInFocus = CPlayerPed::m_bytePlayerNumber;
+	CPed::ClearWeapons(GetPed());
+	CWorld::PlayerInFocus = 0;
 }
 
 void CPlayerPed::ForceTargetRotation(float fRotation)

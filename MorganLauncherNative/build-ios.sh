@@ -72,7 +72,7 @@ mkdir "$out/fileio-objects"
 for source in \
     "$native/source/game_morgan/CCameraAim.cpp" "$native/source/game_morgan/CAspectRatio.cpp" "$native/source/game_morgan/CCameraController.cpp" "$native/source/game_morgan/CDraw.cpp" "$native/source/game_morgan/CSensitivity.cpp" "$native/source/game_morgan/CGyro.cpp" \
     "$native/source/game_morgan/CdStreamInfo.cpp" \
-    "$native/source/game_morgan/CCommon.cpp" "$native/source/game_morgan/Entity/CEntity.cpp" "$native/source/game_morgan/Entity/CPhysical.cpp" "$native/source/game_morgan/CStats.cpp" \
+    "$native/source/game_morgan/CCommon.cpp" "$native/source/game_morgan/Entity/CEntity.cpp" "$native/source/game_morgan/Entity/CPhysical.cpp" "$native/source/game_morgan/CStats.cpp" "$native/source/game_morgan/CWeapon.cpp" \
     "$native/source/game_morgan/FrontEnd/CWidgetPlayerInfo.cpp" "$native/source/game_morgan/CSprite2d.cpp" "$native/source/game_morgan/CRGBA.cpp" "$native/source/game_morgan/CHud.cpp" \
     "$native/source/game_morgan/Entity/Ped/CPed.cpp" "$native/source/game_morgan/Entity/Ped/CPlayerPed.cpp" "$native/source/game_morgan/Entity/Ped/CPlayerPedSlot.cpp" "$native/source/game_morgan/Entity/Ped/CPedPointerRecorder.cpp" \
     "$native/source/game_morgan/CStreaming.cpp" "$native/source/game_morgan/CClock.cpp" "$native/source/game_morgan/CTimer.cpp" "$native/source/game_morgan/COptimizeDistance.cpp" "$native/source/game_morgan/CGame.cpp" "$native/source/game_morgan/Models/CModelInfo.cpp" "$native/source/game_morgan/CPools.cpp" "$native/source/game_morgan/CSetting.cpp" "$multiplayer/CServer.cpp" "$multiplayer/CNetGame.cpp" "$native/source/game_morgan/CTheZones.cpp" "$native/source/game_morgan/CWeather.cpp" "$native/source/game_morgan/CCamera.cpp" "$hooks/CPad.cpp" \
@@ -127,7 +127,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/MGStartupKeychain.o" "$out/fileio-objects/MGStartupTickGate.o" "$out/fileio-objects/CMainMenuScreen.o" "$out/fileio-objects/CStartGameScreen.o" "$out/fileio-objects/CLoadingScreen.o" "$out/fileio-objects/MGFlutter.o" \
     "$out/fileio-objects/CStreaming.o" "$out/fileio-objects/CClock.o" "$out/fileio-objects/CTimer.o" "$out/fileio-objects/COptimizeDistance.o" "$out/fileio-objects/CGame.o" "$out/fileio-objects/CModelInfo.o" "$out/fileio-objects/CPools.o" "$out/fileio-objects/CSetting.o" "$out/fileio-objects/CServer.o" "$out/fileio-objects/CNetGame.o" "$out/fileio-objects/CTheZones.o" "$out/fileio-objects/CWeather.o" "$out/fileio-objects/CCamera.o" "$out/fileio-objects/CPad.o" "${raknet_objects[@]}" \
     "$out/fileio-objects/CdStreamInfo.o" \
-    "$out/fileio-objects/CCommon.o" "$out/fileio-objects/CEntity.o" "$out/fileio-objects/CPhysical.o" "$out/fileio-objects/CStats.o" \
+    "$out/fileio-objects/CCommon.o" "$out/fileio-objects/CEntity.o" "$out/fileio-objects/CPhysical.o" "$out/fileio-objects/CStats.o" "$out/fileio-objects/CWeapon.o" \
     "$out/fileio-objects/CWidgetPlayerInfo.o" "$out/fileio-objects/CSprite2d.o" "$out/fileio-objects/CRGBA.o" "$out/fileio-objects/CHud.o" \
     "$out/fileio-objects/CPed.o" "$out/fileio-objects/CPlayerPed.o" "$out/fileio-objects/CPlayerPedSlot.o" "$out/fileio-objects/CPedPointerRecorder.o" \
     "$out/fileio-objects/CCameraAim.o" "$out/fileio-objects/CAspectRatio.o" "$out/fileio-objects/CCameraController.o" "$out/fileio-objects/CDraw.o" "$out/fileio-objects/CSensitivity.o" "$out/fileio-objects/CGyro.o" "$out/fileio-objects/MGGyro.o" \

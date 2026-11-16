@@ -120,9 +120,29 @@ bool CLocalPlayer::Process()
 			return true;
 		}
 
+        // CLocalPlayer::HandleDancing();
+
+		// CLocalPlayer::GetPlayerPed()->ProcessCuffedControl();
+		// CLocalPlayer::GetPlayerPed()->ProcessCarryControl();
+
+		// CLocalPlayer::HandleUrinating();
+		// CLocalPlayer::HandleHandsUp();
+		// CLocalPlayer::HandleStuff();
         CLocalPlayer::DisplayZone(dwThisTick);
 
+        // CLocalPlayer::GetPlayerPed()->ProcessDrunk();
+		// CLocalPlayer::GetPlayerPed()->ResetPlayerTimeLastEaten();
+
+		// CLocalPlayer::ProcessAnimation();
+
+		// CLocalPlayer::HandleVehicleEntryTimeout(dwThisTick);
+
+		// CCheckPoint::Process();
+
         CLocalPlayer::HandleInteriorChanging();
+        // CLocalPlayer::UpdateWeapons();
+		// CLocalPlayer::UpdateCameraTarget();
+		// CLocalPlayer::SendStats(dwThisTick);
 
         if (CLocalPlayer::IsSpectating())
 		{
@@ -370,7 +390,7 @@ void CLocalPlayer::HandleClassSelectionOutcome(bool bToggle)
 	{
 		if (CLocalPlayer::GetPlayerPed())
 		{
-			// CLocalPlayer::GetPlayerPed()->ClearAllWeapons();
+			CLocalPlayer::GetPlayerPed()->ClearAllWeapons();
 			CLocalPlayer::GetPlayerPed()->SetModelIndex(CLocalPlayer::m_SpawnInfo.iSkin);
 		}
 
@@ -470,7 +490,7 @@ bool CLocalPlayer::Spawn()
 
 	CLocalPlayer::GetPlayerPed()->RestartIfWastedAt(&m_SpawnInfo.vecPos, m_SpawnInfo.fRotation);
 	CLocalPlayer::GetPlayerPed()->SetModelIndex(CLocalPlayer::m_SpawnInfo.iSkin);
-	// CLocalPlayer::GetPlayerPed()->ClearAllWeapons();
+	CLocalPlayer::GetPlayerPed()->ClearAllWeapons();
 	CLocalPlayer::GetPlayerPed()->ResetDamageEntity();
 
 	// CLocalPlayer::ApplySpecialAction(eSpecialAction::SPECIAL_ACTION_NONE);
@@ -485,20 +505,20 @@ bool CLocalPlayer::Spawn()
 
 	CScripting::ScriptCommand(&enable_train_traffic, 0);
 
-	// if (CLocalPlayer::m_SpawnInfo.iSpawnWeapons[2] != eInvalidId::INVALID_ID)
-	// {
-	// 	CLocalPlayer::GetPlayerPed()->GiveWeapon(CLocalPlayer::m_SpawnInfo.iSpawnWeapons[2], CLocalPlayer::m_SpawnInfo.iSpawnWeaponsAmmo[2]);
-	// }
+	if (CLocalPlayer::m_SpawnInfo.iSpawnWeapons[2] != eInvalidId::INVALID_ID)
+	{
+		CLocalPlayer::GetPlayerPed()->GiveWeapon(CLocalPlayer::m_SpawnInfo.iSpawnWeapons[2], CLocalPlayer::m_SpawnInfo.iSpawnWeaponsAmmo[2]);
+	}
 
-	// if (CLocalPlayer::m_SpawnInfo.iSpawnWeapons[1] != eInvalidId::INVALID_ID)
-	// {
-	// 	CLocalPlayer::GetPlayerPed()->GiveWeapon(CLocalPlayer::m_SpawnInfo.iSpawnWeapons[1], CLocalPlayer::m_SpawnInfo.iSpawnWeaponsAmmo[1]);
-	// }
+	if (CLocalPlayer::m_SpawnInfo.iSpawnWeapons[1] != eInvalidId::INVALID_ID)
+	{
+		CLocalPlayer::GetPlayerPed()->GiveWeapon(CLocalPlayer::m_SpawnInfo.iSpawnWeapons[1], CLocalPlayer::m_SpawnInfo.iSpawnWeaponsAmmo[1]);
+	}
 
-	// if (CLocalPlayer::m_SpawnInfo.iSpawnWeapons[0] != eInvalidId::INVALID_ID)
-	// {
-	// 	CLocalPlayer::GetPlayerPed()->GiveWeapon(CLocalPlayer::m_SpawnInfo.iSpawnWeapons[0], CLocalPlayer::m_SpawnInfo.iSpawnWeaponsAmmo[0]);
-	// }
+	if (CLocalPlayer::m_SpawnInfo.iSpawnWeapons[0] != eInvalidId::INVALID_ID)
+	{
+		CLocalPlayer::GetPlayerPed()->GiveWeapon(CLocalPlayer::m_SpawnInfo.iSpawnWeapons[0], CLocalPlayer::m_SpawnInfo.iSpawnWeaponsAmmo[0]);
+	}
 
 	// CCamera::Fade
 	CMemory::makeRET(SA_ADDR(0x13524C));

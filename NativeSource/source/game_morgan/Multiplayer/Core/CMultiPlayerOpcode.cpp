@@ -802,6 +802,85 @@ void SendGameTimeUpdate(RakNet::BitStream bsData)
 	CTimer::SetGameTimer(time);
 }
 
+void GivePlayerWeapon(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: GivePlayerWeapon"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint32_t)) +
+		bytesToBits(sizeof(uint32_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for GivePlayerWeapon"));
+        return;
+    }
+
+	uint32_t iWeaponID;
+	uint32_t iAmmo;
+	bsData.Read(iWeaponID);
+	bsData.Read(iAmmo);
+
+	if (CGame::GetPlayer())
+	{
+		CGame::GetPlayer()->GiveWeapon(iWeaponID, iAmmo);
+	}
+}
+
+void SetWeaponAmmo(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetWeaponAmmo"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint8_t)) +
+		bytesToBits(sizeof(uint16_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetWeaponAmmo"));
+        return;
+    }
+
+	uint8_t bWeaponID;
+	uint16_t wAmmo;
+	bsData.Read(bWeaponID);
+	bsData.Read(wAmmo);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed())
+	{
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->SetAmmo(bWeaponID, wAmmo);
+	}
+}
+
+void SetArmedWeapon(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetArmedWeapon"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint32_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetArmedWeapon"));
+        return;
+    }
+
+	uint32_t weaponID;
+	bsData.Read(weaponID);
+
+	if (CGame::GetPlayer())
+	{
+		CGame::GetPlayer()->SetArmedWeapon(weaponID);
+	}
+}
+
+void ResetPlayerWeapons(RakNet::BitStream /*bsData*/)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ResetPlayerWeapons"));
+
+	if (CGame::GetPlayer())
+	{
+		CGame::GetPlayer()->ClearAllWeapons();
+	}
+}
+
 bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 {
     if (rpcid >= 255) {
@@ -1329,25 +1408,25 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_GivePlayerWeapon: {
-		//     GivePlayerWeapon(*bsData);
-		//     break;
-		// }
+		case RPC_GivePlayerWeapon: {
+		    GivePlayerWeapon(*bsData);
+		    break;
+		}
 
-		// case RPC_SetPlayerAmmo: {
-		//     SetWeaponAmmo(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerAmmo: {
+		    SetWeaponAmmo(*bsData);
+		    break;
+		}
 
-		// case RPC_SetArmedWeapon: {
-		//     SetArmedWeapon(*bsData);
-		//     break;
-		// }
+		case RPC_SetArmedWeapon: {
+		    SetArmedWeapon(*bsData);
+		    break;
+		}
 
-		// case RPC_ResetPlayerWeapons: {
-		//     ResetPlayerWeapons(*bsData);
-		//     break;
-		// }
+		case RPC_ResetPlayerWeapons: {
+		    ResetPlayerWeapons(*bsData);
+		    break;
+		}
 
 		// case RPC_UpdateScoresPingsIps: {
 		//     UpdateScoresPingsIPs(*bsData);
