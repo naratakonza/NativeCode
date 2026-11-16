@@ -41,13 +41,14 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 @interface MGFlutterOverlayView : UIView
 @property(nonatomic) CGRect chatArea;
 @property(nonatomic) CGRect spawnArea;
+@property(nonatomic) BOOL dialogPresented;
 @end
 
 @implementation MGFlutterOverlayView
 - (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent*)event
 {
     return [super pointInside:point withEvent:event] &&
-        (CGRectContainsPoint(self.chatArea, point) || CGRectContainsPoint(self.spawnArea, point));
+        (self.dialogPresented || CGRectContainsPoint(self.chatArea, point) || CGRectContainsPoint(self.spawnArea, point));
 }
 @end
 
@@ -57,6 +58,10 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 @property(nonatomic, strong) id<MGLoadingChannel> channel;
 @property(nonatomic, strong) id<MGLoadingChannel> chatChannel;
 @property(nonatomic, strong) id<MGLoadingChannel> spawnChannel;
+@property(nonatomic, strong) id<MGLoadingChannel> dialogChannel;
+@property(nonatomic, strong) NSDictionary* dialogData;
+@property(nonatomic) uint64_t dialogSequence;
+@property(nonatomic) BOOL dialogReady;
 @property(nonatomic, strong) MGFlutterOverlayView* overlay;
 @property(nonatomic, strong) UITapGestureRecognizer* outsideChatTap;
 @property(nonatomic, strong) NSMutableArray<NSDictionary*>* pendingMessages;
@@ -76,6 +81,8 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 - (void)send:(NSString*)method value:(id)value;
 - (void)updateOverlayVisibility;
 - (void)updateSpawnVisibility;
+- (void)updateDialogVisibility;
+- (void)publishDialog;
 - (BOOL)isChatInteractive;
 @end
 
@@ -186,9 +193,10 @@ static bool MGHandleSpawnAction(NSString* action)
     self.channel = [channelClass methodChannelWithName:@"flutter_loadingscreen" binaryMessenger:[self.engine binaryMessenger]];
     self.chatChannel = [channelClass methodChannelWithName:@"flutter_chat" binaryMessenger:[self.engine binaryMessenger]];
     self.spawnChannel = [channelClass methodChannelWithName:@"flutter_spawn" binaryMessenger:[self.engine binaryMessenger]];
+    self.dialogChannel = [channelClass methodChannelWithName:@"flutter_dialog" binaryMessenger:[self.engine binaryMessenger]];
     self.pendingMessages = [NSMutableArray array];
     self.controller = [[(id)controllerClass alloc] initWithEngine:self.engine nibName:nil bundle:nil];
-    if (!self.channel || !self.chatChannel || !self.spawnChannel || !self.controller)
+    if (!self.channel || !self.chatChannel || !self.spawnChannel || !self.dialogChannel || !self.controller)
     {
         return NO;
     }
@@ -310,6 +318,52 @@ static bool MGHandleSpawnAction(NSString* action)
         });
     }];
 
+    [self.dialogChannel setMethodCallHandler:^(id<MGLoadingCall> call, MGLoadingResult result) {
+        MGRunLoadingOnMain(^{
+            MGFlutter* screen = weakSelf;
+            if (!screen || screen != flutter)
+            {
+                result(@NO);
+                return;
+            }
+            if ([call.method isEqualToString:@"ready"])
+            {
+                screen.dialogReady = YES;
+                [screen publishDialog];
+                result(@YES);
+                return;
+            }
+
+            NSDictionary* args = [call.arguments isKindOfClass:NSDictionary.class] ? call.arguments : nil;
+            if (![call.method isEqualToString:@"dialogResponse"] || !screen.overlay.dialogPresented ||
+                ![screen.dialogData[@"sequence"] isEqual:args[@"sequence"]] || ![screen.dialogData[@"id"] isEqual:args[@"id"]] ||
+                ![args[@"response"] isKindOfClass:NSNumber.class] || ![args[@"listitem"] isKindOfClass:NSNumber.class] ||
+                ![args[@"input"] isKindOfClass:NSString.class])
+            {
+                result(@NO);
+                return;
+            }
+
+            const auto button = [args[@"response"] longLongValue];
+            const auto item = [args[@"listitem"] longLongValue];
+            if (button < 0 || button > 1 || item < -1 || item >= UINT16_MAX)
+            {
+                result(@NO);
+                return;
+            }
+
+            NSString* input = args[@"input"];
+            static const CFStringEncoding encoding = CFStringConvertIANACharSetNameToEncoding(CFSTR("windows-874"));
+            char bytes[CDialog::DIALOG_BUFFER_SIZE]{};
+            CFIndex length = 0;
+            CFStringGetBytes((__bridge CFStringRef)input, CFRangeMake(0, input.length), encoding, '?', false,
+                reinterpret_cast<UInt8*>(bytes), sizeof(bytes) - 1, &length);
+            bytes[length] = '\0';
+
+            result(@(CDialog::DialogWindowInputHandler([args[@"id"] unsignedShortValue], static_cast<uint8_t>(button), static_cast<uint16_t>(item), bytes)));
+        });
+    }];
+
     [self.controller setViewOpaque:NO];
     [self.controller setSplashScreenView:nil];
     [parent addChildViewController:self.controller];
@@ -386,11 +440,12 @@ static bool MGHandleSpawnAction(NSString* action)
 
 - (BOOL)isChatInteractive
 {
-    return self.chatVisible && self.loadingFinished && !self.visible && !self.paused;
+    return self.chatVisible && self.loadingFinished && !self.visible && !self.paused && !self.overlay.dialogPresented;
 }
 
 - (void)updateOverlayVisibility
 {
+    [self updateDialogVisibility];
     [self updateSpawnVisibility];
     const BOOL interactive = [self isChatInteractive];
     if (!interactive) {
@@ -406,7 +461,7 @@ static bool MGHandleSpawnAction(NSString* action)
 - (void)updateSpawnVisibility
 {
     const BOOL show = self.spawnReady && spawnVisible && self.loadingFinished && !self.visible && !self.paused;
-    self.controller.viewIfLoaded.accessibilityElementsHidden = ![self isChatInteractive] && !show;
+    self.controller.viewIfLoaded.accessibilityElementsHidden = ![self isChatInteractive] && !show && !self.overlay.dialogPresented;
     if (self.spawnPresented != show)
     {
         self.spawnPresented = show;
@@ -415,10 +470,37 @@ static bool MGHandleSpawnAction(NSString* action)
     }
 }
 
+- (void)updateDialogVisibility
+{
+    const BOOL show = self.dialogReady && self.dialogData && self.loadingFinished && !self.visible && !self.paused;
+    if (self.overlay.dialogPresented != show)
+    {
+        self.overlay.dialogPresented = show;
+        if (show)
+        {
+            self.outsideChatTap.enabled = NO;
+            [self.chatChannel invokeMethod:@"HideInputChat" arguments:nil];
+        }
+        [self.dialogChannel invokeMethod:@"setDialogVisible" arguments:@(show)];
+    }
+}
+
+- (void)publishDialog
+{
+    if (self.dialogReady && self.dialogData)
+    {
+        [self.dialogChannel invokeMethod:@"showDialog" arguments:self.dialogData];
+    }
+    [self updateDialogVisibility];
+    [self updateSpawnVisibility];
+}
+
 - (void)close
 {
     [self.outsideChatTap.view removeGestureRecognizer:self.outsideChatTap];
     self.outsideChatTap = nil;
+    [self.dialogChannel setMethodCallHandler:nil];
+    self.dialogChannel = nil;
     [self.spawnChannel setMethodCallHandler:nil];
     self.spawnChannel = nil;
     [self.chatChannel setMethodCallHandler:nil];
@@ -527,6 +609,42 @@ void MGSetFlutterSpawnVisible(bool visible)
         {
             spawnVisible = visible;
             [flutter updateSpawnVisibility];
+        }
+    });
+}
+
+void MGShowFlutterDialog(uint16_t id, uint8_t style, const char* title, const char* content, const char* button1, const char* button2)
+{
+    NSString* dialogTitle = title ? [NSString stringWithUTF8String:title] : nil;
+    NSString* dialogContent = content ? [NSString stringWithUTF8String:content] : nil;
+    NSString* firstButton = button1 ? [NSString stringWithUTF8String:button1] : nil;
+    NSString* secondButton = button2 ? [NSString stringWithUTF8String:button2] : nil;
+    MGRunLoadingOnMain(^{
+        MGFlutter* screen = flutter;
+        if (!screen)
+        {
+            return;
+        }
+        screen.dialogSequence += 1;
+        screen.dialogData = @{
+            @"sequence": @(screen.dialogSequence), @"id": @(id), @"style": @(style),
+            @"title": dialogTitle ?: @"", @"content": dialogContent ?: @"",
+            @"button1": firstButton ?: @"", @"button2": secondButton ?: @"",
+        };
+        [screen publishDialog];
+    });
+}
+
+void MGHideFlutterDialog()
+{
+    MGRunLoadingOnMain(^{
+        MGFlutter* screen = flutter;
+        if (screen.dialogData)
+        {
+            screen.dialogData = nil;
+            [screen.dialogChannel invokeMethod:@"hideDialog" arguments:nil];
+            [screen updateDialogVisibility];
+            [screen updateSpawnVisibility];
         }
     });
 }

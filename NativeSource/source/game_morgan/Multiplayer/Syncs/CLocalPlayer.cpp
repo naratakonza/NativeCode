@@ -198,15 +198,15 @@ void CLocalPlayer::HandleNeedsToRespawn()
 			CPad::DisplayWidgets(false);
 		}
 
-        // if (CGui::GetButton() && CGui::GetDebug() && CGui::GetXSing() && CGui::GetGButton() && CGui::GetDialog())
-		// {
-		// 	CGui::GetDebug()->SetRenderFramerate(false);
-		// 	CGui::GetDebug()->SetRenderMemory(false);
-		// 	CGui::GetButton()->Enable(false);
-		// 	CGui::GetXSing()->Enable(false);
-		// 	CGui::GetGButton()->Enable(false);
-		// 	CGui::GetDialog()->Enable(false);
-		// }
+        if (/*CGui::GetButton() && CGui::GetDebug() && CGui::GetXSing() && CGui::GetGButton() &&*/ CGui::GetDialog())
+		{
+			// CGui::GetDebug()->SetRenderFramerate(false);
+			// CGui::GetDebug()->SetRenderMemory(false);
+			// CGui::GetButton()->Enable(false);
+			// CGui::GetXSing()->Enable(false);
+			// CGui::GetGButton()->Enable(false);
+			CGui::GetDialog()->Enable(false);
+		}
 
         // CVoice::Enable(false);
 
@@ -231,9 +231,9 @@ void CLocalPlayer::HandleInitialSpawnConditions()
 				CPad::DisplayWidgets(false);
 			}
 
-			// if (CGui::GetDialog() && CGui::GetDialog()->GetActiveDialog()) {
-			// 	return;
-			// }
+			if (CGui::GetDialog() && CGui::GetDialog()->GetActiveDialog()) {
+				return;
+			}
 
             if ((dwThisTick - CLocalPlayer::m_dwInitialSelectionTick) < 2000) {
                 return;

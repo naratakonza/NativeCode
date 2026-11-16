@@ -195,6 +195,51 @@ void ConnectionRejected(RakNet::BitStream bsData)
 	}
 }
 
+void ShowDialog(RakNet::BitStream bsDialog)
+{
+    CNecessary::Log(OBFUSCATE("RPC: ShowDialog"));
+
+	if (!CGui::GetDialog()) {
+		return;
+	}
+
+    int16_t wDialogID = -1;
+    if (!bsDialog.Read(wDialogID)) {
+        return;
+    }
+
+    CDialog* dialog = CGui::GetDialog();
+    dialog->Close();
+    if (wDialogID < 0) {
+        return;
+    }
+
+    uint8_t byteDialogStyle = 0;
+    if (!bsDialog.Read(byteDialogStyle) || byteDialogStyle > DIALOG_STYLE_TABLIST_HEADERS) {
+        return;
+    }
+
+    char szBuff[4096 + 1]{};
+    for (auto* field : {&dialog->m_utf8Title, &dialog->m_utf8Button1, &dialog->m_utf8Button2})
+    {
+        uint8_t length = 0;
+        if (!bsDialog.Read(length) || (length != 0 && !bsDialog.Read(szBuff, length))) {
+            return;
+        }
+        szBuff[length] = '\0';
+        CNecessary::ConvertLocalizedEncodingToUTF8(*field, szBuff, sizeof(*field));
+    }
+
+    if (!stringCompressor || !stringCompressor->DecodeString(szBuff, 4096, &bsDialog)) {
+        return;
+    }
+
+    dialog->m_wDialogID = wDialogID;
+    dialog->m_byteDialogStyle = byteDialogStyle;
+    dialog->SetInfo(szBuff, CNecessary::MPSTRLEN(szBuff));
+    dialog->Show();
+}
+
 void SetPlayerPos(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: SetPlayerPos"));
@@ -779,10 +824,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-        // case RPC_ShowDialog: {
-		//     ShowDialog(*bsData);
-		//     break;
-		// }
+        case RPC_ShowDialog: {
+		    ShowDialog(*bsData);
+		    break;
+		}
 
 		case RPC_SetPlayerPos: {
 		    SetPlayerPos(*bsData);
