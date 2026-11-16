@@ -507,9 +507,7 @@ void PlayAudioStream(RakNet::BitStream bsData)
 	float fRadius;
 	uint8_t bUsePos;
 
-	if (!bsData.Read(byteTextLen) || !byteTextLen || !bsData.Read(szURL, byteTextLen) ||
-		std::memchr(szURL, '\0', byteTextLen) || !bsData.Read(X) || !bsData.Read(Y) ||
-		!bsData.Read(Z) || !bsData.Read(fRadius) || !bsData.Read(bUsePos)) {
+	if (!bsData.Read(byteTextLen) || !byteTextLen || !bsData.Read(szURL, byteTextLen) || std::memchr(szURL, '\0', byteTextLen) || !bsData.Read(X) || !bsData.Read(Y) || !bsData.Read(Z) || !bsData.Read(fRadius) || !bsData.Read(bUsePos)) {
 		return;
 	}
 

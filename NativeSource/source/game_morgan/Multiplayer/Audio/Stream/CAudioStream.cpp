@@ -142,7 +142,7 @@ void CAudioStream::Play(const char* streamUrl, float posX, float posY, float pos
     {
         try
         {
-            CAudioStream::m_audioStreamThread = std::thread(&StreamThread, this);
+            CAudioStream::m_audioStreamThread = std::thread(&CAudioStream::StreamThread, this);
         }
         catch (const std::system_error& error)
         {
