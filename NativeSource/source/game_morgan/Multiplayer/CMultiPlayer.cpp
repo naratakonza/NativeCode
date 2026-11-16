@@ -37,9 +37,9 @@ void CMultiPlayer::Uninitialise()
 
     CGyro::Enable(false);
     MGUpdateGyro(false);
-	
-	CAudio::Uninitialise();
+
     CGui::Uninitialise();
+	CAudio::Uninitialise();
 
 	SAFE_DELETE(CMultiPlayer::pNetGame);
 
