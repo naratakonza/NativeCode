@@ -16,6 +16,7 @@ public:
 public:
 	static void Initialise();
     static void Reconnect(bool waitconnect = true);
+    static void ChangeServer(const char* ip, int port);
 	static void Uninitialise();
 	static void Process();
 	static void StartSAMP();

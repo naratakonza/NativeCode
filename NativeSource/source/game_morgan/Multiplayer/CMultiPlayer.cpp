@@ -127,6 +127,20 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 	}
 }
 
+void CMultiPlayer::ChangeServer(const char* ip, int port)
+{
+    if (CMultiPlayer::GetActiveNetwork())
+    {
+        CMultiPlayer::GetActiveNetwork()->GetRakClient()->Disconnect(0);
+        CMultiPlayer::GetActiveNetwork()->SetNetworkState(eNetworkState::GAMESTATE_NETWORKCHANGED);
+        CMultiPlayer::Reconnect();
+
+        SAFE_DELETE(CMultiPlayer::pNetGame);
+		
+        CMultiPlayer::pNetGame = new CNetGame(ip, port, CMultiPlayer::GetPlayerName(), OBFUSCATE(""), 576, true);
+    }
+}
+
 void CMultiPlayer::StartSAMP()
 {
     if (CMultiPlayer::IsSampActive()) {
