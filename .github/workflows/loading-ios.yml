@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   native:
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v6
@@ -47,7 +47,7 @@ jobs:
             ${{ runner.temp }}/morgan-launcher-debug/build.log
           if-no-files-found: error
   loading-aot:
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
