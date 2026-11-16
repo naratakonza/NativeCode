@@ -5,6 +5,7 @@
 #include "../CTimer.h"
 #include "../CWorld.h"
 #include "../Entity/Ped/CPedGta.h"
+#include "../Multiplayer/CMultiPlayer.h"
 
 #include <mach-o/dyld.h>
 
@@ -30,6 +31,29 @@ extern "C" __attribute__((visibility("default"))) void CWidgetPlayerInfo_RenderA
     }
 
     original(thiz, Player, fTop);
+}
+
+extern "C" __attribute__((visibility("default"))) void CWidgetPlayerInfo_Draw_hook(uintptr_t thiz, void (*Draw)(uintptr_t))
+{
+    if (!CMultiPlayer::IsSampActive())
+    {
+        Draw(thiz);
+        return;
+    }
+
+    const auto maxAlpha = static_cast<std::uint8_t>(CHud::GetAlpha());
+    auto& alpha = *reinterpret_cast<std::uint8_t*>(thiz + 0x58);
+    const auto previousAlpha = alpha;
+    if (previousAlpha <= maxAlpha)
+    {
+        Draw(thiz);
+        return;
+    }
+
+    // Keep the engine's fade state and limit alpha only while drawing Player Info.
+    alpha = maxAlpha;
+    Draw(thiz);
+    alpha = previousAlpha;
 }
 
 void CWidgetPlayerInfo::RenderArmorBar(uintptr_t thiz, int Player, float fTop)

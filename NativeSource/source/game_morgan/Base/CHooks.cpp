@@ -3,6 +3,7 @@
 #include "MultiTouch/CTouchEvent.h"
 #include "../CAspectRatio.h"
 #include "../CDraw.h"
+#include "../CHud.h"
 #include "../CCameraController.h"
 #include "../CTimer.h"
 #include "../CWorld.h"
@@ -208,6 +209,7 @@ void CHooks::SetHooking(eHookType type)
             CTouchEvent::Initialise();
             CAspectRatio::Initialise();
             CDraw::Initialise();
+            CHud::Initialise();
             CPhysical::Initialise();
             CStats::Initialise();
 

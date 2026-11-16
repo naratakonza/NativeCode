@@ -18,5 +18,6 @@ private:
     static void InstallGraphicsOptimizationPatches();
     static void InstallATZPatches();
     static void InstallRadarPatches();
+    static void InstallDisableAutoAimPatches();
     static void InstallCameraPatches();
 };

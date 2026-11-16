@@ -7,6 +7,7 @@
 #include "../CCameraAim.h"
 #include "../CCameraController.h"
 #include "../CDraw.h"
+#include "../CHud.h"
 #include "../CSensitivity.h"
 #include "../CGyro.h"
 #include "../CTimer.h"
@@ -163,6 +164,7 @@ void CMultiPlayer::SetThread(eThreadType type)
 		case eThreadType::THREAD_TYPE_START: {
 			CPatches::SetPatches(ePatchType::PATCH_TYPE_MENU);
 			CHooks::SetHooking(eHookType::HOOK_TYPE_START);
+			CHud::SetAlpha(CSetting::GetConfig()->GetIntValue(OBFUSCATE("HudAlpha")));
 			CGame::SetFramerate(static_cast<std::uint8_t>(std::clamp(CSetting::GetConfig()->GetIntValue(OBFUSCATE("SetFps")), 0, static_cast<int>(UINT8_MAX))));
 			CSensitivity::SetOnfootTouch(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("OnfootSensitivity"))));
 			CSensitivity::SetAimTouch(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("AimSensitivity"))));

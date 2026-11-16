@@ -34,3 +34,5 @@ _CPad_AimWeaponLeftRight_hook
 _CPad_AimWeaponUpDown_hook
 _CStats_GetFatAndMuscleModifier_hook
 _CWidgetPlayerInfo_RenderArmorBar_hook
+_CHud_DrawCrosshairs_hook
+_CWidgetPlayerInfo_Draw_hook

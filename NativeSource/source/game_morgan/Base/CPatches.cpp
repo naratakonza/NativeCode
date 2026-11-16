@@ -44,6 +44,10 @@ void CPatches::InstallLevelZPatches()
 
     CMemory::makeNOP(SA_ADDR(0x43BF58), 1); // ไม่เปิดเมนูแผนที่อัตโนมัติเมื่อกลับเข้าเกม
 
+    // ให้ Aim Indicator ใช้เส้นทาง GetInputType == 0 ของ iOS
+    CMemory::WriteProcessMemory(SA_ADDR(0x3BF784), (uintptr_t)"\x1F\x00\x00\x71", 4); // CTaskSimplePlayerOnFoot::ProcessPlayerWeapon
+    CMemory::WriteProcessMemory(SA_ADDR(0x2733D8), (uintptr_t)"\x1F\x00\x00\x71", 4); // CPlayerPed::Compute3rdPersonMouseTarget
+
     // CPlayerPed::CPlayerPed เปลี่ยน TBNZ เป็น TBZ ก่อนขั้นตั้งค่า player group
     CMemory::WriteProcessMemory(SA_ADDR(0x26CBF4), (uintptr_t)"\x54\x05\x00\x36", 4);
 
@@ -191,6 +195,9 @@ void CPatches::InstallMainPatches()
     // ปิด HeadMove ใน CCam::Process_FollowPed_SA เพราะใน samp ใช้ของ sync แล้ว
     CMemory::makeNOP(SA_ADDR(0x11F134), 1);
 
+    // ข้ามเฉพาะ CWeaponEffects::Render ใน RenderEffects
+    CMemory::makeNOP(SA_ADDR(0x159B20), 1);
+
     // CMirrors::RenderReflections ใช้ตำแหน่งกล้องสะท้อนคงที่ทุกโหมดแบบ Arita
     CMemory::makeNOP(SA_ADDR(0x301B14), 1);
 
@@ -275,6 +282,15 @@ void CPatches::InstallRadarPatches()
     CMemory::makeNOP(SA_ADDR(0x1EEE18), 1); // ซ่อนเฉพาะข้อความ Legend บนแผนที่
 }
 
+void CPatches::InstallDisableAutoAimPatches()
+{
+    CNecessary::Log(OBFUSCATE("CPatches InstallDisableAutoAimPatches"));
+
+    CMemory::makeRET(SA_ADDR(0x270DC0)); // CPlayerPed::FindWeaponLockOnTarget
+    CMemory::makeRET(SA_ADDR(0x271FA4)); // CPlayerPed::FindNextWeaponLockOnTarget
+    CMemory::makeRET(SA_ADDR(0x246C38)); // CPed::SetWeaponLockOnTarget
+}
+
 void CPatches::InstallCameraPatches()
 {
     CNecessary::Log(OBFUSCATE("CPatches InstallCameraPatches"));
@@ -310,6 +326,7 @@ void CPatches::SetPatches(ePatchType type)
         case ePatchType::PATCH_TYPE_GAME: {
             CPatches::InstallATZPatches();
             CPatches::InstallRadarPatches();
+            CPatches::InstallDisableAutoAimPatches();
             CPatches::InstallCameraPatches();
 
             break;
