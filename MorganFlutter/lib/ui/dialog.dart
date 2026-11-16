@@ -84,7 +84,7 @@ class _SampDialogState extends State<SampDialog> with SingleTickerProviderStateM
   final TextEditingController controller = TextEditingController();
 
   static const Color sampBg = Color(0xED1c2122);
-  static const Color sampHeader = Color(0xFF2C2519);
+  // static const Color sampHeader = Color(0xFF2C2519);
   static const Color sampOrange = Color(0xFFFFB800);
   static const Color sampDivider = Color(0xFF333333);
   bool _obscurePassword = true;
