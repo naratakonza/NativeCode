@@ -1,6 +1,7 @@
 #include "../../../Main.h"
 #include "CMultiPlayer.h"
 #include "CServer.h"
+#include "Audio/CAudio.h"
 #include "Guis/CGui.h"
 #include "../CAspectRatio.h"
 #include "../CCameraAim.h"
@@ -36,6 +37,8 @@ void CMultiPlayer::Uninitialise()
 
     CGyro::Enable(false);
     MGUpdateGyro(false);
+	
+	CAudio::Uninitialise();
     CGui::Uninitialise();
 
 	SAFE_DELETE(CMultiPlayer::pNetGame);
@@ -67,6 +70,8 @@ void CMultiPlayer::Process()
                 CGui::GetDialog()->ProcessPendingResponse();
             }
         }
+
+        CAudio::Process();
     }
     else
     {
@@ -138,6 +143,7 @@ void CMultiPlayer::StartSAMP()
     CCameraAim::Initialise();
 	CCameraController::Initialise();
     CGui::Initialise();
+    CAudio::Initialise();
 
     CMultiPlayer::m_bPlaySAMP = true;
 }

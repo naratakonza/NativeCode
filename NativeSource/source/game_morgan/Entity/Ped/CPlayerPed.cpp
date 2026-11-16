@@ -9,6 +9,7 @@
 #include "../../CStreaming.h"
 #include "../../CWeapon.h"
 #include "../../Enums/eSpecialVehicle.h"
+#include "../../Enums/eWeaponSampid.h"
 #include "../../Scripts/CScripting.h"
 #include "../../../utils/Necessary/CNecessary.h"
 
@@ -423,6 +424,56 @@ WEAPON_SLOT_TYPE* CPlayerPed::FindWeaponSlot(uint32_t dwWeapon)
     }
 
     return nullptr;
+}
+
+WEAPON_SLOT_TYPE* CPlayerPed::GetCurrentWeaponSlot()
+{
+	if (GetPed())
+	{
+		return &GetPed()->WeaponSlots[GetPed()->byteCurWeaponSlot];
+	}
+
+	return (WEAPON_SLOT_TYPE*)NULL;
+}
+
+uint8_t CPlayerPed::GetCurrentWeapon()
+{
+	if (!CPlayerPed::VerifyInstance()) {
+		return 0;
+	}
+
+	return GetPed()->WeaponSlots[GetPed()->byteCurWeaponSlot].dwType;
+}
+
+bool CPlayerPed::CurrentWeaponHasAmmo()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return false;
+    }
+
+    WEAPON_SLOT_TYPE* pSlot = CPlayerPed::GetCurrentWeaponSlot();
+    if (!pSlot) {
+        return false;
+    }
+
+    uint32_t weaponId = pSlot->dwType;
+    if (weaponId <= eWeaponSampId::WEAPON_CANE || weaponId == eWeaponSampId::WEAPON_PARACHUTE) {
+        return false;
+    }
+
+    return (pSlot->dwAmmo > 0);
+}
+
+void CPlayerPed::GetAllWeapons(uint8_t* pOutWeapons)
+{
+    if (!CPlayerPed::VerifyInstance() || !pOutWeapons) {
+		return;
+	}
+
+    for (int i = 0; i < 13; ++i)
+    {
+        pOutWeapons[i] = static_cast<uint8_t>(GetPed()->WeaponSlots[i].dwType);
+    }
 }
 
 void CPlayerPed::ClearAllWeapons()

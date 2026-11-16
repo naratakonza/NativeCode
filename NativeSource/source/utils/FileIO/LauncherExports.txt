@@ -1,3 +1,4 @@
+_CAmbientAuidoTrack_Process_hook
 _CDraw_SetFov_hook
 _CClothes_RebuildPlayer_hook
 __ZN9CPhysical14ProcessControlEP12CPhysicalGta

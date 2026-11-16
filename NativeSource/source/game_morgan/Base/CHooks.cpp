@@ -17,7 +17,10 @@
 #include "../../utils/Memory/CHook.h"
 #include "../../utils/Storage/CStorage.h"
 #include "../Multiplayer/CMultiPlayer.h"
+#include "../Multiplayer/Audio/CAudio.h"
 #include "../Multiplayer/Guis/CGui.h"
+
+#include <mach-o/dyld.h>
 
 static bool gameProcessHookInstalled = false;
 static bool renderTitleHookInstalled = false;
@@ -140,6 +143,21 @@ extern "C" __attribute__((visibility("default"))) void CClothes_RebuildPlayer_ho
     }
 
     CClothes_RebuildPlayer(thiz, bForReplay);
+}
+
+extern "C" __attribute__((visibility("default"))) void CAmbientAuidoTrack_Process_hook(uintptr_t thiz, uintptr_t pSound, int PlayTime, void (*Process)(uintptr_t, uintptr_t, int))
+{
+    if (!CAudio::IsOutdoorAmbienceTrackDisabled())
+    {
+        Process(thiz, pSound, PlayTime);
+        return;
+    }
+
+    auto* currArea = reinterpret_cast<std::int32_t*>(SA_ADDR(0x7345F8) + _dyld_get_image_vmaddr_slide(0));
+    const std::int32_t previousArea = *currArea;
+    *currArea = 1;
+    Process(thiz, pSound, PlayTime);
+    *currArea = previousArea;
 }
 
 void CHooks::InstallNecessary()

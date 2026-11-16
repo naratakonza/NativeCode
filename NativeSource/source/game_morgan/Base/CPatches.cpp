@@ -46,6 +46,16 @@ void CPatches::InstallLevelZPatches()
 
     // CPlayerPed::CPlayerPed เปลี่ยน TBNZ เป็น TBZ ก่อนขั้นตั้งค่า player group
     CMemory::WriteProcessMemory(SA_ADDR(0x26CBF4), (uintptr_t)"\x54\x05\x00\x36", 4);
+
+    // CTaskSimpleUseGun::SetMoveAnim ปรับค่าจาก 0.1 เป็น 0.015f ปรับความเร็วโยกซ้ายขวา ตอนซูม Jiggle Movement
+    CMemory::WriteProcessMemory(SA_ADDR(0x34944C), (uintptr_t)"\xE8\x51\x98\x52", 4);
+    CMemory::WriteProcessMemory(SA_ADDR(0x349450), (uintptr_t)"\xA8\x8E\xA7\x72", 4);
+
+    // CTaskSimpleUseGun::ControlGunMove และ CTaskSimpleGunControl::ProcessPed ใช้ตัวคูณ 2.0f แทน 0.07f
+    CMemory::WriteProcessMemory(SA_ADDR(0x349940), (uintptr_t)"\x08\x00\xA8\x52", 4);
+    CMemory::makeNOP(SA_ADDR(0x349944), 1);
+    CMemory::WriteProcessMemory(SA_ADDR(0x34AB2C), (uintptr_t)"\x08\x00\xA8\x52", 4);
+    CMemory::makeNOP(SA_ADDR(0x34AB30), 1);
 }
 
 void CPatches::InstallSettingGamePatches()

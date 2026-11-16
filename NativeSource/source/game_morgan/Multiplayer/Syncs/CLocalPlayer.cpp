@@ -3,6 +3,7 @@
 #include "../../CGame.h"
 #include "../../CTheZones.h"
 #include "../CMultiPlayer.h"
+#include "../Audio/CAudio.h"
 #include "../Guis/CGui.h"
 #include "../../Base/CPad.h"
 #include "../../Scripts/CScripting.h"
@@ -579,7 +580,7 @@ void CLocalPlayer::NextClass()
 		CLocalPlayer::m_iSelectedClass++;
 	}
 
-	// CAudio::Play(1052, matPlayer.pos.x, matPlayer.pos.y, matPlayer.pos.z);
+	CAudio::Play(1052, matPlayer.pos.x, matPlayer.pos.y, matPlayer.pos.z);
 	CLocalPlayer::RequestClass(CLocalPlayer::m_iSelectedClass);
 }
 
@@ -608,7 +609,7 @@ void CLocalPlayer::PrevClass()
 		CLocalPlayer::m_iSelectedClass--;
 	}
 
-	// CAudio::Play(1053, matPlayer.pos.x, matPlayer.pos.y, matPlayer.pos.z);
+	CAudio::Play(1053, matPlayer.pos.x, matPlayer.pos.y, matPlayer.pos.z);
 	CLocalPlayer::RequestClass(CLocalPlayer::m_iSelectedClass);
 }
 

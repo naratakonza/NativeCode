@@ -12,6 +12,7 @@
 #include "../../CTheZones.h"
 #include "../../CEntryExitManager.h"
 #include "../../Entity/CPhysical.h"
+#include "../Audio/CAudio.h"
 
 int bytesToBits(int bytes) 
 {
@@ -494,6 +495,20 @@ void ToggleClock(RakNet::BitStream bsData)
 		CMultiPlayer::GetActiveNetwork()->m_bHoldTime = true;
 		CClock::GetWorldTime((int*)&CMultiPlayer::GetActiveNetwork()->m_byteWorldTime, (int*)&CMultiPlayer::GetActiveNetwork()->m_byteWorldMinute);
 	}
+}
+
+void PlaySound(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: PlaySound"));
+
+	uint32_t iSound;
+	float fX, fY, fZ;
+	bsData.Read(iSound);
+	bsData.Read(fX);
+	bsData.Read(fY);
+	bsData.Read(fZ);
+
+	CAudio::Play(iSound, fX, fY, fZ);
 }
 
 void RequestSpawn(RakNet::BitStream bsRS)
@@ -1133,10 +1148,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		// 	break;
 		// }
 
-		// case RPC_PlaySound: {
-		// 	PlaySound(*bsData);
-		// 	break;
-		// }
+		case RPC_PlaySound: {
+			PlaySound(*bsData);
+			break;
+		}
 
 		case RPC_RequestSpawn: {
 		    RequestSpawn(*bsData);
