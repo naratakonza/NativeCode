@@ -81,8 +81,6 @@ static bool RLEDecompress_hook(std::uint8_t* dest, std::size_t destSize, const s
         return false;
     }
 
-    // Some shipped SAMP textures end on a complete token before the final mip is filled.
-    // The destination starts zeroed, as in the engine's texture loader.
     while (destSize && srcSize)
     {
         std::size_t count = 1;
@@ -129,9 +127,7 @@ extern "C" __attribute__((visibility("default"))) bool LoadFullTexture_hook(void
 
     std::uint32_t storedSize = 0;
     std::uint32_t escape = 0;
-    if (!OS_FileRead_hook(file, texture->metadata, sizeof(texture->metadata)) ||
-        !OS_FileRead_hook(file, &storedSize, sizeof(storedSize)) ||
-        !OS_FileRead_hook(file, &escape, sizeof(escape))) {
+    if (!OS_FileRead_hook(file, texture->metadata, sizeof(texture->metadata)) || !OS_FileRead_hook(file, &storedSize, sizeof(storedSize)) || !OS_FileRead_hook(file, &escape, sizeof(escape))) {
         return false;
     }
 
@@ -170,6 +166,7 @@ extern "C" __attribute__((visibility("default"))) bool LoadFullTexture_hook(void
         if (fileStart < 0 || position < fileStart) {
             return false;
         }
+
         end = std::min(end, static_cast<std::int64_t>(fileStart) + fileLength);
     }
     
@@ -181,6 +178,7 @@ extern "C" __attribute__((visibility("default"))) bool LoadFullTexture_hook(void
     if (!segSize) {
         return false;
     }
+
     const auto alignedSize = (static_cast<std::size_t>(destSize) + segSize - 1) / segSize * segSize;
     const auto allocSize = (alignedSize + 7) & ~std::size_t{7};
     using TextureBytes = std::unique_ptr<std::uint8_t, decltype(&std::free)>;
@@ -192,8 +190,7 @@ extern "C" __attribute__((visibility("default"))) bool LoadFullTexture_hook(void
     if (escape)
     {
         TextureBytes compressed(static_cast<std::uint8_t*>(std::malloc(readSize)), &std::free);
-        if (!compressed || !OS_FileRead_hook(file, compressed.get(), readSize) ||
-            !RLEDecompress_hook(pixels.get(), alignedSize, compressed.get(), readSize, segSize, escape)) {
+        if (!compressed || !OS_FileRead_hook(file, compressed.get(), readSize) || !RLEDecompress_hook(pixels.get(), alignedSize, compressed.get(), readSize, segSize, escape)) {
             return false;
         }
     }

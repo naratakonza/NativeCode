@@ -2,6 +2,9 @@
 
 #include "../Enums/eHookType.h"
 
+#include <cstddef>
+#include <cstdint>
+
 struct TextureLoadBuffer
 {
     std::uint8_t metadata[8];
