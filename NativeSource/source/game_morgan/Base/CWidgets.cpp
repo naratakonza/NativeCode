@@ -226,6 +226,10 @@ eWidgetState CWidgets::ProcessWidget(uintptr_t pWidget)
 
 				break;
 			}
+
+			default: {
+				break;
+			}
 		}
 	}
 
