@@ -83,7 +83,7 @@ for source in \
     "$native/source/game_morgan/CMainMenuScreen.cpp" "$native/source/game_morgan/CStartGameScreen.cpp" "$native/source/game_morgan/CLoadingScreen.cpp" "$hooks/CPatches.cpp" "$hooks/CUvAnim.cpp" "$hooks/Thread/CFastLoad.cpp" "$memory/CMemory.cpp" \
     "$fileio/FileIO.cpp" "$storage/PosixFileIO.cpp" "$storage/CStorageZip.cpp" "$storage/CStorageDisk.cpp" \
     "$fileio/HookAdapter.cpp" "$hooks/CHooks.cpp" "$fileio/FileOpenDiagnostics.cpp" "$memory/CHook.cpp" \
-    "$multiplayer/Texts/CDebugInfo.cpp" "$multiplayer/Guis/CGui.cpp" "$multiplayer/Guis/Font/CFontRender.cpp" \
+    "$multiplayer/Texts/CDebugInfo.cpp" "$multiplayer/Texts/CGameText.cpp" "$native/source/game_morgan/CFont.cpp" "$multiplayer/Guis/CGui.cpp" "$multiplayer/Guis/Font/CFontRender.cpp" \
     "$multiplayer/Guis/CSpawnScreen.cpp" "$multiplayer/Guis/CDialog.cpp" \
     "$hooks/MultiTouch/CTouchEvent.cpp" \
     "$multiplayer/Guis/CChat.cpp" "$multiplayer/Guis/CCommand.cpp" "$multiplayer/Core/CMultiPlayerPacket.cpp" "$native/source/game_morgan/CUtil.cpp" "$native/source/game_morgan/CWorld.cpp" \
@@ -138,7 +138,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CScripting.o" "$out/fileio-objects/CRunningScript.o" "$out/fileio-objects/CExceptions.o" \
     "$out/fileio-objects/CQuaternion.o" \
     "$out/fileio-objects/CTiltedRadar.o" "$out/fileio-objects/CTiltedCameraController.o" "$out/fileio-objects/CTiltedRadarGeometry.o" "$out/fileio-objects/CTiltedRadarMath.o" \
-    "$out/fileio-objects/CDebugInfo.o" "$out/fileio-objects/CGui.o" "$out/fileio-objects/CFontRender.o" \
+    "$out/fileio-objects/CDebugInfo.o" "$out/fileio-objects/CGameText.o" "$out/fileio-objects/CFont.o" "$out/fileio-objects/CGui.o" "$out/fileio-objects/CFontRender.o" \
     "$out/fileio-objects/CSpawnScreen.o" "$out/fileio-objects/CDialog.o" \
     "$out/fileio-objects/CTouchEvent.o" \
     "$out/fileio-objects/CChat.o" "$out/fileio-objects/CCommand.o" "$out/fileio-objects/CMultiPlayerPacket.o" "$out/fileio-objects/CUtil.o" "$out/fileio-objects/CWorld.o" \

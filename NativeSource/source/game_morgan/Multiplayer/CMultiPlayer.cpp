@@ -136,6 +136,7 @@ void CMultiPlayer::ChangeServer(const char* ip, int port)
         CMultiPlayer::Reconnect();
 
         SAFE_DELETE(CMultiPlayer::pNetGame);
+		
         CMultiPlayer::pNetGame = new CNetGame(ip, port, CMultiPlayer::GetPlayerName(), OBFUSCATE(""), 576, true);
     }
 }

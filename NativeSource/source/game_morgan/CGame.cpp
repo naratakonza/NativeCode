@@ -287,3 +287,13 @@ float CGame::FindGroundZForCoord(float x, float y, float z)
 	CScripting::ScriptCommand(&get_ground_z, x, y, z, &fGroundZ);
 	return fGroundZ;
 }
+
+void CGame::ToggleWidescreen(uint8_t Toggle)
+{
+	CScripting::ScriptCommand(&toggle_widescreen, Toggle);
+}
+
+void CGame::CreateExplosion(float X, float Y, float Z, int iType, float Radius)
+{
+	CScripting::ScriptCommand(&create_explosion_with_radius, X, Y, Z, iType, Radius);
+}

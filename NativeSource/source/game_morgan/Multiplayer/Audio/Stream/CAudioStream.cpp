@@ -223,6 +223,7 @@ void CAudioStream::Stop(bool shouldWaitForThread)
         m_tagsChannel = 0;
         CAudioStream::m_streamTitle[0] = '\0';
     }
+
     CAudioStream::m_streamLabel[0] = '\0';
 
     if (CAudioStream::bassStreamHandle)
@@ -248,7 +249,6 @@ void CAudioStream::Stop(bool shouldWaitForThread)
     }
 }
 
-// Called with m_mutex held. BASS may not have registered the request yet.
 void CAudioStream::CancelConnection()
 {
     if (m_cancelPending && BASS_StreamCancel(this))
