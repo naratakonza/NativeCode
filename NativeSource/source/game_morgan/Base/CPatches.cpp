@@ -43,6 +43,9 @@ void CPatches::InstallLevelZPatches()
     CMemory::makeNOP(SA_ADDR(0x21D254), 1); // Interior_c::Exit ข้ามการลบ pickup ในพื้นที่และคงการคืนทรัพยากร
 
     CMemory::makeNOP(SA_ADDR(0x43BF58), 1); // ไม่เปิดเมนูแผนที่อัตโนมัติเมื่อกลับเข้าเกม
+
+    // CPlayerPed::CPlayerPed เปลี่ยน TBNZ เป็น TBZ ก่อนขั้นตั้งค่า player group
+    CMemory::WriteProcessMemory(SA_ADDR(0x26CBF4), (uintptr_t)"\x54\x05\x00\x36", 4);
 }
 
 void CPatches::InstallSettingGamePatches()
