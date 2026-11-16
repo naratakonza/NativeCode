@@ -42,6 +42,9 @@ void CPatches::InstallLevelZPatches()
     CMemory::makeRET(SA_ADDR(0x21CF28)); // Interior_c::AddPickups (แก้ไขแคช)
     CMemory::makeNOP(SA_ADDR(0x21D254), 1); // Interior_c::Exit ข้ามการลบ pickup ในพื้นที่และคงการคืนทรัพยากร
 
+    // LoadFullTexture อ่าน DAT และคลาย RLE ผ่าน bridge ของ iOS
+    CMemory::WriteProcessMemory(SA_ADDR(0x2BE7BC), (uintptr_t)"\x9A\x63\x07\x14", 4);
+
     CMemory::makeNOP(SA_ADDR(0x43BF58), 1); // ไม่เปิดเมนูแผนที่อัตโนมัติเมื่อกลับเข้าเกม
 
     // ให้ Aim Indicator ใช้เส้นทาง GetInputType == 0 ของ iOS

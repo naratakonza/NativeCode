@@ -36,3 +36,4 @@ _CStats_GetFatAndMuscleModifier_hook
 _CWidgetPlayerInfo_RenderArmorBar_hook
 _CHud_DrawCrosshairs_hook
 _CWidgetPlayerInfo_Draw_hook
+_LoadFullTexture_hook

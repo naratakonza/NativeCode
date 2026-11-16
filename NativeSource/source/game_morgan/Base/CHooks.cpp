@@ -22,6 +22,8 @@
 #include "../Multiplayer/Guis/CGui.h"
 
 #include <mach-o/dyld.h>
+#include <memory>
+#include <sys/stat.h>
 
 static bool gameProcessHookInstalled = false;
 static bool renderTitleHookInstalled = false;
@@ -61,6 +63,149 @@ extern "C" __attribute__((visibility("default"))) void InitialiseRenderWare_hook
     }
 
     CGui::InitialiseFont();
+}
+
+static bool OS_FileRead_hook(void* file, void* buffer, std::size_t numBytes)
+{
+    if (!buffer || !numBytes || numBytes > INT32_MAX) {
+        return false;
+    }
+
+    static const auto OS_FileRead = reinterpret_cast<int (*)(void*, void*, int)>(SA_ADDR(0x034A00) + _dyld_get_image_vmaddr_slide(0));
+    return OS_FileRead(file, buffer, static_cast<int>(numBytes)) == 0;
+}
+
+static bool RLEDecompress_hook(std::uint8_t* dest, std::size_t destSize, const std::uint8_t* src, std::size_t srcSize, std::size_t segSize, std::uint32_t escape)
+{
+    if (!segSize || segSize > 32) {
+        return false;
+    }
+
+    // Some shipped SAMP textures end on a complete token before the final mip is filled.
+    // The destination starts zeroed, as in the engine's texture loader.
+    while (destSize && srcSize)
+    {
+        std::size_t count = 1;
+        if (*src == escape)
+        {
+            if (srcSize < 2) {
+                return false;
+            }
+
+            count = src[1];
+            src += 2;
+            srcSize -= 2;
+        }
+
+        if (srcSize < segSize || count * segSize > destSize) {
+            return false;
+        }
+
+        for (std::size_t index = 0; index < count; ++index)
+        {
+            std::memcpy(dest, src, segSize);
+            dest += segSize;
+            destSize -= segSize;
+        }
+
+        src += segSize;
+        srcSize -= segSize;
+    }
+
+    return true;
+}
+
+extern "C" __attribute__((visibility("default"))) bool LoadFullTexture_hook(void* file, TextureLoadBuffer* texture)
+{
+    if (!file || !texture || static_cast<const std::uint8_t*>(file)[0x08]) {
+        return false;
+    }
+
+    std::FILE* stream = nullptr;
+    std::memcpy(&stream, file, sizeof(stream));
+    if (!stream) {
+        return false;
+    }
+
+    std::uint32_t storedSize = 0;
+    std::uint32_t escape = 0;
+    if (!OS_FileRead_hook(file, texture->metadata, sizeof(texture->metadata)) ||
+        !OS_FileRead_hook(file, &storedSize, sizeof(storedSize)) ||
+        !OS_FileRead_hook(file, &escape, sizeof(escape))) {
+        return false;
+    }
+
+    std::uint16_t width = 0;
+    std::uint16_t height = 0;
+    std::memcpy(&width, texture->metadata + 4, sizeof(width));
+    std::memcpy(&height, texture->metadata + 6, sizeof(height));
+    height &= 0x7FFF;
+
+    if (!width || !height || static_cast<std::uint64_t>(width) * height > INT32_MAX / 8) {
+        return false;
+    }
+
+    static const auto GetTextureSize = reinterpret_cast<int (*)(const void*)>(SA_ADDR(0x2BC054) + _dyld_get_image_vmaddr_slide(0));
+    static const auto GetSegmentSize = reinterpret_cast<unsigned int (*)(const void*)>(SA_ADDR(0x2BC2FC) + _dyld_get_image_vmaddr_slide(0));
+    const int destSize = GetTextureSize(texture);
+    if (destSize <= 0 || (escape && storedSize <= sizeof(escape))) {
+        return false;
+    }
+
+    const std::size_t readSize = escape ? storedSize - sizeof(escape) : static_cast<std::size_t>(destSize);
+    const auto position = std::ftell(stream);
+    struct stat info{};
+    if (readSize > INT32_MAX || position < 0 || ::fstat(::fileno(stream), &info) != 0 || info.st_size < position) {
+        return false;
+    }
+
+    std::int32_t fileLength = 0;
+    std::int32_t fileStart = 0;
+    const auto* fileData = static_cast<const std::uint8_t*>(file);
+    std::memcpy(&fileLength, fileData + 0x28, sizeof(fileLength));
+    std::memcpy(&fileStart, fileData + 0x2C, sizeof(fileStart));
+    auto end = static_cast<std::int64_t>(info.st_size);
+    if (fileLength >= 0)
+    {
+        if (fileStart < 0 || position < fileStart) {
+            return false;
+        }
+        end = std::min(end, static_cast<std::int64_t>(fileStart) + fileLength);
+    }
+    
+    if (end < position || readSize > static_cast<std::uint64_t>(end - position)) {
+        return false;
+    }
+
+    const auto segSize = escape ? GetSegmentSize(texture) : 1u;
+    if (!segSize) {
+        return false;
+    }
+    const auto alignedSize = (static_cast<std::size_t>(destSize) + segSize - 1) / segSize * segSize;
+    const auto allocSize = (alignedSize + 7) & ~std::size_t{7};
+    using TextureBytes = std::unique_ptr<std::uint8_t, decltype(&std::free)>;
+    TextureBytes pixels(static_cast<std::uint8_t*>(std::calloc(1, allocSize)), &std::free);
+    if (!pixels) {
+        return false;
+    }
+
+    if (escape)
+    {
+        TextureBytes compressed(static_cast<std::uint8_t*>(std::malloc(readSize)), &std::free);
+        if (!compressed || !OS_FileRead_hook(file, compressed.get(), readSize) ||
+            !RLEDecompress_hook(pixels.get(), alignedSize, compressed.get(), readSize, segSize, escape)) {
+            return false;
+        }
+    }
+    else if (!OS_FileRead_hook(file, pixels.get(), readSize))
+    {
+        return false;
+    }
+
+    texture->size = destSize;
+    texture->ownsPixels = 1;
+    texture->pixels = pixels.release();
+    return true;
 }
 
 extern "C" __attribute__((visibility("default"))) int DrawMoney_Sprintf_hook(char* buffer, int amount)
