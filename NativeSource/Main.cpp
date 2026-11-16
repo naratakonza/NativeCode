@@ -1,10 +1,13 @@
 #include "Main.h"
+#include "source/game_morgan/Audio/CBass.h"
 #include "source/game_morgan/Multiplayer/CMultiPlayer.h"
 #include "source/game_morgan/Multiplayer/CNetGame.h"
 
 void InitialiseClient()
 {
 	CNecessary::Log(OBFUSCATE("Morgan Client Initialise"));
+
+	CBass::Initialise();
 
 	if (!CSetting::pSetting)
 	{

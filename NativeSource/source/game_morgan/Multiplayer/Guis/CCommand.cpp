@@ -1,6 +1,7 @@
 #include "../../../../Main.h"
 #include "CCommand.h"
 #include "CGui.h"
+#include "../Audio/CAudio.h"
 #include "../../CAspectRatio.h"
 #include "../../CDraw.h"
 #include "../../CSensitivity.h"
@@ -28,6 +29,7 @@ void CCommand::Initialise()
     CCommand::Add(OBFUSCATE("/gyroincarsens"), CCommand::SetIncarGyroSensitivity);
     CCommand::Add(OBFUSCATE("/gyromode"), CCommand::SetGyroMode);
     CCommand::Add(OBFUSCATE("/gyro"), CCommand::SetGyroScope);
+    CCommand::Add(OBFUSCATE("/audiomsg"), CCommand::SetAudioMessages);
     CCommand::Add(OBFUSCATE("/rec"), CCommand::Reconnect);
     CCommand::Add(OBFUSCATE("/reconnect"), CCommand::Reconnect);
     CCommand::Add(OBFUSCATE("/q"), CCommand::QuitGame);
@@ -394,6 +396,29 @@ void CCommand::SetGyroMode(const std::vector<std::string>& args)
     else
     {
         CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /gyromode <value>"));
+    }
+}
+
+void CCommand::SetAudioMessages(const std::vector<std::string>&)
+{
+    static bool bAudioMessages = false;
+    bAudioMessages = !bAudioMessages;
+
+    if (CAudio::GetAudioStream())
+    {
+        CAudio::GetAudioStream()->SetAudioMsg(bAudioMessages);
+    }
+
+    if (CGui::GetChat())
+    {
+        if (bAudioMessages)
+        {
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("Audio messages: Off"));
+        }
+        else
+        {
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("Audio messages: On"));
+        }
     }
 }
 

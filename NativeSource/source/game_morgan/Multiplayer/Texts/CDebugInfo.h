@@ -6,6 +6,7 @@ public:
     CDebugInfo();
     
     void RenderTitle();
+    void RenderAudioStreamTag();
 
 private:
     std::uint32_t m_dwLastTitleUpdateTick;

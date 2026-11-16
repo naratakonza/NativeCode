@@ -87,7 +87,7 @@ def snapshot_header(binary):
     raise ValueError("Missing Dart isolate snapshot data")
 
 
-def package(baseline, digest, launcher, module, output, render_title=False, timer_pause=False, cd_stream_fix=False, radar_blips=False, img_slots=False, img_read_fix=False, camera_size=False, cdraw=False, thunder_main=False, stock_player_weapon=False, clothes_rebuild=False, world_player_slots=False, cj_walk=False, physical=False, gyro=False, stats=False, widget_player_info=False, spawn_fade=False, player_ped_ctor=False, gun_movement=False, ambient_audio=False, hud=False, aim_patches=False, texture_load_fix=False):
+def package(baseline, digest, launcher, module, output, render_title=False, timer_pause=False, cd_stream_fix=False, radar_blips=False, img_slots=False, img_read_fix=False, camera_size=False, cdraw=False, thunder_main=False, stock_player_weapon=False, clothes_rebuild=False, world_player_slots=False, cj_walk=False, physical=False, gyro=False, stats=False, widget_player_info=False, spawn_fade=False, player_ped_ctor=False, gun_movement=False, ambient_audio=False, hud=False, aim_patches=False, texture_load_fix=False, *, bass_sdk=None):
     assert not output.exists(), output
     assert sha256(baseline.read_bytes()).hexdigest() == digest, "Unexpected baseline IPA"
     launcher_files = verified_framework(launcher, "MorganLauncher.framework")
@@ -138,7 +138,15 @@ def package(baseline, digest, launcher, module, output, render_title=False, time
             retained_names = set(names) - legacy_module
             expected_module = set(replacement_files) - {replacement_name}
             assert not existing_module or existing_module == expected_module
-            additions = expected_module - existing_module
+            if bass_sdk is not None:
+                from bass_ios import bass_framework_files
+
+                bass_files = bass_framework_files(bass_sdk)
+                framework_files = module_files | bass_files
+                replacement_files.update({FRAMEWORKS + name: data for name, (data, _) in bass_files.items()})
+            else:
+                framework_files = module_files
+            additions = {FRAMEWORKS + name for name in framework_files} - retained_names
 
             if render_title:
                 from patch_render_title import PAUSE_SYMBOLS, SYMBOL, patch_render_title
@@ -320,7 +328,7 @@ def package(baseline, digest, launcher, module, output, render_title=False, time
                         continue
                     data = replacement_files[member.filename] if member.filename in replacement_files else original.read(member)
                     ipa.writestr(copy(member), data)
-                for name, (data, mode) in sorted(module_files.items()):
+                for name, (data, mode) in sorted(framework_files.items()):
                     if FRAMEWORKS + name not in additions:
                         continue
                     member = ZipInfo(FRAMEWORKS + name)
@@ -376,6 +384,7 @@ if __name__ == "__main__":
     parser.add_argument("--hud", action="store_true", help="Enable Thunder's stock crosshair positioning and player info alpha on the verified AmbientAudio executable.")
     parser.add_argument("--aim-patches", action="store_true", help="Apply Thunder's targeting patches to the verified AmbientAudio executable.")
     parser.add_argument("--texture-load-fix", action="store_true", help="Enable bounded DAT reads and RLE decoding on the verified HUD and AimPatches executable.")
+    parser.add_argument("--bass-sdk", type=Path, help="Embed the verified Un4seen BASS iPhoneOS framework from the SDK ZIP.")
     arguments = parser.parse_args()
     if arguments.timer_pause and not arguments.render_title:
         parser.error("--timer-pause requires --render-title")
@@ -398,4 +407,4 @@ if __name__ == "__main__":
     if arguments.clothes_rebuild and (arguments.render_title or arguments.cd_stream_fix or arguments.img_slots or arguments.img_read_fix or arguments.camera_size or arguments.cdraw or arguments.thunder_main):
         parser.error("--clothes-rebuild expects the Sensitivity IPA with the earlier patches already present")
     package(arguments.baseline, arguments.baseline_sha256, arguments.launcher_tar, arguments.flutter_tar, arguments.output,
-            arguments.render_title, arguments.timer_pause, arguments.cd_stream_fix, arguments.radar_blips, arguments.img_slots, arguments.img_read_fix, arguments.camera_size, arguments.cdraw, arguments.thunder_main, arguments.stock_player_weapon, arguments.clothes_rebuild, arguments.world_player_slots, arguments.cj_walk, arguments.physical, arguments.gyro, arguments.stats, arguments.widget_player_info, arguments.spawn_fade, arguments.player_ped_ctor, arguments.gun_movement, arguments.ambient_audio, arguments.hud, arguments.aim_patches, arguments.texture_load_fix)
+            arguments.render_title, arguments.timer_pause, arguments.cd_stream_fix, arguments.radar_blips, arguments.img_slots, arguments.img_read_fix, arguments.camera_size, arguments.cdraw, arguments.thunder_main, arguments.stock_player_weapon, arguments.clothes_rebuild, arguments.world_player_slots, arguments.cj_walk, arguments.physical, arguments.gyro, arguments.stats, arguments.widget_player_info, arguments.spawn_fade, arguments.player_ped_ctor, arguments.gun_movement, arguments.ambient_audio, arguments.hud, arguments.aim_patches, arguments.texture_load_fix, bass_sdk=arguments.bass_sdk)

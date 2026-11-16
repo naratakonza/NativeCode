@@ -2,6 +2,7 @@
 #include "CMultiPlayerNetwork.h"
 #include "../CMultiPlayer.h"
 #include "../Guis/CGui.h"
+#include "../Audio/CAudio.h"
 #include <raknet/SAMP/SAMPRPC.h>
 #include <ctime>
 
@@ -191,10 +192,10 @@ void CMultiPlayerNetwork::Update()
 				// CSpeaker::Hide();
 				// CMicroPhone::Hide();
 
-				// if (CAudio::GetAudioStream())
-				// {
-				// 	CAudio::GetAudioStream()->Stop();
-				// }
+				if (CAudio::GetAudioStream())
+				{
+					CAudio::GetAudioStream()->Stop();
+				}
 
                 if (CGui::GetChat())
                 {
@@ -217,11 +218,11 @@ void CMultiPlayerNetwork::Update()
 				CMultiPlayer::Reconnect(false);
 				// CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->DeleteAll();
 
-				// if (CAudio::GetAudioStream())
-				// {
-				// 	CAudio::GetAudioStream()->Stop();
-				// }
-				
+				if (CAudio::GetAudioStream())
+				{
+					CAudio::GetAudioStream()->Stop();
+				}
+
 				CMultiPlayer::GetActiveNetwork()->SetNetworkState(eNetworkState::GAMESTATE_WAIT_CONNECT);
 				
                 break;

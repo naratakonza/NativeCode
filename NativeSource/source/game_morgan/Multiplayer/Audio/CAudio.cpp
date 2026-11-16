@@ -4,7 +4,7 @@
 
 #include <mach-o/dyld.h>
 
-// CAudioStream* CAudio::pAudioStream = nullptr;
+CAudioStream* CAudio::pAudioStream = nullptr;
 bool CAudio::m_bOutdoorAmbienceTrackDisabled = false;
 std::uint8_t CAudio::m_bSoundLoaded = eSoundLoadedState::SOUND_NOT_LOADED;
 
@@ -12,14 +12,14 @@ void CAudio::Initialise()
 {
     CNecessary::Log(OBFUSCATE("CAudio Initialise"));
 
-    // CAudio::pAudioStream = new CAudioStream();
+    CAudio::pAudioStream = new CAudioStream();
 }
 
 void CAudio::Uninitialise()
 {
     CNecessary::Log(OBFUSCATE("CAudio Uninitialise"));
 
-    // SAFE_DELETE(CAudio::pAudioStream);
+    SAFE_DELETE(CAudio::pAudioStream);
 }
 
 void CAudio::Process()

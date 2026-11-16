@@ -497,6 +497,38 @@ void ToggleClock(RakNet::BitStream bsData)
 	}
 }
 
+void PlayAudioStream(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: PlayAudioStream"));
+
+	uint8_t byteTextLen;
+	char szURL[256]{};
+	float X, Y, Z;
+	float fRadius;
+	uint8_t bUsePos;
+
+	if (!bsData.Read(byteTextLen) || !byteTextLen || !bsData.Read(szURL, byteTextLen) ||
+		std::memchr(szURL, '\0', byteTextLen) || !bsData.Read(X) || !bsData.Read(Y) ||
+		!bsData.Read(Z) || !bsData.Read(fRadius) || !bsData.Read(bUsePos)) {
+		return;
+	}
+
+	if (CAudio::GetAudioStream())
+	{
+		CAudio::GetAudioStream()->Play(szURL, X, Y, Z, fRadius, bUsePos != 0);
+	}
+}
+
+void StopAudioStream(RakNet::BitStream)
+{
+	CNecessary::Log(OBFUSCATE("RPC: StopAudioStream"));
+
+	if (CAudio::GetAudioStream())
+	{
+		CAudio::GetAudioStream()->Stop(false);
+	}
+}
+
 void PlaySound(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: PlaySound"));
@@ -1138,15 +1170,15 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		// 	break;
 		// }
 
-		// case RPC_PlayAudioStream: {
-		// 	PlayAudioStream(*bsData);
-		// 	break;
-		// }
+		case RPC_PlayAudioStream: {
+			PlayAudioStream(*bsData);
+			break;
+		}
 
-		// case RPC_StopAudioStream: {
-		// 	StopAudioStream(*bsData);
-		// 	break;
-		// }
+		case RPC_StopAudioStream: {
+			StopAudioStream(*bsData);
+			break;
+		}
 
 		case RPC_PlaySound: {
 			PlaySound(*bsData);

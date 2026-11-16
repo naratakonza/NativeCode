@@ -242,6 +242,35 @@ bool CEntity::SetModelIndex(unsigned int uiModel)
     return true;
 }
 
+float CEntity::GetDistanceFromPoint(CVector vec)
+{
+	if (!m_pEntity) {
+		return 10000.0f;
+	}
+
+	CMatrix matThis;
+	GetMatrix(&matThis);
+
+	float tmpX = (matThis.pos.x - vec.x) * (matThis.pos.x - vec.x);
+	float tmpY = (matThis.pos.y - vec.y) * (matThis.pos.y - vec.y);
+	float tmpZ = (matThis.pos.z - vec.z) * (matThis.pos.z - vec.z);
+
+	return (float)sqrt(tmpX + tmpY + tmpZ);
+}
+
+float CEntity::GetDistanceFromPoint(float X, float Y, float Z)
+{
+	if (!m_pEntity) {
+		return 10000.0f;
+	}
+
+	CMatrix matThis;
+	GetMatrix(&matThis);
+
+	float distanceSquared = pow(matThis.pos.x - X, 2) + pow(matThis.pos.y - Y, 2) + pow(matThis.pos.z - Z, 2);
+	return sqrt(distanceSquared);
+}
+
 void CEntity::CleanUpOldReference(CEntityGta* thiz, CEntityGta **ppAddress)
 {
     reinterpret_cast<void (*)(CEntityGta*, CEntityGta**)>(SA_ADDR(0x19275C) + _dyld_get_image_vmaddr_slide(0))(thiz, ppAddress);

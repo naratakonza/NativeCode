@@ -1,11 +1,11 @@
 #pragma once
 
-// #include "Stream/CAudioStream.h"
+#include "Stream/CAudioStream.h"
 
 class CAudio
 {
 private:
-    // static CAudioStream* pAudioStream;
+    static CAudioStream* pAudioStream;
     static bool m_bOutdoorAmbienceTrackDisabled;
     static std::uint8_t m_bSoundLoaded;
 
@@ -20,7 +20,7 @@ public:
     static void SetOutdoorAmbienceTrack(int iSound);
     static void StopOutdoorAmbienceTrack();
 
-    // static CAudioStream* GetAudioStream() {
-    //     return pAudioStream;
-    // };
+    static CAudioStream* GetAudioStream() {
+        return pAudioStream;
+    }
 };

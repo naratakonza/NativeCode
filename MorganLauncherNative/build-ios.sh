@@ -91,6 +91,9 @@ for source in \
     "$multiplayer/Pools/CNetGamePool.cpp" "$multiplayer/Pools/Process/CPlayerPool.cpp" \
     "$multiplayer/Syncs/CLocalPlayer.cpp" \
     "$multiplayer/Audio/CAudio.cpp" \
+    "$multiplayer/Audio/Stream/CAudioStream.cpp" \
+    "$native/source/game_morgan/Audio/CAEAudioHardware.cpp" "$native/source/game_morgan/Audio/CAudioEngine.cpp" \
+    "$native/source/game_morgan/Audio/CBass.cpp" \
     "$imgui/imgui_impl_renderware.cpp"; do
     object="${source##*/}"
     xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
@@ -143,6 +146,9 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CNetGamePool.o" "$out/fileio-objects/CPlayerPool.o" \
     "$out/fileio-objects/CLocalPlayer.o" \
     "$out/fileio-objects/CAudio.o" \
+    "$out/fileio-objects/CAudioStream.o" \
+    "$out/fileio-objects/CAEAudioHardware.o" "$out/fileio-objects/CAudioEngine.o" \
+    "$out/fileio-objects/CBass.o" \
     "$out/fileio-objects/imgui.o" "$out/fileio-objects/imgui_draw.o" "$out/fileio-objects/imgui_impl_renderware.o" \
     "$out/fileio-objects/Main.o" "$out/fileio-objects/RenderWare.o" "$out/fileio-objects/CMultiPlayer.o" "$out/fileio-objects/CNecessary.o" \
     "$out/fileio-objects/CPatches.o" "$out/fileio-objects/CUvAnim.o" "$out/fileio-objects/CFastLoad.o" "$out/fileio-objects/CMemory.o" \

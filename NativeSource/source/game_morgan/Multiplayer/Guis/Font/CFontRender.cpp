@@ -110,6 +110,7 @@ void CFontRender::Render()
 	if (CGui::GetDebug())
 	{
 		CGui::GetDebug()->RenderTitle();
+		CGui::GetDebug()->RenderAudioStreamTag();
 	}
 
 	ImGui::EndFrame();
