@@ -10,6 +10,8 @@
 #include "../CMultiPlayer.h"
 #include "../CNetGame.h"
 
+#include <cstdlib>
+
 std::vector<ChatCommand> CCommand::commandList;
 
 void CCommand::Initialise()
@@ -30,6 +32,7 @@ void CCommand::Initialise()
     CCommand::Add(OBFUSCATE("/gyromode"), CCommand::SetGyroMode);
     CCommand::Add(OBFUSCATE("/gyro"), CCommand::SetGyroScope);
     CCommand::Add(OBFUSCATE("/audiomsg"), CCommand::SetAudioMessages);
+    CCommand::Add(OBFUSCATE("/chip"), CCommand::SetConnect);
     CCommand::Add(OBFUSCATE("/rec"), CCommand::Reconnect);
     CCommand::Add(OBFUSCATE("/reconnect"), CCommand::Reconnect);
     CCommand::Add(OBFUSCATE("/q"), CCommand::QuitGame);
@@ -440,6 +443,70 @@ void CCommand::SetGyroScope(const std::vector<std::string>& /*args*/)
     else
     {
         CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> GyroScope Disabled"));
+    }
+}
+
+void CCommand::SetConnect(const std::vector<std::string>& args)
+{
+    if (!CGui::GetChat()) {
+        return;
+    }
+
+    if (args.size() >= 2)
+    {
+        std::string input = args[1];
+        std::string ip;
+        int port = 7777;
+
+        size_t colonPos = input.find(':');
+        if (colonPos != std::string::npos)
+        {
+            ip = input.substr(0, colonPos);
+            std::string portStr = input.substr(colonPos + 1);
+
+            if (!portStr.empty())
+            {
+                port = std::atoi(portStr.c_str());
+                if (port <= 0 || port > 65535)
+                {
+                    CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> IPConnect: invalid port (1-65535)"));
+                    return;
+                }
+            }
+            else
+            {
+                CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> IPConnect: invalid format, port missing after ':'"));
+                return;
+            }
+        }
+        else
+        {
+            ip = input;
+
+            if (args.size() >= 3)
+            {
+                port = std::atoi(args[2].c_str());
+                if (port <= 0 || port > 65535)
+                {
+                    CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> IPConnect: invalid port (1-65535)"));
+                    return;
+                }
+            }
+        }
+
+        if (!ip.empty() && CNecessary::MPSTRLEN(ip.c_str()) > 0)
+        {
+            CMultiPlayer::ChangeServer(ip.c_str(), port);
+        }
+        else
+        {
+            CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> IPConnect: invalid IP address"));
+            return;
+        }
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /chip <ip:port>"));
     }
 }
 

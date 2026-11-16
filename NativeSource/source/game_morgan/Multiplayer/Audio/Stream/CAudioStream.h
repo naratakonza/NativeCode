@@ -15,7 +15,7 @@ public:
     ~CAudioStream();
 
     void Play(const char* streamUrl, float posX, float posY, float posZ, float streamRadius, bool isPositionBased);
-    void Stop(bool shouldWaitForThread = false);
+    void Stop(bool shouldWaitForThread = true);
     void Process();
     void ControlGameRadio();
     void SetVolume(std::uint32_t volume);
@@ -27,6 +27,7 @@ public:
 private:
     void Initialize();
     void StreamThread();
+    void CancelConnection();
     static void AudioStreamMetaSync(HSYNC, std::uint32_t streamChannel, std::uint32_t, void* userData);
     void UpdateStreamTags();
 
@@ -40,6 +41,7 @@ private:
     bool m_bAudioMsg = false;
 
     std::mutex m_tagsMutex;
+    HSTREAM m_tagsChannel = 0;
     char m_streamTitle[256]{};
 
     std::thread m_audioStreamThread;
@@ -47,8 +49,9 @@ private:
     std::condition_variable m_requestChanged;
     std::string m_audioStreamUrl;
     std::uint64_t m_request = 0;
-    HSTREAM m_readyStream = 0;
     bool m_bIsPlaying = false;
+    bool m_workerBusy = false;
     bool m_connecting = false;
+    bool m_cancelPending = false;
     bool m_stopping = false;
 };

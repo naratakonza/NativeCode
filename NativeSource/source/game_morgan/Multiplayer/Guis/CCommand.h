@@ -16,6 +16,7 @@ public:
     static bool Process(const std::string& input);
 
 private:
+    static void SetConnect(const std::vector<std::string>& args);
     static void Reconnect(const std::vector<std::string>& args);
     static void QuitGame(const std::vector<std::string>& args);
     static void SetAspectRatio(const std::vector<std::string>& args);

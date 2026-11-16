@@ -4,6 +4,7 @@
 #include "../../../Audio/CAudioEngine.h"
 #include "../../Guis/CGui.h"
 
+#include <chrono>
 #include <utility>
 
 static constexpr std::uint32_t BASS_CONFIG_NET_TIMEOUT = 11;
@@ -33,7 +34,7 @@ CAudioStream::CAudioStream()
 CAudioStream::~CAudioStream()
 {
     CNecessary::Log(OBFUSCATE("CAudioStream Uninitialise"));
-    CAudioStream::Stop();
+    CAudioStream::Stop(true);
 
     if (CAudioStream::m_audioStreamThread.joinable())
     {
@@ -70,14 +71,22 @@ void CAudioStream::Initialize()
     BASS_SetConfig(BASS_CONFIG_NET_PLAYLIST, 1);
     BASS_SetConfig(BASS_CONFIG_NET_TIMEOUT, 10000);
     BASS_SetConfig(BASS_CONFIG_NET_READTIMEOUT, 10000);
+
+    const float scaleFactor = CAEAudioHardware::GetMusicMasterScalingFactor();
+    if (std::isfinite(scaleFactor))
+    {
+        CAudioStream::m_lastGlobalVolume = static_cast<std::uint32_t>(std::clamp(scaleFactor, 0.0f, 1.0f) * 7000.0f);
+    }
+
+    CAudioStream::m_lastAudioStreamUpdateTick = CNecessary::GetTickCount();
     CAudioStream::m_bInitialized = true;
 }
 
 void CAudioStream::StreamThread()
 {
+    std::unique_lock<std::mutex> lock(m_mutex);
     for (;;)
     {
-        std::unique_lock<std::mutex> lock(m_mutex);
         m_requestChanged.wait(lock, [this] { return m_stopping || !CAudioStream::m_audioStreamUrl.empty(); });
         if (m_stopping) {
             return;
@@ -85,34 +94,67 @@ void CAudioStream::StreamThread()
 
         const auto request = m_request;
         std::string url = std::exchange(CAudioStream::m_audioStreamUrl, std::string{});
+        m_workerBusy = true;
         m_connecting = true;
         lock.unlock();
 
         const auto stream = BASS_StreamCreateURL(url.c_str(), 0, BASS_STREAM_BLOCK | BASS_STREAM_STATUS, nullptr, this);
-        const int error = stream ? 0 : BASS_ErrorGetCode();
-
-        lock.lock();
-        const bool current = request == m_request && !m_stopping;
-        if (current)
-        {
-            m_readyStream = stream;
-            CAudioStream::m_bIsPlaying = stream != 0;
-        }
-
-        lock.unlock();
-
-        if (!current && stream)
-        {
-            BASS_StreamFree(stream);
-        }
-        if (current && !stream)
-        {
-            CNecessary::Log(OBFUSCATE("CAudioStream: BASS_StreamCreateURL failed: %d"), error);
-        }
+        const int createError = stream ? 0 : BASS_ErrorGetCode();
 
         lock.lock();
         m_connecting = false;
-        lock.unlock();
+        m_cancelPending = false;
+
+        if (request == m_request && !m_stopping)
+        {
+            if (stream)
+            {
+                {
+                    const std::lock_guard<std::mutex> tagsLock(m_tagsMutex);
+                    m_tagsChannel = stream;
+                }
+
+                BASS_ChannelSetSync(stream, BASS_SYNC_META, 0, &AudioStreamMetaSync, this);
+                BASS_ChannelSetSync(stream, BASS_SYNC_OGG_CHANGE, 0, &AudioStreamMetaSync, this);
+                if (BASS_ChannelLock(stream, true))
+                {
+                    CAudioStream::AudioStreamMetaSync(0, stream, 0, this);
+                    BASS_ChannelLock(stream, false);
+                }
+
+                BASS_ChannelSetAttribute(stream, BASS_ATTRIB_VOL, CAudioStream::m_lastGlobalVolume / 10000.0f);
+                if (BASS_ChannelPlay(stream, false))
+                {
+                    CAudioStream::bassStreamHandle = stream;
+                    m_requestChanged.wait(lock, [this, request] { return m_stopping || request != m_request; });
+                }
+                else
+                {
+                    CNecessary::Log(OBFUSCATE("CAudioStream: BASS_ChannelPlay failed: %d"), BASS_ErrorGetCode());
+                    CAudioStream::m_bIsPlaying = false;
+                }
+            }
+            else
+            {
+                CNecessary::Log(OBFUSCATE("CAudioStream: BASS_StreamCreateURL failed: %d"), createError);
+                CAudioStream::m_bIsPlaying = false;
+            }
+        }
+
+        if (stream)
+        {
+            {
+                const std::lock_guard<std::mutex> tagsLock(m_tagsMutex);
+                m_tagsChannel = 0;
+                CAudioStream::m_streamTitle[0] = '\0';
+            }
+
+            lock.unlock();
+            BASS_StreamFree(stream);
+            lock.lock();
+        }
+
+        m_workerBusy = false;
         m_requestChanged.notify_all();
     }
 }
@@ -131,7 +173,7 @@ void CAudioStream::Play(const char* streamUrl, float posX, float posY, float pos
         return;
     }
 
-    CAudioStream::Stop();
+    CAudioStream::Stop(false);
 
     const float scaleFactor = CAEAudioHardware::GetMusicMasterScalingFactor();
     if (!std::isfinite(scaleFactor) || scaleFactor <= 0.0f) {
@@ -160,7 +202,7 @@ void CAudioStream::Play(const char* streamUrl, float posX, float posY, float pos
         CAudioStream::m_audioStreamUrl = streamUrl;
         CAudioStream::m_bIsPlaying = true;
     }
-    
+
     m_requestChanged.notify_one();
 
     if (!CAudioStream::m_bAudioMsg && CGui::GetChat())
@@ -171,91 +213,69 @@ void CAudioStream::Play(const char* streamUrl, float posX, float posY, float pos
 
 void CAudioStream::Stop(bool shouldWaitForThread)
 {
-    bool connecting;
-    HSTREAM ready;
-    {
-        const std::lock_guard<std::mutex> lock(m_mutex);
-        ++m_request;
-        CAudioStream::m_audioStreamUrl.clear();
-        CAudioStream::m_bIsPlaying = false;
-        connecting = m_connecting;
-        ready = std::exchange(m_readyStream, 0);
-    }
+    std::unique_lock<std::mutex> lock(m_mutex);
+    ++m_request;
+    CAudioStream::m_audioStreamUrl.clear();
+    CAudioStream::m_bIsPlaying = false;
 
-    if (connecting)
     {
-        BASS_StreamCancel(this);
+        const std::lock_guard<std::mutex> tagsLock(m_tagsMutex);
+        m_tagsChannel = 0;
+        CAudioStream::m_streamTitle[0] = '\0';
     }
-
-    if (ready)
-    {
-        BASS_StreamFree(ready);
-    }
+    CAudioStream::m_streamLabel[0] = '\0';
 
     if (CAudioStream::bassStreamHandle)
     {
-        BASS_StreamFree(std::exchange(CAudioStream::bassStreamHandle, 0));
+        BASS_ChannelStop(std::exchange(CAudioStream::bassStreamHandle, 0));
     }
 
+    m_cancelPending = m_connecting;
+    CAudioStream::CancelConnection();
+    m_requestChanged.notify_one();
+
+    while (shouldWaitForThread && m_workerBusy)
     {
-        const std::lock_guard<std::mutex> lock(m_tagsMutex);
-        CAudioStream::m_streamTitle[0] = '\0';
+        if (m_cancelPending)
+        {
+            m_requestChanged.wait_for(lock, std::chrono::milliseconds(10));
+            CAudioStream::CancelConnection();
+        }
+        else
+        {
+            m_requestChanged.wait(lock);
+        }
     }
+}
 
-    CAudioStream::m_streamLabel[0] = '\0';
-
-    if (shouldWaitForThread)
+// Called with m_mutex held. BASS may not have registered the request yet.
+void CAudioStream::CancelConnection()
+{
+    if (m_cancelPending && BASS_StreamCancel(this))
     {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        m_requestChanged.wait(lock, [this] { return !m_connecting; });
+        m_cancelPending = false;
     }
 }
 
 void CAudioStream::Process()
 {
-    if (!CAudioStream::m_bInitialized) {
-        return;
-    }
-
-    if (!CAudioStream::bassStreamHandle)
-    {
-        {
-            const std::lock_guard<std::mutex> lock(m_mutex);
-            CAudioStream::bassStreamHandle = std::exchange(m_readyStream, 0);
-        }
-
-        if (!CAudioStream::bassStreamHandle) {
-            return;
-        }
-
-        CAudioStream::m_lastAudioStreamUpdateTick = CNecessary::GetTickCount() - 101;
-        CAudioStream::SetVolume(0);
-        BASS_ChannelSetSync(CAudioStream::bassStreamHandle, BASS_SYNC_META, 0, &AudioStreamMetaSync, this);
-        BASS_ChannelSetSync(CAudioStream::bassStreamHandle, BASS_SYNC_OGG_CHANGE, 0, &AudioStreamMetaSync, this);
-        if (BASS_ChannelLock(CAudioStream::bassStreamHandle, true))
-        {
-            CAudioStream::AudioStreamMetaSync(0, CAudioStream::bassStreamHandle, 0, this);
-            BASS_ChannelLock(CAudioStream::bassStreamHandle, false);
-        }
-
-        if (!BASS_ChannelPlay(CAudioStream::bassStreamHandle, false))
-        {
-            CNecessary::Log(OBFUSCATE("CAudioStream: BASS_ChannelPlay failed: %d"), BASS_ErrorGetCode());
-            CAudioStream::Stop();
-            return;
-        }
-    }
-
     const auto now = static_cast<std::uint32_t>(CNecessary::GetTickCount());
-    if (now - CAudioStream::m_lastAudioStreamUpdateTick <= 100) {
-        return;
+    bool ended;
+    {
+        const std::lock_guard<std::mutex> lock(m_mutex);
+        CAudioStream::CancelConnection();
+        if (!CAudioStream::m_bIsPlaying || now - CAudioStream::m_lastAudioStreamUpdateTick <= 100) {
+            return;
+        }
+
+        ended = CAudioStream::bassStreamHandle && BASS_ChannelIsActive(CAudioStream::bassStreamHandle) == BASS_ACTIVE_STOPPED;
     }
 
     CAudioStream::m_lastAudioStreamUpdateTick = now;
 
-    if (BASS_ChannelIsActive(CAudioStream::bassStreamHandle) == BASS_ACTIVE_STOPPED)
+    if (ended)
     {
-        CAudioStream::Stop();
+        CAudioStream::Stop(false);
         return;
     }
 
@@ -271,7 +291,7 @@ void CAudioStream::Process()
         if (CGame::GetPlayer() && CGame::GetPlayer()->VerifyInstance())
         {
             const float distance = CGame::GetPlayer()->GetDistanceFromPoint(CAudioStream::m_audioStreamPosition.x, CAudioStream::m_audioStreamPosition.y, CAudioStream::m_audioStreamPosition.z);
-            if (distance <= CAudioStream::m_audioStreamRadius)
+            if (std::isfinite(distance) && distance >= 0.0f && distance <= CAudioStream::m_audioStreamRadius)
             {
                 const float fadeFactor = 1.0f - (distance / CAudioStream::m_audioStreamRadius);
                 volume = static_cast<std::uint32_t>(fadeFactor * (scaleFactor * 8000.0f));
@@ -283,11 +303,7 @@ void CAudioStream::Process()
         }
     }
 
-    if (volume != CAudioStream::m_lastGlobalVolume)
-    {
-        CAudioStream::SetVolume(volume);
-    }
-
+    CAudioStream::SetVolume(volume);
     CAudioStream::UpdateStreamTags();
 }
 
@@ -306,6 +322,7 @@ void CAudioStream::ControlGameRadio()
 
 void CAudioStream::SetVolume(std::uint32_t volume)
 {
+    const std::lock_guard<std::mutex> lock(m_mutex);
     CAudioStream::m_lastGlobalVolume = volume;
     if (CAudioStream::bassStreamHandle)
     {
@@ -360,14 +377,22 @@ void CAudioStream::AudioStreamMetaSync(HSYNC, std::uint32_t streamChannel, std::
     }
 
     const std::lock_guard<std::mutex> lock(audioStream->m_tagsMutex);
-    std::memcpy(audioStream->m_streamTitle, title, sizeof(title));
+    if (streamChannel == audioStream->m_tagsChannel)
+    {
+        std::memcpy(audioStream->m_streamTitle, title, sizeof(title));
+    }
 }
 
 void CAudioStream::UpdateStreamTags()
 {
+    const std::lock_guard<std::mutex> lock(m_mutex);
+    if (!CAudioStream::bassStreamHandle) {
+        return;
+    }
+
     char title[sizeof(CAudioStream::m_streamTitle)];
     {
-        const std::lock_guard<std::mutex> lock(m_tagsMutex);
+        const std::lock_guard<std::mutex> tagsLock(m_tagsMutex);
         std::memcpy(title, CAudioStream::m_streamTitle, sizeof(title));
     }
 
@@ -404,7 +429,7 @@ void CAudioStream::UpdateStreamTags()
 
 bool CAudioStream::GetStreamTags() const
 {
-    return CAudioStream::bassStreamHandle && CAudioStream::m_streamLabel[0];
+    return CAudioStream::m_streamLabel[0] != '\0';
 }
 
 void CAudioStream::SetAudioMsg(bool toggle)
