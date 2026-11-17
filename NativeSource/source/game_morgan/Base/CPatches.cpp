@@ -28,7 +28,8 @@ void CPatches::InstallLoadFilePatches()
     CMemory::makeRET(SA_ADDR(0x0445B8)); // ปิด CCutsceneMgr::Initialise
     CMemory::WriteProcessMemory(SA_ADDR(0x046ABC), (uintptr_t)"\xDA\x00\x00\x14", 4); // ข้ามตัวโหลดคัตซีนสำรองเมื่อปิดการสร้าง directory
 
-    const char byteHudCellphoneData[14] = OBFUSCATE("GymAccept");
+    char byteHudCellphoneData[14]{};
+    std::memcpy(byteHudCellphoneData, OBFUSCATE("GymAccept"), sizeof("GymAccept"));
     CMemory::WriteProcessMemory(SA_ADDR(0x480D96), reinterpret_cast<uintptr_t>(byteHudCellphoneData), sizeof(byteHudCellphoneData));
 }
 

@@ -16,6 +16,7 @@ private:
     static void InstallMainPatches();
     static void InstallGameProcessPatches();
     static void InstallGraphicsOptimizationPatches();
+    static void InstallPadPatches();
     static void InstallATZPatches();
     static void InstallRadarPatches();
     static void InstallDisableAutoAimPatches();
