@@ -209,13 +209,8 @@ uint16_t CEntity::GetModelIndex()
 
 void CEntity::GetBoundCentre(CVector* centre)
 {
-    if (!centre) {
-        return;
-    }
-
     static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x14318C), "\x0A\x64\x80\x79\x29\x79\x6A\xF8\x29\x19\x40\xF9", 12, "__text");
     if (!verified) {
-        *centre = {};
         return;
     }
 
