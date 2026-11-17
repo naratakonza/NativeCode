@@ -232,7 +232,7 @@ bool CEntity::SetModelIndex(unsigned int uiModel)
         }
     }
 
-    // DeleteRWObject(); // เหมือนจะส่งผล Crash ใน 64Bit เยอะเลย
+    DeleteRWObject(); // เหมือนจะส่งผล Crash ใน 64Bit เยอะเลย
 
     m_pEntity->nModelIndex = static_cast<uint16_t>(uiModel);
 
@@ -240,6 +240,27 @@ bool CEntity::SetModelIndex(unsigned int uiModel)
     (*reinterpret_cast<void (*const *)(CEntityGta*, unsigned int)>(m_pEntity->vtable + 0x30))(m_pEntity, uiModel);
 
     return true;
+}
+
+uintptr_t CEntity::GetRWObject()
+{
+    if (m_pEntity)
+    {
+        return reinterpret_cast<uintptr_t>(m_pEntity->m_pRwObject);
+    }
+
+    return 0;
+}
+
+void CEntity::DeleteRWObject()
+{
+    if (!pthread_main_np() || !m_pEntity || !m_pEntity->vtable || !GetRWObject()) {
+        return;
+    }
+
+    // iOS virtual DeleteRwObject slot.
+    const auto deleteRWObject = *reinterpret_cast<void (*const *)(CEntityGta*)>(m_pEntity->vtable + 0x48);
+    deleteRWObject(m_pEntity);
 }
 
 float CEntity::GetDistanceFromPoint(CVector vec)
