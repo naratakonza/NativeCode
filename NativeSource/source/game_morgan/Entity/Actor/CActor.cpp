@@ -7,6 +7,8 @@
 #include "../../Scripts/CScripting.h"
 #include "../../Animation/CAnimManager.h"
 
+#include <unistd.h>
+
 CActor::CActor(uint16_t usModel, VECTOR vecPosition, float fRotation)
 {
     CNecessary::Log(OBFUSCATE("CActor Initialise"));
