@@ -7,6 +7,7 @@
 #include "../Guis/CGui.h"
 #include "../../Base/CPad.h"
 #include "../../Base/CWidgets.h"
+#include "../../Base/Graphics/CRealTimeShadowManager.h"
 #include "../../Scripts/CScripting.h"
 
 uint32_t dwEnterVehTimeElasped = -1;
@@ -492,6 +493,17 @@ bool CLocalPlayer::Spawn()
 
 	CLocalPlayer::GetPlayerPed()->RestartIfWastedAt(&m_SpawnInfo.vecPos, m_SpawnInfo.fRotation);
 	CLocalPlayer::GetPlayerPed()->SetModelIndex(CLocalPlayer::m_SpawnInfo.iSkin);
+
+	if (CRealTimeShadowManager::GetShadowStyle() == 1 && pthread_main_np() && CLocalPlayer::GetPlayerPed()->VerifyInstance())
+	{
+		auto* ped = CLocalPlayer::GetPlayerPed()->GetPed();
+		auto* shadow = ped->m_pRealTimeShadow;
+		if (shadow && shadow->m_pPhysical == ped)
+		{
+			CRealTimeShadowManager::ReturnRealTimeShadow(nullptr, shadow);
+		}
+	}
+
 	CLocalPlayer::GetPlayerPed()->ClearAllWeapons();
 	CLocalPlayer::GetPlayerPed()->ResetDamageEntity();
 

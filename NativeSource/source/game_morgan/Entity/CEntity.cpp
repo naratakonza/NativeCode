@@ -232,7 +232,7 @@ bool CEntity::SetModelIndex(unsigned int uiModel)
         }
     }
 
-    DeleteRWObject(); // เหมือนจะส่งผล Crash ใน 64Bit เยอะเลย
+    // DeleteRWObject(); // เหมือนจะส่งผล Crash ใน 64Bit เยอะเลย
 
     m_pEntity->nModelIndex = static_cast<uint16_t>(uiModel);
 
@@ -258,7 +258,6 @@ void CEntity::DeleteRWObject()
         return;
     }
 
-    // iOS virtual DeleteRwObject slot.
     const auto deleteRWObject = *reinterpret_cast<void (*const *)(CEntityGta*)>(m_pEntity->vtable + 0x48);
     deleteRWObject(m_pEntity);
 }
