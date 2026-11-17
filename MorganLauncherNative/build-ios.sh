@@ -149,7 +149,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CQuaternion.o" \
     "$out/fileio-objects/CTiltedRadar.o" "$out/fileio-objects/CTiltedCameraController.o" "$out/fileio-objects/CTiltedRadarGeometry.o" "$out/fileio-objects/CTiltedRadarMath.o" \
     "$out/fileio-objects/CDebugInfo.o" "$out/fileio-objects/CGameText.o" "$out/fileio-objects/CFont.o" "$out/fileio-objects/CGui.o" "$out/fileio-objects/CFontRender.o" \
-    "$out/fileio-objects/CSpawnScreen.o" "$out/fileio-objects/CDialog.o" \
+    "$out/fileio-objects/CSpawnScreen.o" "$out/fileio-objects/CDialog.o" "$out/fileio-objects/CButton.o" \
     "$out/fileio-objects/CTouchEvent.o" "$out/fileio-objects/CWidgets.o" \
     "$out/fileio-objects/CChat.o" "$out/fileio-objects/CCommand.o" "$out/fileio-objects/CMultiPlayerPacket.o" "$out/fileio-objects/CUtil.o" "$out/fileio-objects/CWorld.o" \
     "$out/fileio-objects/CMultiPlayerNetwork.o" "$out/fileio-objects/CMultiPlayerOpcode.o" "$out/fileio-objects/CEntryExitManager.o" \
