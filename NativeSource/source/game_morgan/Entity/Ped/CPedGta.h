@@ -286,6 +286,8 @@ static_assert(offsetof(CPedGta, m_nPedState) == 0x54C);
 static_assert(offsetof(CPedGta, m_nPedFlags) == 0x584);
 static_assert(offsetof(CPedGta, fHealth) == 0x6AC);
 static_assert(offsetof(CPedGta, fMaxHealth) == 0x6B0);
+static_assert(offsetof(CPedGta, m_pGroundPhysical) == 0x6D8);
+static_assert(offsetof(CPedGta, m_pEntityStandingOn) == 0x6F8);
 static_assert(offsetof(CPedGta, pVehicle) == 0x708);
 static_assert(offsetof(CPedGta, WeaponSlots) == 0x730);
 static_assert(offsetof(CPedGta, byteCurWeaponSlot) == 0x8DC);

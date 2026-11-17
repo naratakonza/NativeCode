@@ -30,12 +30,10 @@ eGyroMode CGyro::GetGyroMode()
 
 void CGyro::SetAimSensitivity(float value)
 {
-    if (value > eMaxConfig::MAX_SENSITIVITY)
+    if (std::isfinite(value))
     {
-        value = eMaxConfig::MAX_SENSITIVITY;
+        CGyro::ms_fAimSens = std::clamp(value, 0.0f, static_cast<float>(eMaxConfig::MAX_SENSITIVITY));
     }
-
-    CGyro::ms_fAimSens = value;
 }
 
 float CGyro::GetAimSensitivity()
@@ -45,12 +43,10 @@ float CGyro::GetAimSensitivity()
 
 void CGyro::SetOnfootSensitivity(float value)
 {
-    if (value > eMaxConfig::MAX_SENSITIVITY)
+    if (std::isfinite(value))
     {
-        value = eMaxConfig::MAX_SENSITIVITY;
+        CGyro::ms_fOnfootSens = std::clamp(value, 0.0f, static_cast<float>(eMaxConfig::MAX_SENSITIVITY));
     }
-
-    CGyro::ms_fOnfootSens = value;
 }
 
 float CGyro::GetOnfootSensitivity()
@@ -60,12 +56,10 @@ float CGyro::GetOnfootSensitivity()
 
 void CGyro::SetIncarSensitivity(float value)
 {
-    if (value > eMaxConfig::MAX_SENSITIVITY)
+    if (std::isfinite(value))
     {
-        value = eMaxConfig::MAX_SENSITIVITY;
+        CGyro::ms_fIncarSens = std::clamp(value, 0.0f, static_cast<float>(eMaxConfig::MAX_SENSITIVITY));
     }
-
-    CGyro::ms_fIncarSens = value;
 }
 
 float CGyro::GetIncarSensitivity()

@@ -1,0 +1,30 @@
+#pragma once
+
+enum eWidgetType
+{
+    TYPE_NONE = 0,
+    TYPE_PUNCH,
+    TYPE_SPRINT,
+    TYPE_SWIM,
+    TYPE_DIVE,
+    TYPE_ENTERCAR,
+    TYPE_ACCELERATE,
+    TYPE_BRAKE,
+    TYPE_JUMP,
+    TYPE_CAMERA,
+    TYPE_HORN,
+    TYPE_FIRE,
+    TYPE_AIM,
+    TYPE_NEXTWEAPON,
+    TYPE_PREVWEAPON,
+    TYPE_MENU,
+    TYPE_RADIO,
+    TYPE_PHONE,
+    TYPE_SPECIAL,
+    TYPE_MAP,
+    TYPE_PAUSE,
+    TYPE_FIRE_LEFT,
+    TYPE_FIRE_RIGHT,
+    TYPE_PLAYER_INFO,
+    TYPE_SIZE
+};

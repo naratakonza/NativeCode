@@ -13,6 +13,7 @@
 #include "../../CEntryExitManager.h"
 #include "../../Entity/CPhysical.h"
 #include "../Audio/CAudio.h"
+#include "../Texts/CGameText.h"
 
 int bytesToBits(int bytes) 
 {
@@ -433,6 +434,27 @@ void SetInterior(RakNet::BitStream bsData)
 	}
 }
 
+void ToggleWidescreen(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ToggleWidescreen"));
+
+	if (bsData.GetNumberOfUnreadBits() < bytesToBits(sizeof(uint8_t))) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for ToggleWidescreen"));
+        return;
+    }
+
+	uint8_t enable;
+
+	bsData.Read(enable);
+
+	if (CGui::GetChat())
+	{
+		CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("Widescreen = %i"), enable);
+	}
+
+	CGame::ToggleWidescreen(enable);
+}
+
 void ClientMessage(RakNet::BitStream bsClientMessage)
 {
     uint32_t dwStrLen;
@@ -452,6 +474,45 @@ void ClientMessage(RakNet::BitStream bsClientMessage)
 			CGui::GetChat()->AddClientMessage(dwColor, szMsg);
 		}
 	}
+}
+
+void ShowGameText(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ShowGameText"));
+
+	char szMessage[512]{};
+	int iType;
+	int iTime;
+	int iLength = 0;
+
+	bsData.Read(iType);
+	bsData.Read(iTime);
+
+	bsData.Read(iLength);
+	if (static_cast<std::size_t>(iLength) >= ARRAY_SIZE(szMessage)) {
+		return;
+	}
+
+	bsData.Read(szMessage, iLength);
+	szMessage[iLength] = '\0';
+
+	CGameText::Print(szMessage, iTime, (eMessageStyle)iType);
+}
+
+void CreateExplosion(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: CreateExplosion"));
+
+	float X, Y, Z, Radius;
+	uint32_t iType;
+
+	bsData.Read(X);
+	bsData.Read(Y);
+	bsData.Read(Z);
+	bsData.Read(iType);
+	bsData.Read(Radius);
+
+	CGame::CreateExplosion(X, Y, Z, iType, Radius);
 }
 
 void SetGravity(RakNet::BitStream bsData)
@@ -495,6 +556,30 @@ void ToggleClock(RakNet::BitStream bsData)
 		CMultiPlayer::GetActiveNetwork()->m_bHoldTime = true;
 		CClock::GetWorldTime((int*)&CMultiPlayer::GetActiveNetwork()->m_byteWorldTime, (int*)&CMultiPlayer::GetActiveNetwork()->m_byteWorldMinute);
 	}
+}
+
+void GivePlayerMoney(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: GivePlayerMoney"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(int));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for GivePlayerMoney"));
+        return;
+    }
+
+	int iMoney;
+	bsData.Read(iMoney);
+	CGame::AddPlayerMoney(iMoney);
+}
+
+void ResetPlayerMoney(RakNet::BitStream)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ResetPlayerMoney"));
+
+	CGame::ResetPlayerMoney();
 }
 
 void PlayAudioStream(RakNet::BitStream bsData)
@@ -916,7 +1001,7 @@ void SetArmedWeapon(RakNet::BitStream bsData)
 	}
 }
 
-void ResetPlayerWeapons(RakNet::BitStream /*bsData*/)
+void ResetPlayerWeapons(RakNet::BitStream)
 {
 	CNecessary::Log(OBFUSCATE("RPC: ResetPlayerWeapons"));
 
@@ -1058,25 +1143,25 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		// 	break;
 		// }
 
-		// case RPC_ToggleWidescreen: {
-		// 	ToggleWidescreen(*bsData);
-		// 	break;
-		// }
+		case RPC_ToggleWidescreen: {
+			ToggleWidescreen(*bsData);
+			break;
+		}
 
 		// case RPC_SetTargeting: {
 		// 	ToggleCameraTarget(*bsData);
 		// 	break;
 		// }
 
-		// case RPC_ShowGameText: {
-		// 	ShowGameText(*bsData);
-		// 	break;
-		// }
+		case RPC_ShowGameText: {
+			ShowGameText(*bsData);
+			break;
+		}
 
-		// case RPC_CreateExplosion: {
-		// 	CreateExplosion(*bsData);
-		// 	break;
-		// }
+		case RPC_CreateExplosion: {
+			CreateExplosion(*bsData);
+			break;
+		}
 
 		case RPC_SetGravity: {
 			SetGravity(*bsData);
@@ -1113,15 +1198,15 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_GivePlayerMoney: {
-		//     GivePlayerMoney(*bsData);
-		//     break;
-		// }
+		case RPC_GivePlayerMoney: {
+		    GivePlayerMoney(*bsData);
+		    break;
+		}
 
-		// case RPC_ResetPlayerMoney: {
-		//     ResetPlayerMoney(*bsData);
-		//     break;
-		// }
+		case RPC_ResetPlayerMoney: {
+		    ResetPlayerMoney(*bsData);
+		    break;
+		}
 
 		// case RPC_SetPlayerTeam: {
 		//     SetPlayerTeam(*bsData);

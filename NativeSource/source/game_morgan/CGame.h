@@ -30,6 +30,8 @@ public:
     static void SetPlayerMaxStats();
     static void SetPlayerStatsLocked(bool locked);
     static float FindGroundZForCoord(float x, float y, float z);
+    static void ToggleWidescreen(uint8_t Toggle);
+	static void CreateExplosion(float X, float Y, float Z, int iType, float Radius);
 
 public:
 	static CCamera* GetCamera() {

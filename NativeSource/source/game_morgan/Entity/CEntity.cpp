@@ -242,6 +242,26 @@ bool CEntity::SetModelIndex(unsigned int uiModel)
     return true;
 }
 
+uintptr_t CEntity::GetRWObject()
+{
+    if (m_pEntity)
+    {
+        return reinterpret_cast<uintptr_t>(m_pEntity->m_pRwObject);
+    }
+
+    return 0;
+}
+
+void CEntity::DeleteRWObject()
+{
+    if (!pthread_main_np() || !m_pEntity || !m_pEntity->vtable || !GetRWObject()) {
+        return;
+    }
+
+    const auto deleteRWObject = *reinterpret_cast<void (*const *)(CEntityGta*)>(m_pEntity->vtable + 0x48);
+    deleteRWObject(m_pEntity);
+}
+
 float CEntity::GetDistanceFromPoint(CVector vec)
 {
 	if (!m_pEntity) {

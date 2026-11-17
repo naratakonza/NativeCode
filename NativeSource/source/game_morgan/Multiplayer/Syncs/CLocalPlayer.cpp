@@ -6,6 +6,8 @@
 #include "../Audio/CAudio.h"
 #include "../Guis/CGui.h"
 #include "../../Base/CPad.h"
+#include "../../Base/CWidgets.h"
+#include "../../Base/Graphics/CRealTimeShadowManager.h"
 #include "../../Scripts/CScripting.h"
 
 uint32_t dwEnterVehTimeElasped = -1;
@@ -89,7 +91,7 @@ void CLocalPlayer::ResetData()
 	CLocalPlayer::m_weaponsData.m_nAimedActor = eInvalidId::INVALID_ACTOR_ID;
 	CLocalPlayer::m_weaponsData.m_nCurrentWeapon = 0;
 
-	// memset(&m_OnFootData, 0, sizeof(ONFOOT_SYNC_DATA));
+	memset(&m_OnFootData, 0, sizeof(ONFOOT_SYNC_DATA));
 	// memset(&m_InCarData, 0, sizeof(INCAR_SYNC_DATA));
 	// memset(&m_PassengerData, 0, sizeof(PASSENGER_SYNC_DATA));
 	// memset(&m_aimData, 0, sizeof(AIM_SYNC_DATA));
@@ -156,7 +158,7 @@ bool CLocalPlayer::Process()
 		}
 		else if (CLocalPlayer::GetPlayerPed()->GetActionTrigger() == eAction::ACTION_NORMAL || CLocalPlayer::GetPlayerPed()->GetActionTrigger() == eAction::ACTION_SCOPE)
 		{
-			// CLocalPlayer::ProcessOnFoot(dwThisTick);
+			CLocalPlayer::ProcessOnFoot(dwThisTick);
 			// CLocalPlayer::ProcessAimSync(dwThisTick);
 		}
 		else if (CLocalPlayer::GetPlayerPed()->IsInVehicle() && CLocalPlayer::GetPlayerPed()->IsAPassenger())
@@ -471,7 +473,7 @@ bool CLocalPlayer::Spawn()
 	CLocalPlayer::GetPlayerPed()->ToggleControllable(true);
 
 	CGame::DisplayHUD(true);
-	// CWidgets::SetToggle(true);
+	CWidgets::SetToggle(true);
 
     if (!bFirstSpawn)
 	{
@@ -491,6 +493,16 @@ bool CLocalPlayer::Spawn()
 
 	CLocalPlayer::GetPlayerPed()->RestartIfWastedAt(&m_SpawnInfo.vecPos, m_SpawnInfo.fRotation);
 	CLocalPlayer::GetPlayerPed()->SetModelIndex(CLocalPlayer::m_SpawnInfo.iSkin);
+
+	if (CRealTimeShadowManager::GetShadowStyle() == 1 && pthread_main_np() && CLocalPlayer::GetPlayerPed()->VerifyInstance())
+	{
+		CRealTimeShadow* pShadow = CLocalPlayer::GetPlayerPed()->GetPed()->m_pRealTimeShadow;
+		if (pShadow && pShadow->m_pPhysical == CLocalPlayer::GetPlayerPed()->GetPed())
+		{
+			CRealTimeShadowManager::ReturnRealTimeShadow(nullptr, pShadow);
+		}
+	}
+
 	CLocalPlayer::GetPlayerPed()->ClearAllWeapons();
 	CLocalPlayer::GetPlayerPed()->ResetDamageEntity();
 
@@ -658,4 +670,219 @@ bool CLocalPlayer::NeedsToUpdate(const void *pOld, const void *pNew, unsigned in
 	}
 
 	return false;
+}
+
+void CLocalPlayer::ProcessOnFoot(uint32_t dwThisTick)
+{
+	uint16_t lrAnalog, udAnalog;
+    uint16_t wKeys = CLocalPlayer::GetPlayerPed()->GetKeys(&lrAnalog, &udAnalog, false);
+
+	// CLocalPlayer::ProcessHead();
+	// CLocalPlayer::ProcessSurfing();
+
+	// CLocalPlayer::UpdateRCMode(eRcModeType::RC_MODE_OFF);
+	// CLocalPlayer::ProcessOnFootWorldBounds();
+
+	// if (CLocalPlayer::m_CurrentVehicle != eInvalidId::INVALID_VEHICLE_ID)
+	// {
+	// 	CLocalPlayer::m_LastVehicle = CLocalPlayer::m_CurrentVehicle;
+	// 	CLocalPlayer::m_CurrentVehicle = eInvalidId::INVALID_VEHICLE_ID;
+	// }
+	
+	if (CLocalPlayer::NeedsToSendOnfootData(wKeys, lrAnalog, udAnalog) || (dwThisTick - CLocalPlayer::m_dwLastSendTick) > (uint32_t)CLocalPlayer::GetOptimumOnFootSendRate())
+	{
+		CLocalPlayer::m_dwLastSendTick = CNecessary::GetTickCount();
+		CLocalPlayer::SendOnFootFullSyncData();
+	}
+
+	CLocalPlayer::m_bPassengerDriveByMode = false;
+}
+
+void CLocalPlayer::SendOnFootFullSyncData()
+{
+	ONFOOT_SYNC_DATA ofSync;
+
+	uint16_t lrAnalog, udAnalog;
+	uint16_t wKeys = CLocalPlayer::GetPlayerPed()->GetKeys(&lrAnalog, &udAnalog);
+
+	CMatrix matPlayer;
+	CLocalPlayer::GetPlayerPed()->GetMatrix(&matPlayer);
+	CVector vecMoveSpeed;
+	CLocalPlayer::GetPlayerPed()->GetMoveSpeedVector(&vecMoveSpeed);
+
+	ofSync.lrAnalog = lrAnalog;
+	ofSync.udAnalog = udAnalog;
+	ofSync.wKeys = wKeys;
+
+	ofSync.vecPos.x = matPlayer.pos.x;
+	ofSync.vecPos.y = matPlayer.pos.y;
+	ofSync.vecPos.z = matPlayer.pos.z;
+
+	uint8_t exKeys = CLocalPlayer::GetPlayerPed()->GetExtendedKeys();
+	ofSync.byteCurrentWeapon = (exKeys << 6) | (ofSync.byteCurrentWeapon & 0x3F);
+
+	ofSync.quat.SetFromMatrix(matPlayer);
+	ofSync.quat.Normalize();
+
+	float quatEpsilon = 0.0000099999997f;
+	if (std::abs(ofSync.quat.w - m_OnFootData.quat.w) < quatEpsilon && std::abs(ofSync.quat.x - m_OnFootData.quat.x) < quatEpsilon && std::abs(ofSync.quat.y - m_OnFootData.quat.y) < quatEpsilon && std::abs(ofSync.quat.z - m_OnFootData.quat.z) < quatEpsilon)
+	{
+		ofSync.quat = m_OnFootData.quat;
+	}
+
+	ofSync.byteHealth = static_cast<uint8_t>(CLocalPlayer::GetPlayerPed()->GetHealth());
+	ofSync.byteArmour = static_cast<uint8_t>(CLocalPlayer::GetPlayerPed()->GetArmour());
+
+	ofSync.byteCurrentWeapon ^= (ofSync.byteCurrentWeapon ^ CLocalPlayer::GetPlayerPed()->GetCurrentWeapon()) & 0x3F;
+
+    // เดียวมาทำต่อไอสัส
+	// if (CLocalPlayer::GetPlayerPed()->IsCrouching()) 
+	// {
+	// 	ofSync.byteSpecialAction = eSpecialAction::SPECIAL_ACTION_DUCK;
+	// }
+	// else 
+	// {
+	// 	ofSync.byteSpecialAction = CLocalPlayer::GetSpecialAction();
+	// }
+
+    ofSync.byteSpecialAction = eSpecialAction::SPECIAL_ACTION_NONE;
+
+	ofSync.vecMoveSpeed.x = vecMoveSpeed.x;
+	ofSync.vecMoveSpeed.y = vecMoveSpeed.y;
+	ofSync.vecMoveSpeed.z = vecMoveSpeed.z;
+
+    // เดียวมาทำต่อไอสัส
+	// if (CLocalPlayer::m_surfData.bIsActive)
+    // {
+	// 	if (CLocalPlayer::m_surfData.entityId != eInvalidId::INVALID_VEHICLE_ID)
+	// 	{
+	// 		ofSync.vecSurfOffsets.x = CLocalPlayer::m_surfData.vecPosition.x;
+	// 		ofSync.vecSurfOffsets.y = CLocalPlayer::m_surfData.vecPosition.y;
+	// 		ofSync.vecSurfOffsets.z = CLocalPlayer::m_surfData.vecPosition.z;
+	// 		ofSync.wSurfInfo = CLocalPlayer::m_surfData.entityId;
+	// 	}
+    // }
+    // else
+    // {
+    //     ofSync.vecSurfOffsets.x = 0.0f;
+	// 	ofSync.vecSurfOffsets.y = 0.0f;
+	// 	ofSync.vecSurfOffsets.z = 0.0f;
+    //     ofSync.wSurfInfo = 0;
+    // }
+
+    ofSync.vecSurfOffsets.x = 0.0f;
+	ofSync.vecSurfOffsets.y = 0.0f;
+	ofSync.vecSurfOffsets.z = 0.0f;
+    ofSync.wSurfInfo = 0;
+
+	ofSync.dwAnimation = CLocalPlayer::m_dwAnimationValue;
+	CLocalPlayer::m_bAnimationReset = true;
+
+	if (CLocalPlayer::NeedsToUpdate(&m_OnFootData, &ofSync, sizeof(ONFOOT_SYNC_DATA)))
+	{
+		RakNet::BitStream bsPlayerSync;
+		bsPlayerSync.Write(static_cast<uint8_t>(ID_PLAYER_SYNC));
+		bsPlayerSync.Write((char*)&ofSync, sizeof(ONFOOT_SYNC_DATA));
+		CMultiPlayer::GetActiveNetwork()->GetRakClient()->Send(&bsPlayerSync, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0);
+		memcpy(&m_OnFootData, &ofSync, sizeof(ONFOOT_SYNC_DATA));
+	}
+}
+
+void CLocalPlayer::SetLocalTeam(uint8_t byteTeam)
+{
+	CLocalPlayer::m_byteTeamId = byteTeam; 
+}
+
+uint8_t CLocalPlayer::GetLocalTeam()
+{
+	return CLocalPlayer::m_byteTeamId;
+}
+
+bool CLocalPlayer::NeedsToSendOnfootData(uint16_t wKeys, uint16_t lrAnalog, uint16_t udAnalog)
+{
+	return wKeys != CLocalPlayer::m_OnFootData.wKeys || udAnalog != CLocalPlayer::m_OnFootData.udAnalog || lrAnalog != CLocalPlayer::m_OnFootData.lrAnalog;
+}
+
+int CLocalPlayer::GetOptimumOnFootSendRate()
+{
+	if (!CLocalPlayer::GetPlayerPed()) 
+	{
+		return 1000;
+	}
+
+	if (CMultiPlayer::GetActiveNetwork()->m_bLanMode)
+    {
+        return 15;
+    }
+
+	return (CMultiPlayer::GetActiveNetwork()->m_iNetModeNormalOnfootSendRate + CLocalPlayer::DetermineNumberOfPlayersInLocalRange());
+}
+
+int CLocalPlayer::GetOptimumInCarSendRate()
+{
+	if (!CLocalPlayer::GetPlayerPed()) 
+	{
+		return 1000;
+	}
+
+	if (CMultiPlayer::GetActiveNetwork()->m_bLanMode)
+    {
+        return 15;
+    }
+
+	return (CMultiPlayer::GetActiveNetwork()->m_iNetModeNormalInCarSendRate + CLocalPlayer::DetermineNumberOfPlayersInLocalRange());
+}
+
+uint8_t CLocalPlayer::DetermineNumberOfPlayersInLocalRange()
+{
+	int iNumPlayersInRange = 0;
+	for (int i = 2; i < eMaxItem::PLAYER_PED_SLOTS; i++)
+	{
+		if (CPlayerPedSlot::IsActive(i)) 
+		{
+			iNumPlayersInRange++;
+		}
+	}
+
+	return iNumPlayersInRange;
+}
+
+void CLocalPlayer::SendTakeDamage(uint16_t PlayerID, float fDamageFactor, uint32_t weaponType, uint32_t pedPieceType)
+{
+	fDamageFactor *= 0.33000001;
+
+	RakNet::BitStream bsSend;
+	bsSend.Write(true);
+	bsSend.Write(PlayerID);
+	bsSend.Write(fDamageFactor);
+	bsSend.Write((uint32_t)weaponType);
+	bsSend.Write((uint32_t)pedPieceType);
+
+	CMultiPlayer::GetActiveNetwork()->GetRakClient()->RPC(&RPC_PlayerGiveTakeDamage, &bsSend, HIGH_PRIORITY, RELIABLE_ORDERED, 0, false, UNASSIGNED_NETWORK_ID, nullptr);
+}
+
+void CLocalPlayer::SendGiveDamage(uint16_t PlayerID, float fDamageFactor, uint32_t weaponType, uint32_t pedPieceType)
+{
+	fDamageFactor *= 0.33000001;
+
+	RakNet::BitStream bsSend;
+	bsSend.Write(false);
+	bsSend.Write(PlayerID);
+	bsSend.Write(fDamageFactor);
+	bsSend.Write((uint32_t)weaponType);
+	bsSend.Write((uint32_t)pedPieceType);
+
+	CMultiPlayer::GetActiveNetwork()->GetRakClient()->RPC(&RPC_PlayerGiveTakeDamage, &bsSend, HIGH_PRIORITY, RELIABLE_ORDERED, 0, false, UNASSIGNED_NETWORK_ID, nullptr);
+}
+
+void CLocalPlayer::SendGiveDamageActor(uint16_t ActorID, float fDamageFactor, uint32_t weaponType, uint32_t pedPieceType)
+{
+	RakNet::BitStream bsSend;
+	bsSend.Write(false);
+	bsSend.Write(ActorID);
+	bsSend.Write(fDamageFactor);
+	bsSend.Write(weaponType);
+	bsSend.Write(pedPieceType);
+
+	CMultiPlayer::GetActiveNetwork()->GetRakClient()->RPC(&RPC_GiveDamageActor, &bsSend, HIGH_PRIORITY, RELIABLE_ORDERED, 0, false, UNASSIGNED_NETWORK_ID, nullptr);
 }

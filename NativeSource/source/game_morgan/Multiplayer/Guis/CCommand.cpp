@@ -1,9 +1,12 @@
 #include "../../../../Main.h"
 #include "CCommand.h"
+#include "../../Base/CWidgets.h"
+#include "../../Base/Graphics/CRealTimeShadowManager.h"
 #include "CGui.h"
 #include "../Audio/CAudio.h"
 #include "../../CAspectRatio.h"
 #include "../../CDraw.h"
+#include "../../CHud.h"
 #include "../../CSensitivity.h"
 #include "../../CGyro.h"
 #include "../../Enums/eMaxConfig.h"
@@ -31,6 +34,9 @@ void CCommand::Initialise()
     CCommand::Add(OBFUSCATE("/gyroincarsens"), CCommand::SetIncarGyroSensitivity);
     CCommand::Add(OBFUSCATE("/gyromode"), CCommand::SetGyroMode);
     CCommand::Add(OBFUSCATE("/gyro"), CCommand::SetGyroScope);
+    CCommand::Add(OBFUSCATE("/wgalpha"), CCommand::SetWidgetAlpha);
+    CCommand::Add(OBFUSCATE("/hudalpha"), CCommand::SetHudAlpha);
+    CCommand::Add(OBFUSCATE("/shs"), CCommand::SetShadowStyle);
     CCommand::Add(OBFUSCATE("/audiomsg"), CCommand::SetAudioMessages);
     CCommand::Add(OBFUSCATE("/chip"), CCommand::SetConnect);
     CCommand::Add(OBFUSCATE("/rec"), CCommand::Reconnect);
@@ -399,6 +405,87 @@ void CCommand::SetGyroMode(const std::vector<std::string>& args)
     else
     {
         CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /gyromode <value>"));
+    }
+}
+
+void CCommand::SetWidgetAlpha(const std::vector<std::string>& args)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    if (args.size() >= 2)
+    {
+        const char* value = args[1].c_str();
+        char* end = nullptr;
+        const long type = std::strtol(value, &end, 10);
+
+        if (end != value && *end == '\0' && type >= 0 && type <= eMaxConfig::MAX_WIDGETALPHA)
+        {
+            CWidgets::SetAlpha(static_cast<int>(type));
+            CSetting::GetConfig()->WriteIntValue(OBFUSCATE("WidgetAlpha"), static_cast<int>(type));
+
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> WidgetAlpha Limiter: %u"), static_cast<unsigned>(type));
+        }
+        else
+        {
+            CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> WidgetAlpha Limiter: valid amounts are 0-255"));
+        }
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /wgalpha <value>"));
+    }
+}
+
+void CCommand::SetShadowStyle(const std::vector<std::string>&)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    const bool bShadowStyle = CRealTimeShadowManager::GetShadowStyle() == 0;
+    CRealTimeShadowManager::SetShadowStyle(bShadowStyle);
+
+    if (bShadowStyle)
+    {
+        CSetting::GetConfig()->WriteIntValue(OBFUSCATE("Shadow"), 1);
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> ShadowStyle Advance"));
+    }
+    else
+    {
+        CSetting::GetConfig()->WriteIntValue(OBFUSCATE("Shadow"), 0);
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> ShadowStyle Classic"));
+    }
+}
+
+void CCommand::SetHudAlpha(const std::vector<std::string>& args)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    if (args.size() >= 2)
+    {
+        const char* value = args[1].c_str();
+        char* end = nullptr;
+        const long type = std::strtol(value, &end, 10);
+
+        if (end != value && *end == '\0' && type >= 0 && type <= eMaxConfig::MAX_WIDGETALPHA)
+        {
+            CHud::SetAlpha(static_cast<int>(type));
+            CSetting::GetConfig()->WriteIntValue(OBFUSCATE("HudAlpha"), static_cast<int>(type));
+
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> HudAlpha Limiter: %u"), static_cast<unsigned>(type));
+        }
+        else
+        {
+            CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> HudAlpha Limiter: valid amounts are 0-255"));
+        }
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /hudalpha <value>"));
     }
 }
 

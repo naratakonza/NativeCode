@@ -27,6 +27,10 @@ void CPatches::InstallLoadFilePatches()
     CMemory::makeRET(SA_ADDR(0x0446B0)); // ปิด CCutsceneMgr::LoadCutsceneData
     CMemory::makeRET(SA_ADDR(0x0445B8)); // ปิด CCutsceneMgr::Initialise
     CMemory::WriteProcessMemory(SA_ADDR(0x046ABC), (uintptr_t)"\xDA\x00\x00\x14", 4); // ข้ามตัวโหลดคัตซีนสำรองเมื่อปิดการสร้าง directory
+
+    char byteHudCellphoneData[14]{};
+    std::memcpy(byteHudCellphoneData, OBFUSCATE("GymAccept"), sizeof("GymAccept"));
+    CMemory::WriteProcessMemory(SA_ADDR(0x480D96), reinterpret_cast<uintptr_t>(byteHudCellphoneData), sizeof(byteHudCellphoneData));
 }
 
 void CPatches::InstallLevelZPatches()
@@ -253,6 +257,24 @@ void CPatches::InstallGraphicsOptimizationPatches()
     CMemory::makeRET(SA_ADDR(0x144308)); // CEntity::PreRenderForGlassWindow
 }
 
+void CPatches::InstallPadPatches()
+{
+    CNecessary::Log(OBFUSCATE("CPatches InstallPadPatches"));
+
+    // สำหรับ ONFOOT
+    CMemory::WriteProcessMemory(SA_ADDR(0x15ECD8), (uintptr_t)"\x00\x00\x80\x52", 4); // CPad::GetDuck คืน 0
+    CMemory::makeRET(SA_ADDR(0x15ECDC));
+    CMemory::WriteProcessMemory(SA_ADDR(0x15F330), (uintptr_t)"\x00\x00\x80\x52", 4); // CPad::SprintJustDown คืน 0
+    CMemory::makeRET(SA_ADDR(0x15F334));
+    CMemory::WriteProcessMemory(SA_ADDR(0x15E000), (uintptr_t)"\x00\x00\x80\x52", 4); // CPad::GetMeleeAttack คืน 0
+    CMemory::makeRET(SA_ADDR(0x15E004));
+
+    // สำหรับ INCAR (เดียวมาเปิดภายหลัง)
+    // CMemory::makeRET(SA_ADDR(0x49E7B0)); // CPad::GetAccelerateJustDown
+    // CMemory::makeRET(SA_ADDR(0x49DC30)); // CPad::GetExitVehicle
+    // CMemory::makeRET(SA_ADDR(0x49F278)); // CPad::GetBunnyHopDown
+}
+
 void CPatches::InstallATZPatches()
 {
     CNecessary::Log(OBFUSCATE("CPatches InstallATZPatches"));
@@ -315,12 +337,14 @@ void CPatches::SetPatches(ePatchType type)
 
             break;
         }
+        
         case ePatchType::PATCH_TYPE_MENU: {
             CPatches::InstallSavePatches();
             CPatches::InstallTemporaryFrameratePatches();
             CPatches::InstallMainPatches();
             CPatches::InstallGameProcessPatches();
             CPatches::InstallGraphicsOptimizationPatches();
+            CPatches::InstallPadPatches();
             CUvAnim::Initialise();
 
             break;

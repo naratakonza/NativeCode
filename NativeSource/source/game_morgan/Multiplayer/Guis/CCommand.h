@@ -33,6 +33,9 @@ private:
     static void SetGyroScope(const std::vector<std::string>& args);
 
     static void SetAudioMessages(const std::vector<std::string>& args);
+    static void SetWidgetAlpha(const std::vector<std::string>& args);
+    static void SetHudAlpha(const std::vector<std::string>& args);
+    static void SetShadowStyle(const std::vector<std::string>& args);
 
     static std::vector<ChatCommand> commandList;
 };
