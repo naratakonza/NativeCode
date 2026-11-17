@@ -34,6 +34,7 @@ private:
 
     static void SetAudioMessages(const std::vector<std::string>& args);
     static void SetWidgetAlpha(const std::vector<std::string>& args);
+    static void SetHudAlpha(const std::vector<std::string>& args);
 
     static std::vector<ChatCommand> commandList;
 };

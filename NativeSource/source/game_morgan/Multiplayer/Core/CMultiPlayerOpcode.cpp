@@ -558,6 +558,30 @@ void ToggleClock(RakNet::BitStream bsData)
 	}
 }
 
+void GivePlayerMoney(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: GivePlayerMoney"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(int));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for GivePlayerMoney"));
+        return;
+    }
+
+	int iMoney;
+	bsData.Read(iMoney);
+	CGame::AddPlayerMoney(iMoney);
+}
+
+void ResetPlayerMoney(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ResetPlayerMoney"));
+
+	CGame::ResetPlayerMoney();
+}
+
 void PlayAudioStream(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: PlayAudioStream"));
@@ -1174,15 +1198,15 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_GivePlayerMoney: {
-		//     GivePlayerMoney(*bsData);
-		//     break;
-		// }
+		case RPC_GivePlayerMoney: {
+		    GivePlayerMoney(*bsData);
+		    break;
+		}
 
-		// case RPC_ResetPlayerMoney: {
-		//     ResetPlayerMoney(*bsData);
-		//     break;
-		// }
+		case RPC_ResetPlayerMoney: {
+		    ResetPlayerMoney(*bsData);
+		    break;
+		}
 
 		// case RPC_SetPlayerTeam: {
 		//     SetPlayerTeam(*bsData);
