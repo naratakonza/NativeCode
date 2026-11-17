@@ -575,7 +575,7 @@ void GivePlayerMoney(RakNet::BitStream bsData)
 	CGame::AddPlayerMoney(iMoney);
 }
 
-void ResetPlayerMoney(RakNet::BitStream bsData)
+void ResetPlayerMoney(RakNet::BitStream)
 {
 	CNecessary::Log(OBFUSCATE("RPC: ResetPlayerMoney"));
 
