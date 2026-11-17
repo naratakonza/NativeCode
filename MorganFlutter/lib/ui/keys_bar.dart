@@ -173,11 +173,11 @@ class _SampKeysBarState extends State<SampKeysBar>
     final usableWidth = screenWidth - safe.horizontal;
     final usableHeight = screenHeight - safe.vertical;
     final double scale = math.min(usableWidth / 970.0, usableHeight / 540.0);
-    final double btnWidth = 46.0 * scale;
-    final double btnHeight = 28.0 * scale;
+    final double btnWidth = 57.5 * scale;
+    final double btnHeight = 35.0 * scale;
     final double spacing = 6.0 * scale;
     final double borderRadius = 4.0 * scale;
-    final double fontSize = 9.0 * scale;
+    final double fontSize = 11.25 * scale;
     final double gap = math.max(10.0, 12.0 * scale);
     final double panelHeight = btnHeight + 6.0 * scale;
     final double maxSafeTop = screenHeight - safe.bottom - panelHeight - gap;

@@ -9,6 +9,10 @@ on:
         description: Build only the iPhoneOS native framework
         type: boolean
         default: false
+      flutter_only:
+        description: Build only the Flutter iPhoneOS AOT module
+        type: boolean
+        default: false
       native_runner:
         description: macOS runner for the native framework
         type: choice
@@ -23,6 +27,7 @@ permissions:
 
 jobs:
   native:
+    if: ${{ !inputs.flutter_only }}
     runs-on: ${{ inputs.native_runner || 'macos-15-intel' }}
     timeout-minutes: 12
     steps:
