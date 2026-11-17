@@ -496,11 +496,10 @@ bool CLocalPlayer::Spawn()
 
 	if (CRealTimeShadowManager::GetShadowStyle() == 1 && pthread_main_np() && CLocalPlayer::GetPlayerPed()->VerifyInstance())
 	{
-		auto* ped = CLocalPlayer::GetPlayerPed()->GetPed();
-		auto* shadow = ped->m_pRealTimeShadow;
-		if (shadow && shadow->m_pPhysical == ped)
+		CRealTimeShadow* pShadow = CLocalPlayer::GetPlayerPed()->GetPed()->m_pRealTimeShadow;
+		if (pShadow && pShadow->m_pPhysical == CLocalPlayer::GetPlayerPed()->GetPed())
 		{
-			CRealTimeShadowManager::ReturnRealTimeShadow(nullptr, shadow);
+			CRealTimeShadowManager::ReturnRealTimeShadow(nullptr, pShadow);
 		}
 	}
 

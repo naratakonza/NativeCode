@@ -1,6 +1,9 @@
 #include "CEntity.h"
 #include "../CCommon.h"
 #include "../CStreaming.h"
+#include "../RenderWare/rwcore.h"
+#include "../Models/CBaseModelInfo.h"
+#include <algorithm>
 #include <string>
 
 #include "../Multiplayer/Guis/CGui.h"
@@ -202,6 +205,79 @@ uint16_t CEntity::GetModelIndex()
 	}
 
 	return m_pEntity->nModelIndex;
+}
+
+void CEntity::GetBoundCentre(CVector* centre)
+{
+    if (!centre) {
+        return;
+    }
+
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x14318C), "\x0A\x64\x80\x79\x29\x79\x6A\xF8\x29\x19\x40\xF9", 12, "__text");
+    if (!verified) {
+        *centre = {};
+        return;
+    }
+
+    reinterpret_cast<void (*)(CEntityGta*, CVector*)>(SA_ADDR(0x14316C) + _dyld_get_image_vmaddr_slide(0))(m_pEntity, centre);
+}
+
+float CEntity::GetDistanceFromCamera()
+{
+    const auto slide = _dyld_get_image_vmaddr_slide(0);
+    if (!m_pEntity || m_pEntity->vtable == SA_ADDR(0x49BD50) + slide) {
+        return 100000.0f;
+    }
+
+    const auto& pos = m_pEntity->mat->pos;
+    const auto& camPos = *reinterpret_cast<const CVector*>(SA_ADDR(0x72D8A8) + slide); // TheCamera->m_mCameraMatrix.pos
+
+    const float deltaX = pos.x - camPos.x;
+    const float deltaY = pos.y - camPos.y;
+    const float deltaZ = pos.z - camPos.z;
+
+    return sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ);
+}
+
+bool CEntity::IsPointInsideEntity(CVector* pointStart, CVector* pointEnd, CVector* pOffset, float scaleFactor, bool enablePrecheck)
+{
+    if (!m_pEntity || !m_pEntity->mat || !pointStart || !pointEnd || !pOffset) {
+        return false;
+    }
+
+    const auto* modelInfo = reinterpret_cast<const CBaseModelInfo*>(CCommon::GetModelInfoByID(m_pEntity->nModelIndex));
+    if (!modelInfo || !modelInfo->m_pColModel) {
+        return false;
+    }
+
+    const float boundingRadius = *reinterpret_cast<const float*>(reinterpret_cast<uintptr_t>(modelInfo->m_pColModel) + 0x24);
+    if (enablePrecheck)
+    {
+        static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x318800), "\xA8\x2E\x00\xF0\x00\x79\x43\xF9\xE1\x03\x00\x91", 12, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x2AB024), "\x20\x08\x40\x2D\x01\x0C\x58\x2D\x43\x08\x23\x1E", 12, "__text");
+        if (!verified) {
+            return false;
+        }
+
+        const auto slide = _dyld_get_image_vmaddr_slide(0);
+        const auto* camera = *reinterpret_cast<RwCamera* const*>(SA_ADDR(0x8EF6F0) + slide);
+        const RwSphere sphere{{pOffset->x, pOffset->y, pOffset->z}, boundingRadius};
+        if (!camera || reinterpret_cast<RwFrustumTestResult (*)(const RwCamera*, const RwSphere*)>(SA_ADDR(0x2AB024) + slide)(camera, &sphere) == 0) {
+            return false;
+        }
+    }
+
+    const CVector start = *pointStart - *pOffset;
+    const CVector end = *pointEnd - *pOffset;
+    const float colLine[8] = {start.x, start.y, start.z, 0.0f, end.x, end.y, end.z, 0.0f};
+    float radius = std::max(boundingRadius, 0.5f);
+    if (radius < 1.0f)
+	{
+        radius *= 1.5f;
+    }
+
+    const RwSphere colSphere{{}, radius * scaleFactor};
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x8B2A4), "\x02\x0C\x42\x2D\x00\x04\x40\x2D\x45\x38\x20\x1E", 12, "__text");
+    return verified && reinterpret_cast<bool (*)(const float*, const RwSphere*)>(SA_ADDR(0x8B2A4) + _dyld_get_image_vmaddr_slide(0))(colLine, &colSphere);
 }
 
 bool CEntity::SetModelIndex(unsigned int uiModel)

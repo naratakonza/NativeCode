@@ -110,13 +110,12 @@ void CPlayerPed::DestroyFollowPedTask()
     }
 
     const auto slide = _dyld_get_image_vmaddr_slide(0);
-    const auto pedIntelligence = reinterpret_cast<uintptr_t>(GetPed()->pPedIntelligence);
-    uintptr_t ikManager = *reinterpret_cast<uintptr_t*>(pedIntelligence + 0x58); // TASK_SECONDARY_IK
+    CTask*& ikManager = GetPed()->pPedIntelligence->m_taskManager.m_aSecondaryTasks[eSecondaryTask::TASK_SECONDARY_IK];
 
-    if (ikManager && *reinterpret_cast<const uintptr_t*>(ikManager) == SA_ADDR(0x4AB8B8) + slide)
+    if (ikManager && ikManager->vtable == SA_ADDR(0x4AB8B8) + slide)
     {
-        reinterpret_cast<void (*)(uintptr_t)>(SA_ADDR(0x360F5C) + slide)(ikManager);
-        *reinterpret_cast<uintptr_t*>(pedIntelligence + 0x58) = 0;
+        reinterpret_cast<void (*)(CTask*)>(SA_ADDR(0x360F5C) + slide)(ikManager);
+        ikManager = nullptr;
     }
 }
 

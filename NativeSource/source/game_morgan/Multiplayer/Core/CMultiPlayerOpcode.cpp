@@ -719,6 +719,253 @@ void SetSpawnInfo(RakNet::BitStream bsData)
 	}
 }
 
+void ShowActor(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ShowActor"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint32_t)) +
+		bytesToBits(sizeof(VECTOR)) +
+		bytesToBits(sizeof(float) * 2) +
+		bytesToBits(sizeof(uint8_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for ShowActor"));
+        return;
+    }
+
+	uint16_t actorId;
+	uint32_t iSkinId;
+	VECTOR vecPos;
+	float fRotation, fHealth;
+	uint8_t bInvulnerable;
+
+	bsData.Read(actorId);
+	bsData.Read(iSkinId);
+	bsData.Read((char*)&vecPos, sizeof(VECTOR));
+	bsData.Read(fRotation);
+	bsData.Read(fHealth);
+	bsData.Read(bInvulnerable);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()) 
+	{
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->Add(actorId, iSkinId, vecPos, fRotation, fHealth, bInvulnerable);
+	}
+}
+
+void HideActor(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: HideActor"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for HideActor"));
+        return;
+    }
+
+	uint16_t actorId;
+
+	bsData.Read(actorId);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()) 
+	{
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->Delete(actorId, true);
+	}
+}
+
+void SetActorHealth(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetActorHealth"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(float));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetActorHealth"));
+        return;
+    }
+
+	uint16_t actorId;
+	float fHealth;
+
+	bsData.Read(actorId);
+	bsData.Read(fHealth);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()) 
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActorInSlot(actorId)) 
+		{
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)) 
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)->SetHealth(fHealth);
+			}
+		}
+	}
+}
+
+void SetActorFacingAngle(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetActorFacingAngle"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(float));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetActorFacingAngle"));
+        return;
+    }
+
+	uint16_t actorId;
+	float fAngle;
+
+	bsData.Read(actorId);
+	bsData.Read(fAngle);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()) 
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActorInSlot(actorId)) 
+		{
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)) 
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)->SetAngle(fAngle);
+			}
+		}
+	}
+}
+
+void SetActorPos(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetActorPos"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(VECTOR));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetActorPos"));
+        return;
+    }
+
+	uint16_t actorId;
+	VECTOR vecPos;
+
+	bsData.Read(actorId);
+	bsData.Read((char*)&vecPos, sizeof(VECTOR));
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()) 
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActorInSlot(actorId)) 
+		{
+			if(CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)) 
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)->SetPosition(vecPos);
+			}
+		}
+	}
+}
+
+void ApplyActorAnimation(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ApplyActorAnimation"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint8_t)) +
+		bytesToBits(sizeof(uint8_t)) +
+		bytesToBits(sizeof(float)) +
+		bytesToBits(sizeof(bool)) +
+		bytesToBits(sizeof(bool)) +
+		bytesToBits(sizeof(bool)) +
+		bytesToBits(sizeof(bool)) +
+		bytesToBits(sizeof(uint32_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for ApplyActorAnimation"));
+        return;
+    }
+
+	uint16_t actorId;
+	uint8_t uiAnimLibLen;
+	char szAnimLib[64] = { '\0' };
+	uint8_t uiAnimNameLen;
+	char szAnimName[64] = { '\0' };
+	float fDelta;
+	bool bLoop;
+	bool bLockX;
+	bool bLockY;
+	bool bFreeze;
+	uint32_t uiTime;
+
+	bsData.Read(actorId);
+
+	bsData.Read(uiAnimLibLen);
+	if (uiAnimLibLen < 0 || uiAnimLibLen >= sizeof(szAnimLib)) {
+		return;
+	}
+
+	bsData.Read(szAnimLib, uiAnimLibLen);
+	szAnimLib[uiAnimLibLen] = '\0';
+
+	bsData.Read(uiAnimNameLen);
+	if (uiAnimNameLen < 0 || uiAnimNameLen >= sizeof(szAnimName)) {
+		return;
+	}
+
+	bsData.Read(szAnimName, uiAnimNameLen);
+	szAnimName[uiAnimNameLen] = '\0';
+
+	bsData.Read(fDelta);
+	bsData.Read(bLoop);
+	bsData.Read(bLockX);
+	bsData.Read(bLockY);
+	bsData.Read(bFreeze);
+	bsData.Read(uiTime);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()) 
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActorInSlot(actorId)) 
+		{
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)) 
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)->ApplyAnimation(szAnimName, szAnimLib, fDelta, bLoop, bLockX, bLockY, bFreeze, uiTime);
+			}
+		}
+	}
+}
+
+void ClearActorAnimation(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ClearActorAnimation"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for ClearActorAnimation"));
+        return;
+    }
+
+	uint16_t actorId;
+
+	bsData.Read(actorId);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()) 
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActorInSlot(actorId)) 
+		{
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)) 
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)->ClearAnimations();
+			}
+		}
+	}
+}
+
 void SetPlayerSkin(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: SetPlayerSkin"));
@@ -1213,40 +1460,40 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_ShowActor: {
-		//     ShowActor(*bsData);
-		//     break;
-		// }
+		case RPC_ShowActor: {
+		    ShowActor(*bsData);
+		    break;
+		}
 
-		// case RPC_HideActor: {
-		//     HideActor(*bsData);
-		//     break;
-		// }
+		case RPC_HideActor: {
+		    HideActor(*bsData);
+		    break;
+		}
 
-		// case RPC_SetActorHealth: {
-		//     SetActorHealth(*bsData);
-		//     break;
-		// }
+		case RPC_SetActorHealth: {
+		    SetActorHealth(*bsData);
+		    break;
+		}
 
-		// case RPC_SetActorFacingAngle: {
-		//     SetActorFacingAngle(*bsData);
-		//     break;
-		// }
+		case RPC_SetActorFacingAngle: {
+		    SetActorFacingAngle(*bsData);
+		    break;
+		}
 
-		// case RPC_SetActorPos: {
-		//     SetActorPos(*bsData);
-		//     break;
-		// }
+		case RPC_SetActorPos: {
+		    SetActorPos(*bsData);
+		    break;
+		}
 
-		// case RPC_ApplyActorAnimation: {
-		//     ApplyActorAnimation(*bsData);
-		//     break;
-		// }
+		case RPC_ApplyActorAnimation: {
+		    ApplyActorAnimation(*bsData);
+		    break;
+		}
 
-		// case RPC_ClearActorAnimation: {
-		//     ClearActorAnimation(*bsData);
-		//     break;
-		// }
+		case RPC_ClearActorAnimation: {
+		    ClearActorAnimation(*bsData);
+		    break;
+		}
 
 		// case RPC_PlayCrimeReport: {
 		// 	PlayCrimeReport(*bsData);

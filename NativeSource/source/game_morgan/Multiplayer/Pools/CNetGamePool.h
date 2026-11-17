@@ -3,7 +3,7 @@
 #include "Process/CPlayerPool.h"
 // #include "Process/CVehiclePool.h"
 // #include "Process/CTextDrawPool.h"
-// #include "Process/CActorPool.h"
+#include "Process/CActorPool.h"
 // #include "Process/CGangZonePool.h"
 // #include "Process/CTextLabelPool.h"
 // #include "Process/CPickupPool.h"
@@ -15,7 +15,7 @@ class CNetGamePool
 	CPlayerPool* m_pPlayerPool;
 	// CVehiclePool* m_pVehiclePool;
 	// CTextDrawPool* m_pTextDrawPool;
-	// CActorPool* m_pActorPool;
+	CActorPool* m_pActorPool;
 	// CGangZonePool* m_pGangZonePool;
 	// CTextLabelPool* m_pTextLabelPool;
 	// CPickupPool* m_pPickupPool;
@@ -43,9 +43,9 @@ public:
 	// 	return CNetGamePool::m_pTextDrawPool;
 	// };
 
-	// CActorPool* GetActorPool() {
-	// 	return CNetGamePool::m_pActorPool;
-	// };
+	CActorPool* GetActorPool() {
+		return CNetGamePool::m_pActorPool;
+	};
 
 	// CGangZonePool* GetGangZonePool() {
 	// 	return CNetGamePool::m_pGangZonePool;

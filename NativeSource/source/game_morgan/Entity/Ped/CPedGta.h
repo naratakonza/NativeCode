@@ -3,7 +3,7 @@
 #include "../CPhysicalGta.h"
 #include "../../RenderWare/rwplcore.h"
 #include "../Vehicle/CVehicleGta.h"
-// #include "../../CPedIntelligence.h"
+#include "../../CPedIntelligence.h"
 
 #include "../../Enums/ePedState.h"
 #include "../../Enums/eMoveState.h"
@@ -30,7 +30,7 @@ struct CPedGta : CPhysicalGta
     uint8_t m_PedAudioEntity[0x1A8];
     uint8_t m_PedSpeechAudioEntity[0x130];
     uint8_t m_PedWeaponAudioEntity[0xC8];
-    uintptr_t* pPedIntelligence;
+    CPedIntelligence* pPedIntelligence;
     uintptr_t *m_pPlayerData;
     uint8_t m_nCreatedBy;
     uint8_t                field_485[3];

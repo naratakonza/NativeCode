@@ -30,6 +30,34 @@ float CUtil::DegToRad(float fDegrees)
     else return (float)((fDegrees * PI) / 180.0f);
 }
 
+float CUtil::GetDistanceBetween3DPoints(CVector* f, CVector* s)
+{
+	float dx = s->x - f->x;
+	float dy = s->y - f->y;
+	float dz = s->z - f->z;
+	return sqrtf(dx * dx + dy * dy + dz * dz);
+}
+
+float CUtil::GetDistanceBetweenPointAndLine(CVector* p, CVector* a, CVector* b)
+{
+    CVector pa = *p - *a;
+    CVector pb = *p - *b;
+    CVector ab = *b - *a;
+    CVector cross;
+    cross.x = pa.y * pb.z - pa.z * pb.y;
+    cross.y = pa.z * pb.x - pa.x * pb.z;
+    cross.z = pa.x * pb.y - pa.y * pb.x;
+    float crossMag = sqrt(cross.x * cross.x + cross.y * cross.y + cross.z * cross.z);
+    float lineMag = sqrt(ab.x * ab.x + ab.y * ab.y + ab.z * ab.z);
+
+    if (lineMag < 0.0001f)
+	{
+		return CUtil::GetDistanceBetween3DPoints(p, a);
+	}
+
+    return crossMag / lineMag;
+}
+
 CVector CUtil::Multiply3x3(const CMatrix *m, const CVector *v)
 {
     return reinterpret_cast<CVector (*)(const CMatrix *, const CVector *)>(SA_ADDR(0x22B874) + _dyld_get_image_vmaddr_slide(0))(m, v);
