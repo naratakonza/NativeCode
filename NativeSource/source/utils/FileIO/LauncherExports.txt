@@ -58,6 +58,5 @@ _CPad_DiveJustDown_hook
 _CPad_GetBlock_hook
 _CRealTimeShadowManager_DoShadowThisFrame_hook
 _CRealTimeShadowManager_ReturnRealTimeShadow_hook
-
 _PickUpPickup_hook
 _SendPickedUpPickup_Helper
