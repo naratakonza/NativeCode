@@ -89,7 +89,7 @@ for source in \
     "$fileio/FileIO.cpp" "$storage/PosixFileIO.cpp" "$storage/CStorageZip.cpp" "$storage/CStorageDisk.cpp" \
     "$fileio/HookAdapter.cpp" "$hooks/CHooks.cpp" "$fileio/FileOpenDiagnostics.cpp" "$memory/CHook.cpp" \
     "$multiplayer/Texts/CDebugInfo.cpp" "$multiplayer/Texts/CGameText.cpp" "$native/source/game_morgan/CFont.cpp" "$multiplayer/Guis/CGui.cpp" "$multiplayer/Guis/Font/CFontRender.cpp" \
-    "$multiplayer/Guis/CSpawnScreen.cpp" "$multiplayer/Guis/CDialog.cpp" \
+    "$multiplayer/Guis/CSpawnScreen.cpp" "$multiplayer/Guis/CDialog.cpp" "$multiplayer/Guis/CButton.cpp" \
     "$hooks/MultiTouch/CTouchEvent.cpp" "$hooks/CWidgets.cpp" \
     "$multiplayer/Guis/CChat.cpp" "$multiplayer/Guis/CCommand.cpp" "$multiplayer/Core/CMultiPlayerPacket.cpp" "$native/source/game_morgan/CUtil.cpp" "$native/source/game_morgan/CWorld.cpp" \
     "$multiplayer/Core/CMultiPlayerNetwork.cpp" "$multiplayer/Core/CMultiPlayerOpcode.cpp" "$native/source/game_morgan/CEntryExitManager.cpp" \

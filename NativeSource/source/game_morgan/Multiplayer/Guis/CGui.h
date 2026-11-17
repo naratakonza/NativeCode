@@ -2,6 +2,7 @@
 
 #include "../Texts/CDebugInfo.h"
 #include "CChat.h"
+#include "CButton.h"
 #include "CDialog.h"
 #include "CSpawnScreen.h"
 #include "Font/CFontRender.h"
@@ -23,6 +24,11 @@ public:
 		return CGui::pDialog;
 	};
 
+    static CButton* GetButton()
+    {
+        return CGui::pButton;
+    }
+
     static CSpawnScreen* GetSpawnScreen()
     {
         return CGui::pSpawnScreen;
@@ -38,6 +44,7 @@ public:
 
 private:
     static CChat* pChat;
+    static CButton* pButton;
     static CDialog* pDialog;
     static CSpawnScreen* pSpawnScreen;
     static CDebugInfo* pDebug;

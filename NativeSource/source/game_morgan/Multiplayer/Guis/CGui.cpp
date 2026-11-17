@@ -3,6 +3,7 @@
 
 CDebugInfo* CGui::pDebug = nullptr;
 CChat* CGui::pChat = nullptr;
+CButton* CGui::pButton = nullptr;
 CDialog* CGui::pDialog = nullptr;
 CSpawnScreen* CGui::pSpawnScreen = nullptr;
 CFontRender* CGui::pFontRender = nullptr;
@@ -13,6 +14,7 @@ void CGui::Initialise()
 
     CGui::pDebug = new CDebugInfo();
     CGui::pChat = new CChat();
+    CGui::pButton = new CButton();
     CGui::pDialog = new CDialog();
     CGui::pSpawnScreen = new CSpawnScreen();
 }
@@ -28,6 +30,7 @@ void CGui::Uninitialise()
 
     SAFE_DELETE(CGui::pDebug);
     SAFE_DELETE(CGui::pSpawnScreen);
+    SAFE_DELETE(CGui::pButton);
     SAFE_DELETE(CGui::pChat);
     SAFE_DELETE(CGui::pDialog);
     SAFE_DELETE(CGui::pFontRender);

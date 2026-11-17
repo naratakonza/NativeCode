@@ -104,6 +104,7 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 
 		CCameraAim::GameResetLocalPlayerSkills();
 
+		CGui::GetButton()->Enable(false);
 		CGui::GetSpawnScreen()->Enable(false);
 		CGui::GetDialog()->Enable(false);
 		
@@ -200,6 +201,9 @@ void CMultiPlayer::SetThread(eThreadType type)
 			CGyro::SetOnfootSensitivity(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("GyroOnfootSensitivity"))));
 			CGyro::SetIncarSensitivity(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("GyroIncarSensitivity"))));
 			CAspectRatio::SetSize((eAspectRatioType)CSetting::GetConfig()->GetIntValue(OBFUSCATE("AspectRatio")));
+			CButton::SetKeyF4(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("ShowKeyF4")));
+			CButton::SetKeyUPDOWN(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("ShowKeyUPDOWN")));
+			CButton::SetKeyLEFTRIGHT(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("ShowKeyLEFTRIGHT")));
 
 			break;
 		}

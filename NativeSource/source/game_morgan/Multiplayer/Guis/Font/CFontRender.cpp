@@ -113,6 +113,11 @@ void CFontRender::Render()
 		CGui::GetDebug()->RenderAudioStreamTag();
 	}
 
+	if (CGui::GetButton())
+    {
+        CGui::GetButton()->Render();
+    }
+
 	ImGui::EndFrame();
 	ImGui::Render();
 	ImGui_ImplRenderWare_RenderDrawData(ImGui::GetDrawData());

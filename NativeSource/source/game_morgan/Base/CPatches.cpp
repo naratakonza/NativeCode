@@ -205,11 +205,17 @@ void CPatches::InstallMainPatches()
     // ข้ามเฉพาะ CWeaponEffects::Render ใน RenderEffects
     CMemory::makeNOP(SA_ADDR(0x159B20), 1);
 
+    // ปิดการเรียกใช้งาน CamShakeNoPos จาก CWeapon::FireSniper (ปิดหน้าจอสั่นขณะยิงสไน)
+    CMemory::makeNOP(SA_ADDR(0x4334DC), 1);
+
     // CMirrors::RenderReflections ใช้ตำแหน่งกล้องสะท้อนคงที่ทุกโหมดแบบ Arita
     CMemory::makeNOP(SA_ADDR(0x301B14), 1);
 
     // บังคับให้ใช้ท่าทางจาก IDE สำหรับตัวละคร
     CPlayerPed::ProcessAnimGroups(false);
+
+    // ปิดการเรียกใช้งาน CCamera::RestoreWithJumpCut จาก CGameLogic::RestorePlayerStuffDuringResurrection // ปิดใช้งานการตัดภาพแบบกระโดดของกล้องหลังจากเกิดใหม่
+    CMemory::makeNOP(SA_ADDR(0x0B7AB4), 1);
 
     // แก้ไข UvAnim
     // ตัวแพ็กเปิดแฟล็กเฉพาะ RpMaterialUVAnimAddAnimTime (0x29F904) และคืนค่าเดิมหลังอัปเดต
@@ -305,6 +311,10 @@ void CPatches::InstallRadarPatches()
     CNecessary::Log(OBFUSCATE("CPatches InstallRadarPatches"));
 
     CMemory::makeNOP(SA_ADDR(0x1EEE18), 1); // ซ่อนเฉพาะข้อความ Legend บนแผนที่
+
+    // ปิดการเรียกใช้งาน CSprite2d::Draw ไม่ให้แสดงผล Marker GPS
+    CMemory::makeNOP(SA_ADDR(0x1F21E0), 1); 
+    CMemory::makeNOP(SA_ADDR(0x1F2DA0), 1);
 }
 
 void CPatches::InstallDisableAutoAimPatches()
@@ -337,7 +347,7 @@ void CPatches::SetPatches(ePatchType type)
 
             break;
         }
-        
+
         case ePatchType::PATCH_TYPE_MENU: {
             CPatches::InstallSavePatches();
             CPatches::InstallTemporaryFrameratePatches();

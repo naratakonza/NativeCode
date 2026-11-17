@@ -19,3 +19,5 @@ void MGHideFlutterDialog();
 void MGSetFlutterChatPosition(int position, float radarRight);
 void MGCloseFlutterChat();
 void MGAddFlutterChatMessage(int type, uint32_t color, uint32_t nickColor, const char* nick, const char* text);
+
+bool MGUpdateFlutterKeysBar(bool visible, bool inVehicle, bool menuActive, bool f4Enabled, int radarLeft, int radarBottom);

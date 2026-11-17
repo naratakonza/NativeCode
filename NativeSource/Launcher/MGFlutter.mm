@@ -42,6 +42,7 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 @property(nonatomic) CGRect chatArea;
 @property(nonatomic) BOOL chatInteractive;
 @property(nonatomic) CGRect spawnArea;
+@property(nonatomic) CGRect keysArea;
 @property(nonatomic) BOOL dialogPresented;
 @end
 
@@ -49,7 +50,7 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 - (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent*)event
 {
     return [super pointInside:point withEvent:event] &&
-        (self.dialogPresented || (self.chatInteractive && CGRectContainsPoint(self.chatArea, point)) || CGRectContainsPoint(self.spawnArea, point));
+        (self.dialogPresented || (self.chatInteractive && CGRectContainsPoint(self.chatArea, point)) || CGRectContainsPoint(self.spawnArea, point) || CGRectContainsPoint(self.keysArea, point));
 }
 @end
 
@@ -59,6 +60,10 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 @property(nonatomic, strong) id<MGLoadingChannel> channel;
 @property(nonatomic, strong) id<MGLoadingChannel> chatChannel;
 @property(nonatomic, strong) id<MGLoadingChannel> spawnChannel;
+@property(nonatomic, strong) id<MGLoadingChannel> keysChannel;
+@property(nonatomic, strong) id<MGLoadingChannel> uiChannel;
+@property(nonatomic, strong) NSDictionary* keysData;
+@property(nonatomic) BOOL keysReady;
 @property(nonatomic, strong) id<MGLoadingChannel> dialogChannel;
 @property(nonatomic, strong) NSDictionary* dialogData;
 @property(nonatomic) uint64_t dialogSequence;
@@ -82,6 +87,7 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 - (void)send:(NSString*)method value:(id)value;
 - (void)updateOverlayVisibility;
 - (void)updateSpawnVisibility;
+- (void)updateKeysVisibility;
 - (void)updateDialogVisibility;
 - (void)publishDialog;
 - (BOOL)isChatInteractive;
@@ -90,6 +96,8 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 
 static MGFlutter* flutter;
 static bool spawnVisible;
+static NSDictionary* keysBarData;
+static std::atomic<bool> keysBridgeAvailable{false};
 static NSString* const flutterEngineRevision = @"55eae6864b296dd9f43b2cc7577ec256e5c32a8d";
 
 static void MGRunLoadingOnMain(dispatch_block_t work)
@@ -196,9 +204,12 @@ static bool MGHandleSpawnAction(NSString* action)
     self.chatChannel = [channelClass methodChannelWithName:@"flutter_chat" binaryMessenger:[self.engine binaryMessenger]];
     self.spawnChannel = [channelClass methodChannelWithName:@"flutter_spawn" binaryMessenger:[self.engine binaryMessenger]];
     self.dialogChannel = [channelClass methodChannelWithName:@"flutter_dialog" binaryMessenger:[self.engine binaryMessenger]];
+    self.keysChannel = [channelClass methodChannelWithName:@"flutter_keysbar" binaryMessenger:[self.engine binaryMessenger]];
+    self.uiChannel = [channelClass methodChannelWithName:@"flutter/ui_control" binaryMessenger:[self.engine binaryMessenger]];
+    self.keysData = keysBarData;
     self.pendingMessages = [NSMutableArray array];
     self.controller = [[(id)controllerClass alloc] initWithEngine:self.engine nibName:nil bundle:nil];
-    if (!self.channel || !self.chatChannel || !self.spawnChannel || !self.dialogChannel || !self.controller)
+    if (!self.channel || !self.chatChannel || !self.spawnChannel || !self.dialogChannel || !self.keysChannel || !self.uiChannel || !self.controller)
     {
         return NO;
     }
@@ -294,6 +305,7 @@ static bool MGHandleSpawnAction(NSString* action)
             {
                 screen.spawnReady = YES;
                 [screen updateSpawnVisibility];
+                [screen updateKeysVisibility];
                 result(@YES);
                 return;
             }
@@ -314,6 +326,35 @@ static bool MGHandleSpawnAction(NSString* action)
             {
                 NSString* action = [args[@"action"] isKindOfClass:NSString.class] ? args[@"action"] : nil;
                 result(@(MGHandleSpawnAction(action)));
+                return;
+            }
+            result(@NO);
+        });
+    }];
+
+    [self.keysChannel setMethodCallHandler:^(id<MGLoadingCall> call, MGLoadingResult result) {
+        MGRunLoadingOnMain(^{
+            MGFlutter* screen = weakSelf;
+            if (!screen || screen != flutter) {
+                result(@NO);
+                return;
+            }
+            if ([call.method isEqualToString:@"ready"]) {
+                screen.keysReady = YES;
+                [screen updateKeysVisibility];
+                result(@YES);
+                return;
+            }
+            NSDictionary* args = [call.arguments isKindOfClass:NSDictionary.class] ? call.arguments : nil;
+            if ([call.method isEqualToString:@"hitRegion"]) {
+                const BOOL show = screen.keysReady && [screen.keysData[@"visible"] boolValue] && screen.loadingFinished && !screen.visible && !screen.paused && !screen.overlay.dialogPresented;
+                screen.overlay.keysArea = show ? MGFlutterHitRegion(args, screen.overlay.bounds) : CGRectZero;
+                result(@YES);
+                return;
+            }
+            if ([call.method isEqualToString:@"sendKeyInput"] && [args[@"keyId"] isKindOfClass:NSNumber.class]) {
+                const double keyId = [args[@"keyId"] doubleValue];
+                result(@(CGui::GetButton() && std::isfinite(keyId) && keyId >= 1 && keyId <= 18 && std::floor(keyId) == keyId && CButton::QueueKeyInput(static_cast<int>(keyId))));
                 return;
             }
             result(@NO);
@@ -409,6 +450,7 @@ static bool MGHandleSpawnAction(NSString* action)
             MGSetLoadingScreenVisible(false);
         }
     });
+    keysBridgeAvailable.store(true);
     return YES;
 }
 
@@ -460,6 +502,7 @@ static bool MGHandleSpawnAction(NSString* action)
     [self updateDialogVisibility];
     [self updateChatInteraction];
     [self updateSpawnVisibility];
+    [self updateKeysVisibility];
     if (self.chatReady) {
         const BOOL show = self.chatVisible && self.loadingFinished && !self.visible;
         [self.chatChannel invokeMethod:show ? @"show" : @"hide" arguments:nil];
@@ -469,13 +512,24 @@ static bool MGHandleSpawnAction(NSString* action)
 - (void)updateSpawnVisibility
 {
     const BOOL show = self.spawnReady && spawnVisible && self.loadingFinished && !self.visible && !self.paused;
-    self.controller.viewIfLoaded.accessibilityElementsHidden = ![self isChatInteractive] && !show && !self.overlay.dialogPresented;
+    self.controller.viewIfLoaded.accessibilityElementsHidden = ![self isChatInteractive] && !show && !self.overlay.dialogPresented && CGRectIsEmpty(self.overlay.keysArea);
     if (self.spawnPresented != show)
     {
         self.spawnPresented = show;
         self.overlay.spawnArea = CGRectZero;
         [self.spawnChannel invokeMethod:@"toggleSpawnMenu" arguments:@(show)];
     }
+}
+
+- (void)updateKeysVisibility
+{
+    if (!self.keysReady) return;
+    NSMutableDictionary* data = [self.keysData mutableCopy];
+    if (!data) data = [NSMutableDictionary dictionary];
+    const BOOL show = [data[@"visible"] boolValue] && self.loadingFinished && !self.visible && !self.paused && !self.overlay.dialogPresented;
+    data[@"visible"] = @(show);
+    if (!show) self.overlay.keysArea = CGRectZero;
+    [self.uiChannel invokeMethod:@"UpdateKeysBar" arguments:data];
 }
 
 - (void)updateDialogVisibility
@@ -501,16 +555,22 @@ static bool MGHandleSpawnAction(NSString* action)
     }
     [self updateDialogVisibility];
     [self updateSpawnVisibility];
+    [self updateKeysVisibility];
 }
 
 - (void)close
 {
+    keysBridgeAvailable.store(false);
     [self.outsideChatTap.view removeGestureRecognizer:self.outsideChatTap];
     self.outsideChatTap = nil;
     [self.dialogChannel setMethodCallHandler:nil];
     self.dialogChannel = nil;
     [self.spawnChannel setMethodCallHandler:nil];
     self.spawnChannel = nil;
+    [self.keysChannel setMethodCallHandler:nil];
+    self.keysChannel = nil;
+    self.uiChannel = nil;
+    self.keysData = nil;
     [self.chatChannel setMethodCallHandler:nil];
     self.chatChannel = nil;
     [self.channel setMethodCallHandler:nil];
@@ -653,6 +713,7 @@ void MGHideFlutterDialog()
             [screen.dialogChannel invokeMethod:@"hideDialog" arguments:nil];
             [screen updateDialogVisibility];
             [screen updateSpawnVisibility];
+            [screen updateKeysVisibility];
         }
     });
 }
@@ -723,4 +784,21 @@ void MGUpdateLoadingScreenList(const char* text)
             [screen send:@"updateStatusText" value:status];
         }
     });
+}
+
+bool MGUpdateFlutterKeysBar(bool visible, bool inVehicle, bool menuActive, bool f4Enabled, int radarLeft, int radarBottom)
+{
+    if (!keysBridgeAvailable.load()) return false;
+    // Called from CButton::Render on the game thread; UIKit/channel work stays on main.
+    MGRunLoadingOnMain(^{
+        MGFlutter* screen = flutter;
+        if (!screen) return;
+        NSDictionary* data = @{@"visible": @(visible), @"isInVehicle": @(inVehicle), @"isMenuActive": @(menuActive), @"isF4Enabled": @(f4Enabled), @"radarLeft": @(radarLeft), @"radarBottom": @(radarBottom)};
+        keysBarData = data;
+        if (![screen.keysData isEqualToDictionary:data]) {
+            screen.keysData = data;
+            [screen updateKeysVisibility];
+        }
+    });
+    return true;
 }

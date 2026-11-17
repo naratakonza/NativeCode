@@ -183,6 +183,8 @@ bool CLocalPlayer::Process()
 		return true;
 	}
 
+    CLocalPlayer::HandleAfterDeathToggle();
+
     if (CLocalPlayer::m_bIsWasted && CLocalPlayer::GetPlayerPed()->GetActionTrigger() != eAction::ACTION_WASTED && CLocalPlayer::GetPlayerPed()->GetActionTrigger() != eAction::ACTION_DEATH)
 	{
 		CLocalPlayer::HandleNeedsToRespawn();
@@ -192,6 +194,16 @@ bool CLocalPlayer::Process()
 	CLocalPlayer::HandleInitialSpawnConditions();
 
 	return true;
+}
+
+void CLocalPlayer::HandleAfterDeathToggle()
+{
+	if (!CLocalPlayer::m_bEnableAfterDeath && CGui::GetButton() && CGui::GetButton()->m_bKeyAfterDeath)
+    {
+		CGui::GetButton()->m_bKeyAfterDeath = false;
+		CLocalPlayer::m_bEnableAfterDeath = true;
+		CGui::GetChat()->AddInfoMessage(OBFUSCATE("Returning to class selection after next death"));
+    }
 }
 
 void CLocalPlayer::HandleNeedsToRespawn()
@@ -221,11 +233,11 @@ void CLocalPlayer::HandleNeedsToRespawn()
 			CPad::DisplayWidgets(false);
 		}
 
-        if (/*CGui::GetButton() && CGui::GetDebug() && CGui::GetXSing() && CGui::GetGButton() &&*/ CGui::GetDialog())
+        if (CGui::GetButton() && /*CGui::GetDebug() && CGui::GetXSing() && CGui::GetGButton() &&*/ CGui::GetDialog())
 		{
 			// CGui::GetDebug()->SetRenderFramerate(false);
 			// CGui::GetDebug()->SetRenderMemory(false);
-			// CGui::GetButton()->Enable(false);
+			CGui::GetButton()->Enable(false);
 			// CGui::GetXSing()->Enable(false);
 			// CGui::GetGButton()->Enable(false);
 			CGui::GetDialog()->Enable(false);
@@ -545,14 +557,14 @@ bool CLocalPlayer::Spawn()
 	CLocalPlayer::m_bIsActive = true;
 	CLocalPlayer::m_bWaitingForSpawnRequestReply = false;
 
-    // if (CGui::GetButton() && CGui::GetDebug() && CGui::GetXSing() && CGui::GetGButton())
-	// {
-	// 	CGui::GetDebug()->SetRenderFramerate(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("ShowFps")));
-	// 	CGui::GetDebug()->SetRenderMemory(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("ShowMem")));
-	// 	CGui::GetButton()->Enable(true);
-	// 	CGui::GetXSing()->Enable(true);
-	// 	CGui::GetGButton()->Enable(true);
-	// }
+    if (CGui::GetButton() /*&& CGui::GetDebug() && CGui::GetXSing() && CGui::GetGButton()*/)
+	{
+		// CGui::GetDebug()->SetRenderFramerate(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("ShowFps")));
+		// CGui::GetDebug()->SetRenderMemory(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("ShowMem")));
+		CGui::GetButton()->Enable(true);
+		// CGui::GetXSing()->Enable(true);
+		// CGui::GetGButton()->Enable(true);
+	}
 
 	// CVoice::Enable(true);
 
