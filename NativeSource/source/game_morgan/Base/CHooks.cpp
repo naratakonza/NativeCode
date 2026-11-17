@@ -1,6 +1,7 @@
 #include "../../../Main.h"
 #include "CHooks.h"
 #include "CPad.h"
+#include "Graphics/CRealTimeShadowManager.h"
 #include "CWidgets.h"
 #include "MultiTouch/CTouchEvent.h"
 #include "../CAspectRatio.h"
@@ -342,6 +343,7 @@ void CHooks::SetHooking(eHookType type)
             CWorld::Initialise();
             CModelInfo::Initialise();
             CPools::Install();
+            CRealTimeShadowManager::Initialise();
 
             break;
         }

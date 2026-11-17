@@ -573,7 +573,6 @@ void CPlayerPed::ShuffleKeyLogic(int key)
 	if (key == ePadKeys::KEY_HANDBRAKE)
 	{
 		// KEY_HANDBRAKE ของฟังชั่นนี้ ทำให้ส่งผลภาพไม่ตรงในระบบ หมัด F และบล็อค มันถูก Reset
-
 		if (CPad::m_iSaveBlockPunch) {
 			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = true;
 			return;

@@ -18,6 +18,7 @@
 #include "../Base/CPatches.h"
 #include "../Base/CHooks.h"
 #include "../Base/CWidgets.h"
+#include "../Base/Graphics/CRealTimeShadowManager.h"
 #include "../COptimizeDistance.h"
 
 CNetGame* CMultiPlayer::pNetGame = nullptr;
@@ -187,6 +188,7 @@ void CMultiPlayer::SetThread(eThreadType type)
 			CHooks::SetHooking(eHookType::HOOK_TYPE_START);
 			CWidgets::SetAlpha(CSetting::GetConfig()->GetIntValue(OBFUSCATE("WidgetAlpha")));
 			CHud::SetAlpha(CSetting::GetConfig()->GetIntValue(OBFUSCATE("HudAlpha")));
+			CRealTimeShadowManager::SetShadowStyle(CSetting::GetConfig()->GetIntValue(OBFUSCATE("Shadow")));
 			CGame::SetFramerate(static_cast<std::uint8_t>(std::clamp(CSetting::GetConfig()->GetIntValue(OBFUSCATE("SetFps")), 0, static_cast<int>(UINT8_MAX))));
 			CSensitivity::SetOnfootTouch(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("OnfootSensitivity"))));
 			CSensitivity::SetAimTouch(static_cast<float>(CSetting::GetConfig()->GetIntValue(OBFUSCATE("AimSensitivity"))));

@@ -3,7 +3,8 @@
 #include "CEntityGta.h"
 #include "../Core/CVector.h"
 #include "../RenderWare/rtquat.h"
-// #include "../Base/Graphics/CRealTimeShadow.h"
+
+class CRealTimeShadow;
 
 struct CPhysicalGta : CEntityGta
 {
@@ -86,7 +87,7 @@ struct CPhysicalGta : CEntityGta
     CEntityGta *m_pNOCollisionVehicle;
     float m_lightingFromCollision;
     float m_lightingFromPointLights;
-    uintptr_t *m_pRealTimeShadow;
+    CRealTimeShadow* m_pRealTimeShadow;
 };
 static_assert(sizeof(CPhysicalGta) == 0x198);
 

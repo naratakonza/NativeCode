@@ -1,6 +1,7 @@
 #include "../../../../Main.h"
 #include "CCommand.h"
 #include "../../Base/CWidgets.h"
+#include "../../Base/Graphics/CRealTimeShadowManager.h"
 #include "CGui.h"
 #include "../Audio/CAudio.h"
 #include "../../CAspectRatio.h"
@@ -35,6 +36,7 @@ void CCommand::Initialise()
     CCommand::Add(OBFUSCATE("/gyro"), CCommand::SetGyroScope);
     CCommand::Add(OBFUSCATE("/wgalpha"), CCommand::SetWidgetAlpha);
     CCommand::Add(OBFUSCATE("/hudalpha"), CCommand::SetHudAlpha);
+    CCommand::Add(OBFUSCATE("/shs"), CCommand::SetShadowStyle);
     CCommand::Add(OBFUSCATE("/audiomsg"), CCommand::SetAudioMessages);
     CCommand::Add(OBFUSCATE("/chip"), CCommand::SetConnect);
     CCommand::Add(OBFUSCATE("/rec"), CCommand::Reconnect);
@@ -433,6 +435,27 @@ void CCommand::SetWidgetAlpha(const std::vector<std::string>& args)
     else
     {
         CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /wgalpha <value>"));
+    }
+}
+
+void CCommand::SetShadowStyle(const std::vector<std::string>&)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    const bool bShadowStyle = CRealTimeShadowManager::GetShadowStyle() == 0;
+    CRealTimeShadowManager::SetShadowStyle(bShadowStyle);
+
+    if (bShadowStyle)
+    {
+        CSetting::GetConfig()->WriteIntValue(OBFUSCATE("Shadow"), 1);
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> ShadowStyle Advance"));
+    }
+    else
+    {
+        CSetting::GetConfig()->WriteIntValue(OBFUSCATE("Shadow"), 0);
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> ShadowStyle Classic"));
     }
 }
 

@@ -337,6 +337,7 @@ void CPatches::SetPatches(ePatchType type)
 
             break;
         }
+        
         case ePatchType::PATCH_TYPE_MENU: {
             CPatches::InstallSavePatches();
             CPatches::InstallTemporaryFrameratePatches();
