@@ -36,7 +36,7 @@ extern "C" __attribute__((visibility("default"))) void CRealTimeShadowManager_Re
     CRealTimeShadowManager::ReturnRealTimeShadow(thiz, pShadow);
 }
 
-void CRealTimeShadowManager::ReturnRealTimeShadow(CRealTimeShadowManager* thiz, CRealTimeShadow* pShadow)
+void CRealTimeShadowManager::ReturnRealTimeShadow(CRealTimeShadowManager*, CRealTimeShadow* pShadow)
 {
 	if (!pShadow) {
 		return;
@@ -48,6 +48,7 @@ void CRealTimeShadowManager::ReturnRealTimeShadow(CRealTimeShadowManager* thiz, 
 		{
 			pShadow->m_pPhysical->m_pRealTimeShadow = nullptr;
 		}
+        
 		pShadow->m_pPhysical = nullptr;
 	}
 }
