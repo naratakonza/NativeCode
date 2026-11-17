@@ -136,6 +136,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CWidgetPlayerInfo.o" "$out/fileio-objects/CSprite2d.o" "$out/fileio-objects/CRGBA.o" "$out/fileio-objects/CHud.o" \
     "$out/fileio-objects/CPed.o" "$out/fileio-objects/CPlayerPed.o" "$out/fileio-objects/CPlayerPedSlot.o" "$out/fileio-objects/CPedPointerRecorder.o" \
     "$out/fileio-objects/CCameraAim.o" "$out/fileio-objects/CAspectRatio.o" "$out/fileio-objects/CCameraController.o" "$out/fileio-objects/CDraw.o" "$out/fileio-objects/CSensitivity.o" "$out/fileio-objects/CGyro.o" "$out/fileio-objects/MGGyro.o" \
+    "$out/fileio-objects/CTouchInterface.o" \
     "$out/fileio-objects/CScripting.o" "$out/fileio-objects/CRunningScript.o" "$out/fileio-objects/CExceptions.o" \
     "$out/fileio-objects/CQuaternion.o" \
     "$out/fileio-objects/CTiltedRadar.o" "$out/fileio-objects/CTiltedCameraController.o" "$out/fileio-objects/CTiltedRadarGeometry.o" "$out/fileio-objects/CTiltedRadarMath.o" \
