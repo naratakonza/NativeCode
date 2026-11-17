@@ -666,7 +666,7 @@ void CLocalPlayer::ProcessOnFoot(uint32_t dwThisTick)
 	uint16_t lrAnalog, udAnalog;
     uint16_t wKeys = CLocalPlayer::GetPlayerPed()->GetKeys(&lrAnalog, &udAnalog, false);
 
-	CLocalPlayer::ProcessHead();
+	// CLocalPlayer::ProcessHead();
 	// CLocalPlayer::ProcessSurfing();
 
 	// CLocalPlayer::UpdateRCMode(eRcModeType::RC_MODE_OFF);
