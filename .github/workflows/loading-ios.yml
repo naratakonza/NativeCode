@@ -9,13 +9,20 @@ on:
         description: Build only the iPhoneOS native framework
         type: boolean
         default: false
+      native_runner:
+        description: macOS runner for the native framework
+        type: choice
+        options:
+          - macos-15-intel
+          - macos-15
+        default: macos-15-intel
 
 permissions:
   contents: read
 
 jobs:
   native:
-    runs-on: macos-15-intel
+    runs-on: ${{ inputs.native_runner || 'macos-15-intel' }}
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v6
