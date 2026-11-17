@@ -21,12 +21,119 @@
 #include "../../utils/Memory/CHook.h"
 #include "../../utils/Storage/CStorage.h"
 #include "../Multiplayer/CMultiPlayer.h"
+#include "../Multiplayer/Pools/CNetGamePool.h"
 #include "../Multiplayer/Audio/CAudio.h"
 #include "../Multiplayer/Guis/CGui.h"
 
 #include <mach-o/dyld.h>
 #include <memory>
 #include <sys/stat.h>
+
+extern "C"
+{
+    uintptr_t PickUpPickup_jump_back = SA_ADDR(0xCE310) + _dyld_get_image_vmaddr_slide(0);
+}
+
+extern "C" __attribute__((visibility("default"))) void SendPickedUpPickup_Helper(uintptr_t pickupAddr)
+{
+	if (pickupAddr)
+	{
+		uintptr_t aPickUps_addr = SA_ADDR(0x6B8AA0) + _dyld_get_image_vmaddr_slide(0);
+		int pickupIndex = (pickupAddr - aPickUps_addr) / 0x24;
+
+		if (CMultiPlayer::IsSampActive() && CMultiPlayer::GetActiveNetwork() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools())
+		{
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPickupPool())
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPickupPool()->SendPickedUpPickupByGTAId(pickupIndex);
+			}
+		}
+	}
+}
+
+extern "C" __attribute__((naked, visibility("default"))) void PickUpPickup_hook()
+{
+    __asm__ volatile (
+        "sub sp, sp, #256\n"
+        "stp x0, x1, [sp, #0]\n"
+        "stp x2, x3, [sp, #16]\n"
+        "stp x4, x5, [sp, #32]\n"
+        "stp x6, x7, [sp, #48]\n"
+        "stp x8, x9, [sp, #64]\n"
+        "stp x10, x11, [sp, #80]\n"
+        "stp x12, x13, [sp, #96]\n"
+        "stp x14, x15, [sp, #112]\n"
+        "stp x16, x17, [sp, #128]\n"
+        "stp x18, x19, [sp, #144]\n"
+        "stp x20, x21, [sp, #160]\n"
+        "stp x22, x23, [sp, #176]\n"
+        "stp x24, x25, [sp, #192]\n"
+        "stp x26, x27, [sp, #208]\n"
+        "stp x28, x29, [sp, #224]\n"
+        "str x30, [sp, #240]\n"
+        "sub sp, sp, #528\n"
+        "stp q0, q1, [sp, #0]\n"
+        "stp q2, q3, [sp, #32]\n"
+        "stp q4, q5, [sp, #64]\n"
+        "stp q6, q7, [sp, #96]\n"
+        "stp q8, q9, [sp, #128]\n"
+        "stp q10, q11, [sp, #160]\n"
+        "stp q12, q13, [sp, #192]\n"
+        "stp q14, q15, [sp, #224]\n"
+        "stp q16, q17, [sp, #256]\n"
+        "stp q18, q19, [sp, #288]\n"
+        "stp q20, q21, [sp, #320]\n"
+        "stp q22, q23, [sp, #352]\n"
+        "stp q24, q25, [sp, #384]\n"
+        "stp q26, q27, [sp, #416]\n"
+        "stp q28, q29, [sp, #448]\n"
+        "stp q30, q31, [sp, #480]\n"
+        "mrs x9, nzcv\n"
+        "str x9, [sp, #512]\n"
+        "mov x0, x19\n"
+        "bl _SendPickedUpPickup_Helper\n"
+        "ldr x9, [sp, #512]\n"
+        "msr nzcv, x9\n"
+        "ldp q0, q1, [sp, #0]\n"
+        "ldp q2, q3, [sp, #32]\n"
+        "ldp q4, q5, [sp, #64]\n"
+        "ldp q6, q7, [sp, #96]\n"
+        "ldp q8, q9, [sp, #128]\n"
+        "ldp q10, q11, [sp, #160]\n"
+        "ldp q12, q13, [sp, #192]\n"
+        "ldp q14, q15, [sp, #224]\n"
+        "ldp q16, q17, [sp, #256]\n"
+        "ldp q18, q19, [sp, #288]\n"
+        "ldp q20, q21, [sp, #320]\n"
+        "ldp q22, q23, [sp, #352]\n"
+        "ldp q24, q25, [sp, #384]\n"
+        "ldp q26, q27, [sp, #416]\n"
+        "ldp q28, q29, [sp, #448]\n"
+        "ldp q30, q31, [sp, #480]\n"
+        "add sp, sp, #528\n"
+        "ldp x0, x1, [sp, #0]\n"
+        "ldp x2, x3, [sp, #16]\n"
+        "ldp x4, x5, [sp, #32]\n"
+        "ldp x6, x7, [sp, #48]\n"
+        "ldp x8, x9, [sp, #64]\n"
+        "ldp x10, x11, [sp, #80]\n"
+        "ldp x12, x13, [sp, #96]\n"
+        "ldp x14, x15, [sp, #112]\n"
+        "ldp x16, x17, [sp, #128]\n"
+        "ldp x18, x19, [sp, #144]\n"
+        "ldp x20, x21, [sp, #160]\n"
+        "ldp x22, x23, [sp, #176]\n"
+        "ldp x24, x25, [sp, #192]\n"
+        "ldp x26, x27, [sp, #208]\n"
+        "ldp x28, x29, [sp, #224]\n"
+        "ldr x30, [sp, #240]\n"
+        "add sp, sp, #256\n"
+        "ldrb w8, [x19, #0x20]\n"
+        "adrp x16, _PickUpPickup_jump_back@PAGE\n"
+        "ldr x16, [x16, _PickUpPickup_jump_back@PAGEOFF]\n"
+        "br x16\n"
+    );
+}
 
 static bool gameProcessHookInstalled = false;
 static bool renderTitleHookInstalled = false;

@@ -23,3 +23,10 @@ public:
     static void InstallNecessary();
     static void InstallMenu();
 };
+
+extern "C"
+{
+    extern uintptr_t PickUpPickup_jump_back;
+    void SendPickedUpPickup_Helper(uintptr_t pickupAddr);
+    void PickUpPickup_hook();
+}

@@ -11,7 +11,7 @@ CNetGamePool::CNetGamePool()
     CNetGamePool::m_pActorPool = new CActorPool();
     // CNetGamePool::m_pGangZonePool = new CGangZonePool();
     // CNetGamePool::m_pTextLabelPool = new CTextLabelPool();
-    // CNetGamePool::m_pPickupPool = new CPickupPool();
+    CNetGamePool::m_pPickupPool = new CPickupPool();
     // CNetGamePool::m_pObjectPool = new CObjectPool();
     // CNetGamePool::m_pMenuPool = new CMenuPool();
 
@@ -31,7 +31,7 @@ CNetGamePool::~CNetGamePool()
     SAFE_DELETE(CNetGamePool::m_pActorPool);
     // SAFE_DELETE(CNetGamePool::m_pGangZonePool);
     // SAFE_DELETE(CNetGamePool::m_pTextLabelPool);
-    // SAFE_DELETE(CNetGamePool::m_pPickupPool);
+    SAFE_DELETE(CNetGamePool::m_pPickupPool);
     // SAFE_DELETE(CNetGamePool::m_pObjectPool);
     // SAFE_DELETE(CNetGamePool::m_pMenuPool);
 }
@@ -42,6 +42,27 @@ void CNetGamePool::Process()
 	{
 		CNetGamePool::GetPlayerPool()->Process();
 	}
+
+    try
+    {
+		if (CNetGamePool::GetPickupPool() && CNetGamePool::iPickupPoolProcessFlag > 5)
+		{
+			CNetGamePool::GetPickupPool()->Process();
+			CNetGamePool::iPickupPoolProcessFlag = 0;
+		}
+		else
+		{
+			++CNetGamePool::iPickupPoolProcessFlag;
+		}
+    }
+    catch (const std::exception& error)
+    {
+        CExceptions::Print(OBFUSCATE("s005"), error.what());
+    }
+    catch (...)
+    {
+        CExceptions::Print(OBFUSCATE("s005"), OBFUSCATE("unknown C++ exception"));
+    }
 }
 
 void CNetGamePool::DeleteAll()
@@ -62,13 +83,13 @@ void CNetGamePool::DeleteAll()
 
     // CNetGamePool::m_pObjectPool = new CObjectPool();
 
-    // // Pickup
-    // if (CNetGamePool::GetPickupPool())
-    // {
-    //     SAFE_DELETE(CNetGamePool::m_pPickupPool);
-    // }
+    // Pickup
+    if (CNetGamePool::GetPickupPool())
+    {
+        SAFE_DELETE(CNetGamePool::m_pPickupPool);
+    }
 
-    // CNetGamePool::m_pPickupPool = new CPickupPool();
+    CNetGamePool::m_pPickupPool = new CPickupPool();
 
     // // GangZone
     // if (CNetGamePool::GetGangZonePool())

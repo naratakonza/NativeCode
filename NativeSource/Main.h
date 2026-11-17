@@ -20,6 +20,9 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include <strings.h>
+#include <unistd.h>
+
+#include <unordered_map>
 
 #include "source/game_morgan/Header/Common.h"
 #include "source/game_morgan/RenderWare/RenderWare.h"

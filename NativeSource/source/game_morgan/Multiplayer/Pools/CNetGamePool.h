@@ -6,7 +6,7 @@
 #include "Process/CActorPool.h"
 // #include "Process/CGangZonePool.h"
 // #include "Process/CTextLabelPool.h"
-// #include "Process/CPickupPool.h"
+#include "Process/CPickupPool.h"
 // #include "Process/CObjectPool.h"
 // #include "Process/CMenuPool.h"
 
@@ -18,12 +18,12 @@ class CNetGamePool
 	CActorPool* m_pActorPool;
 	// CGangZonePool* m_pGangZonePool;
 	// CTextLabelPool* m_pTextLabelPool;
-	// CPickupPool* m_pPickupPool;
+	CPickupPool* m_pPickupPool;
 	// CObjectPool* m_pObjectPool;
 	// CMenuPool* m_pMenuPool;
 
 	[[maybe_unused]] int iVehiclePoolProcessFlag = 0;
-	[[maybe_unused]] int iPickupPoolProcessFlag = 0;
+	int iPickupPoolProcessFlag = 0;
 public:
     CNetGamePool();
 	~CNetGamePool();
@@ -55,9 +55,9 @@ public:
 	// 	return CNetGamePool::m_pTextLabelPool;
 	// };
 
-	// CPickupPool* GetPickupPool() {
-	// 	return CNetGamePool::m_pPickupPool;
-	// };
+	CPickupPool* GetPickupPool() {
+		return CNetGamePool::m_pPickupPool;
+	};
 
 	// CObjectPool* GetObjectPool() {
 	// 	return CNetGamePool::m_pObjectPool;

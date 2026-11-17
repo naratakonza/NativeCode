@@ -1258,6 +1258,65 @@ void ResetPlayerWeapons(RakNet::BitStream)
 	}
 }
 
+void CreatePickup(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: CreatePickup"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(int)) +
+		bytesToBits(sizeof(int)) +
+		bytesToBits(sizeof(int)) +
+		bytesToBits(sizeof(float)) +
+		bytesToBits(sizeof(float)) +
+		bytesToBits(sizeof(float));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for CreatePickup"));
+        return;
+    }
+
+	int iIndex;
+	int iModel;
+	int iType;
+	float fX;
+	float fY;
+	float fZ;
+
+	bsData.Read(iIndex);
+	bsData.Read(iModel);
+	bsData.Read(iType);
+	bsData.Read(fX);
+	bsData.Read(fY);
+	bsData.Read(fZ);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPickupPool())
+	{
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPickupPool()->Add(iModel, iType, fX, fY, fZ, iIndex);
+	}
+}
+
+void DestroyPickup(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: DestroyPickup"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(int));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for DestroyPickup"));
+        return;
+    }
+
+	int iIndex;
+
+	bsData.Read(iIndex);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPickupPool())
+	{
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPickupPool()->Delete(iIndex);
+	}
+}
+
 bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 {
     if (rpcid >= 255) {
@@ -1850,15 +1909,15 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_CreatePickup: {
-		//     CreatePickup(*bsData);
-		//     break;
-		// }
+		case RPC_CreatePickup: {
+		    CreatePickup(*bsData);
+		    break;
+		}
 
-		// case RPC_DestroyPickup: {
-		//     DestroyPickup(*bsData);
-		//     break;
-		// }
+		case RPC_DestroyPickup: {
+		    DestroyPickup(*bsData);
+		    break;
+		}
 
 		// case RPC_SetCheckpoint: {
 		//     SetCheckpoint(*bsData);

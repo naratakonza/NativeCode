@@ -1,5 +1,6 @@
 #include "CCommon.h"
 #include "Models/CModelInfo.h"
+#include "Enums/eMaxItem.h"
 #include "../utils/Memory/CMemory.h"
 
 #include <mach-o/dyld.h>
@@ -51,4 +52,30 @@ bool CCommon::IsPedModel(unsigned int iModelID)
 
     static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x22EB40), "\xC8\x13\x00\x90\x08\x01\x29\x91\x16\x41\x00\x91", 12, "__text") && CMemory::HasMappedInstruction(SA_ADDR(0x22EB60), "\x96\x02\x00\xF9");
     return verified && modelInfo->vtable == SA_ADDR(0x4A6A50) + _dyld_get_image_vmaddr_slide(0);
+}
+
+bool CCommon::IsExistForModelInfo(int iModelID)
+{
+	if (iModelID < 0 || iModelID >= eMaxItem::MAX_MODELINFO) {
+		return false;
+	}
+
+	uintptr_t modelInfo = CCommon::GetModelInfoByID(iModelID);
+	return (modelInfo && *(uintptr_t*)modelInfo != (uintptr_t)0xFFFFFFEC);
+}
+
+bool CCommon::ModelInfoGetCol(int iModel, [[maybe_unused]] const char* opcode)
+{
+	uintptr_t modelInfo = CCommon::GetModelInfoByID(iModel);
+    if (!modelInfo) {
+        return false;
+    }
+
+    uintptr_t colModel = *reinterpret_cast<uintptr_t*>(modelInfo + 0x30);
+    if (!colModel)
+	{
+        return false;
+    }
+
+	return true;
 }
