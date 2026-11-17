@@ -1001,7 +1001,7 @@ void SetArmedWeapon(RakNet::BitStream bsData)
 	}
 }
 
-void ResetPlayerWeapons(RakNet::BitStream /*bsData*/)
+void ResetPlayerWeapons(RakNet::BitStream)
 {
 	CNecessary::Log(OBFUSCATE("RPC: ResetPlayerWeapons"));
 

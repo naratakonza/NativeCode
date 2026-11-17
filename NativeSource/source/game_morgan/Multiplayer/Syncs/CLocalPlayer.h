@@ -348,7 +348,7 @@ private:
 	unsigned long		m_ulLastSyncFrame;
 
 	PLAYER_SPAWN_INFO 	m_SpawnInfo;
-	// ONFOOT_SYNC_DATA 	m_OnFootData;
+	ONFOOT_SYNC_DATA 	m_OnFootData;
 	// INCAR_SYNC_DATA 	m_InCarData;
 	// PASSENGER_SYNC_DATA m_PassengerData;
 	// AIM_SYNC_DATA		m_aimData;

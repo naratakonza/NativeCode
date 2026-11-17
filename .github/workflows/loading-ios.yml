@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      native_only:
+        description: Build only the iPhoneOS native framework
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -47,6 +52,7 @@ jobs:
             ${{ runner.temp }}/morgan-launcher-debug/build.log
           if-no-files-found: error
   loading-aot:
+    if: ${{ !inputs.native_only }}
     runs-on: macos-15-intel
     timeout-minutes: 15
     steps:

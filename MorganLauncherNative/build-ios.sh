@@ -76,6 +76,7 @@ for source in \
     "$native/source/game_morgan/FrontEnd/CWidgetPlayerInfo.cpp" "$native/source/game_morgan/CSprite2d.cpp" "$native/source/game_morgan/CRGBA.cpp" "$native/source/game_morgan/CHud.cpp" \
     "$native/source/game_morgan/Entity/Ped/CPed.cpp" "$native/source/game_morgan/Entity/Ped/CPlayerPed.cpp" "$native/source/game_morgan/Entity/Ped/CPlayerPedSlot.cpp" "$native/source/game_morgan/Entity/Ped/CPedPointerRecorder.cpp" \
     "$native/source/game_morgan/CStreaming.cpp" "$native/source/game_morgan/CClock.cpp" "$native/source/game_morgan/CTimer.cpp" "$native/source/game_morgan/COptimizeDistance.cpp" "$native/source/game_morgan/CGame.cpp" "$native/source/game_morgan/Models/CModelInfo.cpp" "$native/source/game_morgan/CPools.cpp" "$native/source/game_morgan/CSetting.cpp" "$multiplayer/CServer.cpp" "$multiplayer/CNetGame.cpp" "$native/source/game_morgan/CTheZones.cpp" "$native/source/game_morgan/CWeather.cpp" "$native/source/game_morgan/CCamera.cpp" "$hooks/CPad.cpp" \
+    "$native/source/game_morgan/CTouchInterface.cpp" \
     "$scripts/CScripting.cpp" "$scripts/CRunningScript.cpp" "$native/source/utils/Exceptions/CExceptions.cpp" \
     "$native/source/utils/Quat/CQuaternion.cpp" \
     "$radar/CTiltedRadar.cpp" "$radar/CTiltedCameraController.cpp" "$radar/CTiltedRadarGeometry.cpp" "$radar/CTiltedRadarMath.cpp" \

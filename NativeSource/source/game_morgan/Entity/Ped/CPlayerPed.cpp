@@ -8,6 +8,7 @@
 #include "../../CCommon.h"
 #include "../../CStreaming.h"
 #include "../../CWeapon.h"
+#include "../../Base/CPad.h"
 #include "../../Enums/eSpecialVehicle.h"
 #include "../../Enums/eWeaponSampid.h"
 #include "../../Scripts/CScripting.h"
@@ -17,6 +18,10 @@
 #include <unistd.h>
 
 bool CPlayerPed::m_bRebuildPlayer = true;
+uint32_t m_dwJumpTickCounter = 0;
+uint32_t m_dwMeleeAttackTickCounter = 0;
+uint32_t m_dwDiveTickCounter = 0;
+uint32_t m_dwAbortClimbTickCounter = 0;
 
 CPlayerPed::CPlayerPed()
 {
@@ -36,6 +41,10 @@ CPlayerPed::CPlayerPed()
 
     CScripting::ScriptCommand(&set_actor_weapon_droppable, static_cast<int>(m_dwGTAId), 1);
     CScripting::ScriptCommand(&set_actor_can_be_decapitated, static_cast<int>(m_dwGTAId), 0);
+
+    CPlayerPed::m_bJumpControl = false;
+	CPlayerPed::m_bCrouchControl = false;
+	CPlayerPed::m_bSprintControl = false;
 }
 
 CPlayerPed::CPlayerPed(uint8_t /*bytePlayerNumber*/, int /*iSkin*/, float /*fX*/, float /*fY*/, float /*fZ*/, float /*fRotation*/)
@@ -516,4 +525,143 @@ void CPlayerPed::SetRotation(float fRotation)
 
     GetPed()->m_fCurrentHeading = CUtil::DegToRad(fRotation);
     GetPed()->m_fDesiredHeading = CUtil::DegToRad(fRotation);
+}
+
+uint8_t CPlayerPed::GetExtendedKeys()
+{
+	uint8_t result = 0;
+	if (CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_YES])
+	{
+		CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_YES] = false;
+		result = 1;
+	}
+
+	if (CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_NO])
+	{
+		CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_NO] = false;
+		result = 2;
+	}
+
+	if (CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_CTRL_BACK])
+	{
+		CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_CTRL_BACK] = false;
+		result = 3;
+	}
+
+	return result;
+}
+
+void CPlayerPed::ShuffleKeyLogic(int key)
+{
+	if (key == ePadKeys::KEY_FIRE)
+	{
+		if (CNecessary::GetTickCount() < m_dwDiveTickCounter)
+		{
+			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = true;
+		}
+	}
+
+	if (key == ePadKeys::KEY_JUMP)
+	{
+		if (CNecessary::GetTickCount() < m_dwJumpTickCounter)
+		{
+			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] = true;
+		}
+	}
+
+	if (key == ePadKeys::KEY_HANDBRAKE)
+	{
+		// KEY_HANDBRAKE ของฟังชั่นนี้ ทำให้ส่งผลภาพไม่ตรงในระบบ หมัด F และบล็อค มันถูก Reset
+
+		if (CPad::m_iSaveBlockPunch) {
+			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = true;
+			return;
+		}
+
+		if (CNecessary::GetTickCount() < m_dwMeleeAttackTickCounter) {
+			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = true;
+			return;
+		}
+
+		if (CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] && CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK]) {
+			return;
+		}
+
+		if (CPad::m_iSaveTargetingActive || CCameraController::IsCameraAllAiming(false, false))
+		{
+			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = true;
+		}
+		else
+		{
+			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = false;
+		}
+	}
+
+	if (key == ePadKeys::KEY_SECONDARY_ATTACK)
+	{
+		if (CNecessary::GetTickCount() < m_dwMeleeAttackTickCounter || CNecessary::GetTickCount() < m_dwAbortClimbTickCounter)
+		{
+			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK] = true;
+		}
+	}
+}
+
+void CPlayerPed::SetKeys(uint16_t wKeys, uint16_t lrAnalog, uint16_t udAnalog)
+{
+    if (!CPlayerPedSlot::IsActive(CPlayerPed::m_bytePlayerNumber)) {
+        return;
+    }
+
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    PAD_KEYS *pad = &CPad::RemotePlayerKeys[CPlayerPed::m_bytePlayerNumber];
+
+    pad->wKeyLR = lrAnalog;
+    pad->wKeyUD = udAnalog;
+
+    for (int i = 0; i < ePadKeys::SIZE; i++)
+	{
+        pad->bKeys[i] = (wKeys & 1);
+        if (i == ePadKeys::KEY_JUMP)
+		{
+			if (!pad->bKeys[ePadKeys::KEY_JUMP])
+			{
+				pad->bIgnoreJump = false;
+			}
+		}
+		
+        wKeys >>= 1;
+    }
+}
+
+uint16_t CPlayerPed::GetKeys(uint16_t* lrAnalog, uint16_t* udAnalog, bool clear)
+{
+	*lrAnalog = CPad::LocalPlayerKeys.wKeyLR;
+	*udAnalog = CPad::LocalPlayerKeys.wKeyUD;
+
+	uint16_t wRet = 0;
+	uint16_t keyMask = 1;
+
+	for (int i = 0; i < ePadKeys::SIZE; i++)
+	{
+		CPlayerPed::ShuffleKeyLogic(i);
+
+	    if (CPad::LocalPlayerKeys.bKeys[i])
+		{
+	        wRet |= keyMask;
+	    }
+
+	    keyMask <<= 1;
+	}
+
+	if (clear)
+	{
+		memset(CPad::LocalPlayerKeys.bKeys, 0, ePadKeys::SIZE);
+		CPad::LocalPlayerKeys.wKeyLR = 0;
+		CPad::LocalPlayerKeys.wKeyUD = 0;
+	}
+
+	return wRet;
 }
