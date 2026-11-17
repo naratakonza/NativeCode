@@ -3,7 +3,7 @@
 #include "../Entity/Ped/CPedGta.h"
 #include "../Enums/ePadKeys.h"
 #include "../Enums/eMaxItem.h"
-#include "../Enums/eWeaponSampId.h"
+#include "../Enums/eWeaponSampid.h"
 
 typedef struct
 {

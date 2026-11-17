@@ -3,6 +3,7 @@
 #include "CPlayerPedSlot.h"
 #include "CPedPointerRecorder.h"
 #include "../../CGame.h"
+#include "../../CCameraController.h"
 #include "../../CUtil.h"
 #include "../../CWorld.h"
 #include "../../CCommon.h"
