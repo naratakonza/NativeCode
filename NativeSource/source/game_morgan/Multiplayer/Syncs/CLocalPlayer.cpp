@@ -708,7 +708,7 @@ void CLocalPlayer::SendOnFootFullSyncData()
 	ofSync.vecPos.z = matPlayer.pos.z;
 
 	uint8_t exKeys = CLocalPlayer::GetPlayerPed()->GetExtendedKeys();
-	ofSync.byteCurrentWeapon = (exKeys << 6) | ofSync.byteCurrentWeapon & 0x3F;
+	ofSync.byteCurrentWeapon = (exKeys << 6) | (ofSync.byteCurrentWeapon & 0x3F);
 
 	ofSync.quat.SetFromMatrix(matPlayer);
 	ofSync.quat.Normalize();
