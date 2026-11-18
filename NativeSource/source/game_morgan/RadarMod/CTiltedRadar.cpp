@@ -1,5 +1,6 @@
 #include "../../../Main.h"
 #include "CTiltedRadar.h"
+#include "../CRect.h"
 #include "CTiltedCameraController.h"
 #include "CTiltedRadarGeometry.h"
 
@@ -20,6 +21,8 @@ static CTiltedCameraController cameraController;
 static CTiltedCameraController::CameraState camState{};
 static CTiltedVector3 cameraPos{};
 static CTiltedVector3 cameraRot{};
+static CTiltedMatrix gangZoneView;
+static CTiltedMatrix gangZoneProjection;
 static float radarOriginX = 0.0f;
 static float radarOriginY = 0.0f;
 static float radarRange = 0.0f;
@@ -200,6 +203,8 @@ bool CTiltedRadar::DrawTiles(int alpha)
     const float aspect = CTiltedRadarMath::GetRadarProjectionAspect(false);
     const int centerCol = static_cast<int>(std::floor((radarOriginX + 3000.0f) / 500.0f));
     const int centerRow = static_cast<int>(std::floor((3000.0f - radarOriginY) / 500.0f));
+
+    CTiltedRadarMath::BuildRadarViewProj(cameraPos, cameraRot, camState.fov, 0.3f, 10000.0f, aspect, false, gangZoneView, gangZoneProjection);
 
     CTiltedRadar::DrawRadarBackgroundDisk(m_fCenterX, m_fCenterY, m_fRadiusX, m_fRadiusY, alpha);
     for (int row = centerRow - 2; row <= centerRow + 2; ++row)
@@ -508,18 +513,22 @@ void CTiltedRadar::Render3DMapTile(int sectionX, int sectionY, int alpha, float 
     RwRenderStateSet(rwRENDERSTATESRCBLEND, reinterpret_cast<void*>(rwBLENDSRCALPHA));
     RwRenderStateSet(rwRENDERSTATEDESTBLEND, reinterpret_cast<void*>(rwBLENDINVSRCALPHA));
 
-    uint32_t vertColor = (static_cast<uint32_t>(alpha & 0xFF) << 24) | 0x00FFFFFF;
+    const uint32_t vertColor = (static_cast<uint32_t>(alpha & 0xFF) << 24) | 0x00FFFFFF;
+    CTiltedRadar::RenderProjectedRectangle(tileLeft, tileBottom, tileRight, tileTop, vertColor, centerX, centerY, radiusX, radiusY, rtSize, aspect);
+}
 
+void CTiltedRadar::RenderProjectedRectangle(float tileLeft, float tileBottom, float tileRight, float tileTop, uint32_t vertColor, float centerX, float centerY, float radiusX, float radiusY, float rtSize, float aspect)
+{
     int vertIndex = 0;
     for (int j = 0; j <= SUBDIV_N; ++j)
     {
         float vRatio = static_cast<float>(j) / static_cast<float>(SUBDIV_N);
-        float worldY = tileTop - vRatio * 500.0f;
+        float worldY = tileTop - vRatio * (tileTop - tileBottom);
 
         for (int i = 0; i <= SUBDIV_N; ++i)
         {
             float uRatio = static_cast<float>(i) / static_cast<float>(SUBDIV_N);
-            float worldX = tileLeft + uRatio * 500.0f;
+            float worldX = tileLeft + uRatio * (tileRight - tileLeft);
 
             CTiltedVector3 radarPos;
             CTiltedRadarGeometry::WorldToRadarPos(worldX, worldY, radarPos);
@@ -749,4 +758,137 @@ void CTiltedRadar::Render3DMapTile(int sectionX, int sectionY, int alpha, float 
     }
 
     flush();
+}
+
+bool CTiltedRadar::DrawAreaOnRadar(const CRect& rect, uint32_t color)
+{
+    if (!drawingMap || !tiltedFrame || !CTiltedRadar::IsEnabled() || CGame::IsDrawingBigMap()) {
+        return false;
+    }
+
+    if (!std::isfinite(rect.X1) || !std::isfinite(rect.Y1) || !std::isfinite(rect.X2) || !std::isfinite(rect.Y2)) {
+        return true;
+    }
+
+    const float left = std::min(rect.X1, rect.X2);
+    const float right = std::max(rect.X1, rect.X2);
+    const float bottom = std::min(rect.Y1, rect.Y2);
+    const float top = std::max(rect.Y1, rect.Y2);
+    if (left == right || bottom == top || (color >> 24) == 0) {
+        return true;
+    }
+
+    constexpr float halfOverlap = 0.0005f;
+    const CTiltedVector2 corners[] = {
+        {left - halfOverlap, top + halfOverlap}, {right + halfOverlap, top + halfOverlap},
+        {right + halfOverlap, bottom - halfOverlap}, {left - halfOverlap, bottom - halfOverlap}
+    };
+
+    constexpr int maxVertices = 4 + 2 + CLIP_SEGS;
+    CTiltedVector3 polygons[2][maxVertices];
+    CTiltedVector3* polygon = polygons[0];
+    CTiltedVector3* clipped = polygons[1];
+    int count = 4;
+
+    for (int i = 0; i < count; ++i)
+    {
+        CTiltedVector4 world;
+        CTiltedRadarGeometry::WorldToRadarPos(corners[i].x, corners[i].y, 1.0f, world.x, world.y, world.z);
+        world.w = 1.0f;
+        const CTiltedVector4 view = CTiltedMatrix::Transform(world, gangZoneView);
+        const CTiltedVector4 clip = CTiltedMatrix::Transform(view, gangZoneProjection);
+        polygon[i] = CTiltedVector3(clip.x * m_fRadiusX, -clip.y * m_fRadiusY, clip.w);
+    }
+
+    auto clipPlane = [&](float nx, float ny, float nw, float bias)
+    {
+        int written = 0;
+        CTiltedVector3 previous = polygon[count - 1];
+        float previousDistance = nx * previous.x + ny * previous.y + nw * previous.z + bias;
+
+        for (int i = 0; i < count; ++i)
+        {
+            const CTiltedVector3 current = polygon[i];
+            const float distance = nx * current.x + ny * current.y + nw * current.z + bias;
+            if ((previousDistance < 0.0f && distance > 0.0f) || (previousDistance > 0.0f && distance < 0.0f))
+            {
+                const float t = previousDistance / (previousDistance - distance);
+                clipped[written++] = previous + (current - previous) * t;
+            }
+
+            if (distance >= 0.0f)
+            {
+                clipped[written++] = current;
+            }
+
+            previous = current;
+            previousDistance = distance;
+        }
+
+        std::swap(polygon, clipped);
+        count = written;
+        return count >= 3;
+    };
+
+    if (!clipPlane(0.0f, 0.0f, 1.0f, -0.3f) || !clipPlane(0.0f, 0.0f, -1.0f, 10000.0f)) {
+        return true;
+    }
+
+    CTiltedRadar::UpdateRadarEdgeTable(m_fCenterX, m_fCenterY, m_fRadiusX, m_fRadiusY);
+    for (int e = 0; e < CLIP_SEGS; ++e)
+    {
+        const float offset = edgeA[e] * m_fCenterX + edgeB[e] * m_fCenterY + edgeC[e];
+        if (!clipPlane(edgeA[e], edgeB[e], offset, 0.0f))
+        {
+            return true;
+        }
+    }
+
+    RwIm2DVertex vertices[maxVertices]{};
+    RwImVertexIndex indices[(maxVertices - 2) * 3];
+    for (int i = 0; i < count; ++i)
+    {
+        vertices[i].x = m_fCenterX + polygon[i].x / polygon[i].z;
+        vertices[i].y = m_fCenterY + polygon[i].y / polygon[i].z;
+        vertices[i].z = spriteZ;
+        vertices[i].rhw = spriteRhw;
+        vertices[i].emissiveColor = color;
+    }
+
+    for (int i = 0; i < count - 2; ++i)
+    {
+        indices[3 * i] = 0;
+        indices[3 * i + 1] = static_cast<RwImVertexIndex>(i + 1);
+        indices[3 * i + 2] = static_cast<RwImVertexIndex>(i + 2);
+    }
+
+    const RwRenderState states[] = {
+        rwRENDERSTATETEXTURERASTER, rwRENDERSTATEVERTEXALPHAENABLE,
+        rwRENDERSTATESRCBLEND, rwRENDERSTATEDESTBLEND,
+        rwRENDERSTATEZTESTENABLE, rwRENDERSTATEZWRITEENABLE
+    };
+
+    void* saved[sizeof(states) / sizeof(states[0])]{};
+    for (std::size_t index = 0; index < sizeof(states) / sizeof(states[0]); ++index)
+    {
+        if (!RwRenderStateGet(states[index], &saved[index])) {
+            return false;
+        }
+    }
+
+    RwRenderStateSet(rwRENDERSTATETEXTURERASTER, nullptr);
+    RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, reinterpret_cast<void*>(1));
+    RwRenderStateSet(rwRENDERSTATESRCBLEND, reinterpret_cast<void*>(rwBLENDSRCALPHA));
+    RwRenderStateSet(rwRENDERSTATEDESTBLEND, reinterpret_cast<void*>(rwBLENDINVSRCALPHA));
+    RwRenderStateSet(rwRENDERSTATEZTESTENABLE, nullptr);
+    RwRenderStateSet(rwRENDERSTATEZWRITEENABLE, nullptr);
+
+    RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRILIST, vertices, count, indices, (count - 2) * 3);
+
+    for (std::size_t index = 0; index < sizeof(states) / sizeof(states[0]); ++index)
+    {
+        RwRenderStateSet(states[index], saved[index]);
+    }
+
+    return true;
 }

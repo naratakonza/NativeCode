@@ -105,7 +105,13 @@ void CFontRender::Render()
 	io.DeltaTime = CFontRender::m_dwLastFrameTick ? std::max(0.001f, (now - CFontRender::m_dwLastFrameTick) / 1000.0f) : 1.0f / 60.0f;
 	CFontRender::m_dwLastFrameTick = now;
 
+	CFontRender::PreProcessInput();
 	ImGui::NewFrame();
+
+	// if (CGui::GetGPSMarker())
+    // {
+    //     CGui::GetGPSMarker()->Render();
+    // }
 
 	if (CGui::GetDebug())
 	{
@@ -121,8 +127,86 @@ void CFontRender::Render()
 	ImGui::EndFrame();
 	ImGui::Render();
 	ImGui_ImplRenderWare_RenderDrawData(ImGui::GetDrawData());
+	CFontRender::PostProcessInput();
 
 	ImGui::SetCurrentContext(previous);
+}
+
+bool CFontRender::OnTouchEvent(eTouchType type, ImVec2 pos)
+{
+    // if (CGui::GetObjectSelection() && !CGui::GetObjectSelection()->OnTouchEvent(type, pos)) {
+    //     return false;
+    // }
+
+    // if (CGui::GetObjectEdit() && !CGui::GetObjectEdit()->OnTouchEvent(type, pos)) {
+    //     return false;
+    // }
+
+    // if (!CPlugin::OnTouchEvent(type, pos)) {
+    //     return false;
+    // }
+
+    switch (type)
+    {
+        case eTouchType::TOUCH_PUSH:
+        {
+            m_vTouchPos = pos;
+            m_bMouseDown = true;
+            m_bNeedClearMousePos = false;
+            m_bNextClear = false;
+
+            break;
+        }
+
+        case eTouchType::TOUCH_POP:
+        {
+            m_vTouchPos = pos;
+            m_bMouseDown = false;
+            m_bNeedClearMousePos = true;
+
+            break;
+        }
+
+        case eTouchType::TOUCH_MOVE:
+        {
+            m_vTouchPos = pos;
+            m_bMouseDown = true;
+            m_bNeedClearMousePos = false;
+
+            break;
+        }
+
+        default: {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void CFontRender::PreProcessInput()
+{
+    ImGuiIO& io = ImGui::GetIO();
+
+    if (m_bNextClear)
+    {
+        io.MousePos = ImVec2(-1.0f, -1.0f);
+    }
+    else
+    {
+        io.MousePos = m_vTouchPos;
+    }
+
+    io.MouseDown[0] = m_bMouseDown;
+}
+
+void CFontRender::PostProcessInput()
+{
+    if (m_bNeedClearMousePos && !m_bMouseDown)
+    {
+        m_bNextClear = true;
+        m_bNeedClearMousePos = false;
+    }
 }
 
 ImFont* CFontRender::LoadFont(const char* font, float fontsize, const ImWchar* ranges)

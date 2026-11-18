@@ -57,7 +57,7 @@ void CButton::Render()
         std::lock_guard<std::mutex> lock(CButton::m_KeyInputMutex);
         keys.swap(CButton::m_KeyInputQueue);
     }
-    
+
     for (int keyId : keys)
     {
         CButton::SendKeyInput(keyId);
@@ -82,13 +82,13 @@ void CButton::Render()
             // bool bVoiceActive = CGui::GetVoiceMenu() && CGui::GetVoiceMenu()->GetActiveVoiceMenu();
             // bool bMainMenuActive = CGui::GetMainMenuScreens() && CGui::GetMainMenuScreens()->GetActiveMainMenuScreens();
 
-            // bool bTextDrawActive = false;
-            // if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()) 
-            // {
-            //     bTextDrawActive = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetState();
-            // }
+            bool bTextDrawActive = false;
+            if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()) 
+            {
+                bTextDrawActive = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetState();
+            }
 
-            if (!bDialogActive /*&& !bScoreActive && !bMainMenuActive && !bVoiceActive && !bTextDrawActive*/ && CButton::m_bRenderStatus)
+            if (!bDialogActive /*&& !bScoreActive && !bMainMenuActive && !bVoiceActive*/ && !bTextDrawActive && CButton::m_bRenderStatus)
             {
                 bShouldShow = true;
             }

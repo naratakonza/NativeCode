@@ -5,6 +5,7 @@
 #include "../CMultiPlayer.h"
 #include "../CNetGame.h"
 #include "../Guis/CGui.h"
+#include "../Pools/Process/CMapIconPool.h"
 #include "../../CGame.h"
 #include "../../CClock.h"
 #include "../../CTimer.h"
@@ -556,6 +557,54 @@ void ToggleClock(RakNet::BitStream bsData)
 		CMultiPlayer::GetActiveNetwork()->m_bHoldTime = true;
 		CClock::GetWorldTime((int*)&CMultiPlayer::GetActiveNetwork()->m_byteWorldTime, (int*)&CMultiPlayer::GetActiveNetwork()->m_byteWorldMinute);
 	}
+}
+
+void SetMapIcon(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetMapIcon"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint8_t)) +
+		bytesToBits(sizeof(uint32_t)) +
+		bytesToBits(sizeof(CVector)) +
+		bytesToBits(sizeof(uint8_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetMapIcon"));
+        return;
+    }
+
+	uint8_t byteIndex, byteIcon;
+	uint32_t dwColor;
+	CVector vecPos;
+	uint8_t byteStyle;
+
+	bsData.Read(byteIndex);
+	bsData.Read((char*)&vecPos, sizeof(CVector));
+	bsData.Read(byteIcon);
+	bsData.Read(dwColor);
+	bsData.Read(byteStyle);
+
+	CMapIconPool::Add(byteIndex, vecPos.x, vecPos.y, vecPos.z, byteIcon, dwColor, byteStyle);
+}
+
+void RemoveMapIcon(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: RemoveMapIcon"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint8_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for RemoveMapIcon"));
+        return;
+    }
+
+	uint8_t byteIndex;
+
+	bsData.Read(byteIndex);
+
+	CMapIconPool::Delete(byteIndex);
 }
 
 void GivePlayerMoney(RakNet::BitStream bsData)
@@ -1258,6 +1307,111 @@ void ResetPlayerWeapons(RakNet::BitStream)
 	}
 }
 
+void ShowTextDraw(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ShowTextDraw"));
+	
+	uint16_t wTextId;
+	TEXT_DRAW_TRANSMIT TextDrawTransmit;
+	uint16_t byteTextLen;
+	char cText[eMaxItem::MAX_TEXT_DRAW_LINE + 1];
+
+	bsData.Read(wTextId);
+	bsData.Read((char*)&TextDrawTransmit, sizeof(TEXT_DRAW_TRANSMIT));
+	bsData.Read(byteTextLen);
+
+	if (byteTextLen > sizeof(cText)) {
+		CGui::GetChat()->AddInfoMessage(OBFUSCATE("Warning: ignoring large TextDraw size=%u"), byteTextLen);
+		return;
+	}
+
+	bsData.Read(cText, byteTextLen);
+	cText[byteTextLen] = '\0';
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool())
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->Add(wTextId, &TextDrawTransmit, cText);
+		}
+	}
+}
+
+void HideTextDraw(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: HideTextDraw"));
+
+	uint16_t wTextId;
+	bsData.Read(wTextId);
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool())
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->Delete(wTextId);
+		}
+	}
+}
+
+void TextDrawSetString(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: TextDrawSetString"));
+
+	uint16_t wTextId;
+	uint16_t byteTextLen;
+	char cText[eMaxItem::MAX_TEXT_DRAW_LINE + 1];
+
+	bsData.Read(wTextId);
+	bsData.Read(byteTextLen);
+
+	if (byteTextLen > sizeof(cText)) {
+		return;
+	}
+
+	bsData.Read(cText, byteTextLen);
+	cText[byteTextLen] = '\0';
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool())
+		{	
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetTextDraw(wTextId))
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetTextDraw(wTextId)->SetText(cText);
+			}		
+		}
+	}
+}
+
+void ToggleSelectTextDraw(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ToggleSelectTextDraw"));
+
+	bool bEnable;
+	uint32_t dwColor;
+
+	bsData.Read(bEnable);
+	bsData.Read(dwColor);
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		// if (CGui::GetObjectSelection() && CGui::GetObjectSelection()->GetActiveSelectObject())
+		// {
+		// 	CGui::GetObjectSelection()->Enable(false);
+		// }
+
+		// if (CGui::GetObjectEdit() && CGui::GetObjectEdit()->GetActiveObjectEdit())
+		// {
+		// 	CGui::GetObjectEdit()->Enable(false);
+		// }
+
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool())
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->SetSelectState(bEnable, dwColor);
+		}
+	}
+}
+
 void CreatePickup(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: CreatePickup"));
@@ -1605,15 +1759,15 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 			break;
 		}
 
-		// case RPC_SetPlayerMapIcon: {
-		//     SetMapIcon(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerMapIcon: {
+		    SetMapIcon(*bsData);
+		    break;
+		}
 
-		// case RPC_RemovePlayerMapIcon: {
-		//     RemoveMapIcon(*bsData);
-		//     break;
-		// }
+		case RPC_RemovePlayerMapIcon: {
+		    RemoveMapIcon(*bsData);
+		    break;
+		}
 
 		// case RPC_SetPlayerWorldBounds: {
 		//     SetWorldBounds(*bsData);
@@ -1990,25 +2144,25 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_ClickTextdraw: {
-		//     ToggleSelectTextDraw(*bsData);
-		//     break;
-		// }
+		case RPC_ClickTextdraw: {
+		    ToggleSelectTextDraw(*bsData);
+		    break;
+		}
 
-		// case RPC_ShowTextDraw: {
-		//     ShowTextDraw(*bsData);
-		//     break;
-		// }
+		case RPC_ShowTextDraw: {
+		    ShowTextDraw(*bsData);
+		    break;
+		}
 
-		// case RPC_HideTextDraw: {
-		//     HideTextDraw(*bsData);
-		//     break;
-		// }
+		case RPC_HideTextDraw: {
+		    HideTextDraw(*bsData);
+		    break;
+		}
 
-		// case RPC_TextDrawSetString: {
-		//     TextDrawSetString(*bsData);
-		// 	break;
-		// }
+		case RPC_TextDrawSetString: {
+		    TextDrawSetString(*bsData);
+			break;
+		}
 
 		// case RPC_Create3DTextLabel: {
 		//     Create3DTextLabel(*bsData);

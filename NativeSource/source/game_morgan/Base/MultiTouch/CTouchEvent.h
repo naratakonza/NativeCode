@@ -38,5 +38,6 @@ private:
 
     static TouchMethod m_TouchMethods[];
     static char m_ActiveTouchesKey;
+    static char m_GuiTouchKey;
     static bool m_bInstalled;
 };

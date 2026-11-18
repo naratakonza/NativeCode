@@ -84,6 +84,24 @@ void CGame::ToggleRadar(bool iToggle)
     *reinterpret_cast<std::uint8_t*>(SA_ADDR(0x7AE2EC) + _dyld_get_image_vmaddr_slide(0)) = static_cast<std::uint8_t>(!iToggle);
 }
 
+void CGame::GetScreenWidthAndHeight(int* w, int* h)
+{
+    RwVideoMode modeInfo{};
+    if (RwEngineGetCurrentVideoMode && RwEngineGetVideoModeInfo)
+    {
+        const int mode = RwEngineGetCurrentVideoMode();
+        if (mode >= 0 && RwEngineGetVideoModeInfo(&modeInfo, mode))
+        {
+            *w = modeInfo.width;
+            *h = modeInfo.height;
+            return;
+        }
+    }
+
+    *w = RsGlobal ? RsGlobal->maximumWidth : 0;
+    *h = RsGlobal ? RsGlobal->maximumHeight : 0;
+}
+
 void CGame::DisplayHUD(bool bDisp)
 {
     static const bool verified = CMemory::HasMappedInstruction(SA_ADDR(0xEA300), "\xEA\x31\x00\x90") && CMemory::HasMappedInstruction(SA_ADDR(0xEA304), "\x4A\xA1\x0D\x91") && CMemory::HasMappedInstruction(SA_ADDR(0xEA308), "\x49\x01\x00\x39");

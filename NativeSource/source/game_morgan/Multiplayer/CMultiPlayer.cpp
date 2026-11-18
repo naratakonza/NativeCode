@@ -19,6 +19,7 @@
 #include "../Base/CPatches.h"
 #include "../Base/CHooks.h"
 #include "../Base/CWidgets.h"
+#include "Pools/Process/CMapIconPool.h"
 #include "../Base/Graphics/CRealTimeShadowManager.h"
 #include "../COptimizeDistance.h"
 
@@ -111,6 +112,7 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 		CGui::GetDialog()->Enable(false);
 		
 		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->DeleteAll();
+		CMapIconPool::DeleteAll();
 		CMultiPlayer::GetActiveNetwork()->InitialiseGameLogic();
 
 		if (CGame::GetPlayer())
@@ -119,6 +121,9 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 			// CGame::GetPlayer()->SetDead(); เดียวมาทำต่อภายหลัง
 			CGame::GetPlayer()->SetArmour(0.0f);
 		}
+
+		// CGui::GetGPSMarker()->SetPosition(0.0f, 0.0f, 0.0f);
+		// CGui::GetGPSMarker()->SetVisible(false);
 
 		CRadar::ResetRadarColor();
 		CGame::ResetPlayerMoney();

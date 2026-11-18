@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "../../../Enums/eTouchType.h"
 #include "../../../../vendor/imgui/imgui.h"
 
 #define MULT_X 0.00052083333f // 1/1920
@@ -17,10 +18,19 @@ public:
 	~CFontRender();
 
 	void Render();
+	bool OnTouchEvent(eTouchType type, ImVec2 pos);
 	void RenderText(ImVec2& pos, ImU32 col, bool bOutline, const char* text_begin, const char* text_end = nullptr, float fontSize = 0.0f);
 
 private:
 	ImFont* LoadFont(const char* font, float fontsize, const ImWchar* ranges = nullptr);
+
+	void PreProcessInput();
+	void PostProcessInput();
+
+	ImVec2 m_vTouchPos{-1.0f, -1.0f};
+	bool m_bMouseDown = false;
+	bool m_bNeedClearMousePos = false;
+	bool m_bNextClear = false;
 
 	ImGuiContext* m_pContext = nullptr;
 	std::uint32_t m_dwLastFrameTick = 0;

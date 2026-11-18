@@ -1,5 +1,6 @@
 #include "../../../Main.h"
 #include "CHooks.h"
+#include "CCrashFix.h"
 #include "CPad.h"
 #include "Graphics/CRealTimeShadowManager.h"
 #include "CWidgets.h"
@@ -14,6 +15,7 @@
 #include "../Models/CModelInfo.h"
 #include "../CPools.h"
 #include "../CStreaming.h"
+#include "../CTxdManager.h"
 #include "../Entity/Ped/CPlayerPed.h"
 #include "../Entity/CPhysical.h"
 #include "../CStats.h"
@@ -26,7 +28,11 @@
 #include "../Multiplayer/Audio/CAudio.h"
 #include "../Multiplayer/Guis/CGui.h"
 
+#include <algorithm>
+#include <cctype>
+#include <cstring>
 #include <mach-o/dyld.h>
+#include <strings.h>
 #include <memory>
 #include <sys/stat.h>
 
@@ -250,6 +256,25 @@ extern "C" __attribute__((visibility("default"))) void CGame_Process_hook(void (
         CCameraController::AimForTheCamera();
         CMultiPlayer::Process();
     }
+
+    if (pthread_main_np() && CMultiPlayer::IsSampInit() && CMultiPlayer::GetActiveNetwork())
+    {
+        if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool())
+        {
+            try
+            {
+                CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->SnapshotProcess();
+            }
+            catch (const std::exception& error)
+            {
+                CExceptions::Print(OBFUSCATE("s008"), error.what());
+            }
+            catch (...)
+            {
+                CExceptions::Print(OBFUSCATE("s008"), OBFUSCATE("unknown C++ exception"));
+            }
+        }
+    }
 }
 
 extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (*EndFrame2D)())
@@ -279,6 +304,11 @@ extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (
             {
                 CGui::GetFontRender()->Render();
             }
+
+            if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()) 
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->Draw();
+			}
         }
     }
 }
@@ -414,6 +444,121 @@ extern "C" __attribute__((naked, visibility("default"))) void PickUpPickup_hook(
     );
 }
 
+extern "C" __attribute__((visibility("default"))) uintptr_t TextureDatabaseRuntime_GetTexture_hook(const char* szTextureName, uintptr_t (*TextureDatabaseRuntime_GetTexture)(const char*))
+{
+    if (!szTextureName || szTextureName[0] == '\0') {
+        return 0;
+    }
+
+    const uintptr_t registered = SA_ADDR(0x801F90) + _dyld_get_image_vmaddr_slide(0);
+    auto& iDatabaseCount = *reinterpret_cast<uint32_t*>(registered + 4);
+    auto* pDatabaseList = *reinterpret_cast<uintptr_t**>(registered + 8);
+    if (!pDatabaseList && iDatabaseCount != 0) {
+        return 0;
+    }
+
+    if (pDatabaseList && iDatabaseCount != 0)
+    {
+        auto* end = pDatabaseList + iDatabaseCount;
+        auto* firstNull = std::find(pDatabaseList, end, uintptr_t{0});
+        if (firstNull != end)
+        {
+            iDatabaseCount = static_cast<uint32_t>(std::remove(firstNull, end, uintptr_t{0}) - pDatabaseList);
+        }
+    }
+
+    uintptr_t texture = TextureDatabaseRuntime_GetTexture(szTextureName);
+    if (texture) {
+        return texture;
+    }
+
+    pDatabaseList = *reinterpret_cast<uintptr_t**>(registered + 8);
+    if (!pDatabaseList || iDatabaseCount == 0) {
+        return 0;
+    }
+
+    std::string szTextureNameLower = szTextureName;
+    std::transform(szTextureNameLower.begin(), szTextureNameLower.end(), szTextureNameLower.begin(), [](unsigned char c) { return std::tolower(c); });
+
+    for (uint32_t iDatabaseIndex = 0; iDatabaseIndex < iDatabaseCount; ++iDatabaseIndex)
+    {
+        const uintptr_t textureDatabase = pDatabaseList[iDatabaseIndex];
+        if (!textureDatabase) {
+            continue;
+        }
+
+        const char* szDatabaseName = *reinterpret_cast<const char* const*>(textureDatabase + 8);
+        std::string szTargetName = szTextureNameLower;
+        if (szDatabaseName && szDatabaseName[0] != '\0')
+        {
+            CTxdManager::ParseDatabaseRedirects(szDatabaseName);
+            auto dbIt = CTxdManager::m_mapDatabaseRedirects.find(szDatabaseName);
+            if (dbIt != CTxdManager::m_mapDatabaseRedirects.end())
+            {
+                auto redirIt = dbIt->second.find(szTextureNameLower);
+                if (redirIt != dbIt->second.end())
+                {
+                    szTargetName = redirIt->second;
+                }
+            }
+        }
+
+        if (szTargetName != szTextureNameLower)
+        {
+            const uintptr_t redirectedTexture = TextureDatabaseRuntime_GetTexture(szTargetName.c_str());
+            if (redirectedTexture) {
+                return redirectedTexture;
+            }
+        }
+
+        const auto* pBucketTable = *reinterpret_cast<const uint32_t* const*>(textureDatabase + 0x108);
+        const uint32_t bucketTableSize = *reinterpret_cast<const uint32_t*>(textureDatabase + 0x110);
+        const auto* pEntryList = *reinterpret_cast<const uint8_t* const*>(textureDatabase + 0x28);
+        if (!pBucketTable || !pEntryList || bucketTableSize == 0 || !TextureDatabaseRuntime_GetRWTexture) {
+            continue;
+        }
+
+        const uint32_t iEntryCount = pBucketTable[bucketTableSize];
+        const uint32_t databaseEntryCount = *reinterpret_cast<const uint32_t*>(textureDatabase + 0x24);
+        if (iEntryCount == 0 || iEntryCount > 100000 || iEntryCount > databaseEntryCount) {
+            continue;
+        }
+
+        for (uint32_t iEntryIndex = 0; iEntryIndex < iEntryCount; ++iEntryIndex)
+        {
+            const auto* pEntry = pEntryList + iEntryIndex * 31;
+            const char* szCurrentName = nullptr;
+            std::memcpy(&szCurrentName, pEntry, sizeof(szCurrentName));
+            bool matched = szCurrentName && strcasecmp(szCurrentName, szTargetName.c_str()) == 0;
+
+            if ((pEntry[0xE] & 4) != 0)
+            {
+                const char* affiliateName = nullptr;
+                std::memcpy(&affiliateName, pEntry + 23, sizeof(affiliateName));
+                if (affiliateName && (matched || strcasecmp(affiliateName, szTargetName.c_str()) == 0))
+                {
+                    const uintptr_t affiliateTexture = TextureDatabaseRuntime_GetTexture(affiliateName);
+                    if (affiliateTexture) {
+                        return affiliateTexture;
+                    }
+                }
+
+                continue;
+            }
+
+            if (matched)
+            {
+                auto* matchedTexture = TextureDatabaseRuntime_GetRWTexture(reinterpret_cast<void*>(textureDatabase), static_cast<int>(iEntryIndex));
+                if (matchedTexture) {
+                    return reinterpret_cast<uintptr_t>(matchedTexture);
+                }
+            }
+        }
+    }
+
+    return 0;
+}
+
 void CHooks::InstallNecessary()
 {
     if (const auto error = CHook::GetThread()->InstallFileOpen())
@@ -448,6 +593,7 @@ void CHooks::SetHooking(eHookType type)
         case eHookType::HOOK_TYPE_ONLOAD: {
             CTimer::Initialise();
             CHooks::InstallNecessary();
+            CCrashFix::Initialise();
             CWorld::Initialise();
             CModelInfo::Initialise();
             CPools::Install();
