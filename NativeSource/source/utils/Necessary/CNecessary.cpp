@@ -39,8 +39,7 @@ std::uint32_t CNecessary::GetTickCount()
 
 bool CNecessary::IsBadWritePtr(const void* pointer, std::size_t size)
 {
-    if (!pointer || size == 0)
-    {
+    if (!pointer || size == 0) {
         return true;
     }
 
@@ -50,8 +49,7 @@ bool CNecessary::IsBadWritePtr(const void* pointer, std::size_t size)
     vm_region_basic_info_data_64_t info{};
     mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
     mach_port_t object = MACH_PORT_NULL;
-    const kern_return_t result = vm_region_64(mach_task_self(), &region, &length, VM_REGION_BASIC_INFO_64,
-        reinterpret_cast<vm_region_info_t>(&info), &count, &object);
+    const kern_return_t result = vm_region_64(mach_task_self(), &region, &length, VM_REGION_BASIC_INFO_64, reinterpret_cast<vm_region_info_t>(&info), &count, &object);
     if (MACH_PORT_VALID(object))
     {
         mach_port_deallocate(mach_task_self(), object);

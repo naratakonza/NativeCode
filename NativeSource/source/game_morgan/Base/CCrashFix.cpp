@@ -3,8 +3,7 @@
 
 extern "C" __attribute__((visibility("default"))) RwBool RpMaterialDestroy_hook(RpMaterial* material, RwBool (*original)(RpMaterial*))
 {
-    if (CNecessary::IsBadWritePtr(material, sizeof(*material)))
-    {
+    if (CNecessary::IsBadWritePtr(material, sizeof(*material))) {
         CNecessary::Log(OBFUSCATE("RpMaterialDestroy: material is nullptr or invalid/read-only!"));
         return 1;
     }
@@ -14,8 +13,7 @@ extern "C" __attribute__((visibility("default"))) RwBool RpMaterialDestroy_hook(
 
 extern "C" __attribute__((visibility("default"))) RwBool RwTextureDestroy_hook(RwTexture* texture, RwBool (*original)(RwTexture*))
 {
-    if (CNecessary::IsBadWritePtr(texture, sizeof(*texture)))
-    {
+    if (CNecessary::IsBadWritePtr(texture, sizeof(*texture))) {
         CNecessary::Log(OBFUSCATE("RwTextureDestroy: texture is nullptr or invalid!"));
         return 1;
     }
