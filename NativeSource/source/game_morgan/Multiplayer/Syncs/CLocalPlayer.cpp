@@ -506,14 +506,14 @@ bool CLocalPlayer::Spawn()
 	CLocalPlayer::GetPlayerPed()->RestartIfWastedAt(&m_SpawnInfo.vecPos, m_SpawnInfo.fRotation);
 	CLocalPlayer::GetPlayerPed()->SetModelIndex(CLocalPlayer::m_SpawnInfo.iSkin);
 
-	if (CRealTimeShadowManager::GetShadowStyle() == 1 && pthread_main_np() && CLocalPlayer::GetPlayerPed()->VerifyInstance())
-	{
-		CRealTimeShadow* pShadow = CLocalPlayer::GetPlayerPed()->GetPed()->m_pRealTimeShadow;
-		if (pShadow && pShadow->m_pPhysical == CLocalPlayer::GetPlayerPed()->GetPed())
-		{
-			CRealTimeShadowManager::ReturnRealTimeShadow(nullptr, pShadow);
-		}
-	}
+	// if (CRealTimeShadowManager::GetShadowStyle() == 1 && pthread_main_np() && CLocalPlayer::GetPlayerPed()->VerifyInstance())
+	// {
+	// 	CRealTimeShadow* pShadow = CLocalPlayer::GetPlayerPed()->GetPed()->m_pRealTimeShadow;
+	// 	if (pShadow && pShadow->m_pPhysical == CLocalPlayer::GetPlayerPed()->GetPed())
+	// 	{
+	// 		CRealTimeShadowManager::ReturnRealTimeShadow(nullptr, pShadow);
+	// 	}
+	// }
 
 	CLocalPlayer::GetPlayerPed()->ClearAllWeapons();
 	CLocalPlayer::GetPlayerPed()->ResetDamageEntity();

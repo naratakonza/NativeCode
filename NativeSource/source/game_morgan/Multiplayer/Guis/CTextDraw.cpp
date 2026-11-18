@@ -6,6 +6,8 @@
 #include "../../CCommon.h"
 #include "../../CTxdManager.h"
 #include "../../Enums/eFontAlignment.h"
+#include "../Snapshot/CModelSnapshot.h"
+
 
 CTextDraw::CTextDraw(TEXT_DRAW_TRANSMIT *pTextDrawTransmit, const char *szText)
 {
@@ -321,12 +323,11 @@ void CTextDraw::LoadTexture()
 
 void CTextDraw::SnapshotProcess()
 {
-    /*
     if (CTextDraw::m_TextDrawData.dwStyle != eTextDrawStyle::TEXTDRAW_MODEL_PREVIEW || CTextDraw::m_TextDrawData.iTextureSlot != -1) {
         return;
     }
 
-    RwTexture *pSnapshotProcessed = 0;
+    RwTexture *pSnapshotProcessed = nullptr;
     if (CCommon::IsPedModel(CTextDraw::m_TextDrawData.wModelID))
     {
         if (!CCommon::GetModelInfoByID(CTextDraw::m_TextDrawData.wModelID))
@@ -336,6 +337,7 @@ void CTextDraw::SnapshotProcess()
 
         pSnapshotProcessed = CGame::GetModelSnapshot()->CreatePedSnapShot(CTextDraw::m_TextDrawData.wModelID, CTextDraw::m_TextDrawData.dwBackgroundColor, &m_TextDrawData.vecRot, CTextDraw::m_TextDrawData.fZoom);
     }
+    /*
     else if (CTextDraw::m_TextDrawData.wModelID >= 400 && CTextDraw::m_TextDrawData.wModelID <= 611)
     {
         pSnapshotProcessed = CGame::GetModelSnapshot()->CreateVehicleSnapShot(CTextDraw::m_TextDrawData.wModelID, CTextDraw::m_TextDrawData.dwBackgroundColor, &m_TextDrawData.vecRot, CTextDraw::m_TextDrawData.fZoom, CTextDraw::m_TextDrawData.wColor1, CTextDraw::m_TextDrawData.wColor2);
@@ -362,11 +364,11 @@ void CTextDraw::SnapshotProcess()
 
         pSnapshotProcessed = CGame::GetModelSnapshot()->CreateObjectSnapShot(CTextDraw::m_TextDrawData.wModelID, CTextDraw::m_TextDrawData.dwBackgroundColor, &m_TextDrawData.vecRot, CTextDraw::m_TextDrawData.fZoom);
     }
+    */
 
     if (pSnapshotProcessed)
     {
         CTextDraw::m_TextDrawData.iTextureSlot = CCommon::GetFreeTextDrawTextureSlot();
         CCommon::pTextDrawTexture[CTextDraw::m_TextDrawData.iTextureSlot] = pSnapshotProcessed;
     }
-    */
 }

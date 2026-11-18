@@ -3,6 +3,8 @@
 #include "CPlayerInfo.h"
 #include "Enums/eMaxItem.h"
 
+struct CEntityGta;
+
 struct PlayerTable
 {
     CPlayerInfo* players;
@@ -17,6 +19,9 @@ public:
 
 public:
     static void Initialise();
+    static void AddEntity(CEntityGta* entity);
+    static void RemoveEntity(CEntityGta* entity);
+    static void RemovePlayerPed(unsigned int slot);
     static CPedGta* GetPlayerPed(unsigned int slot);
     __attribute__((visibility("default"))) static int32_t FindPlayerSlotWithPedPointer(CPedGta* pPlayersPed);
 };

@@ -96,6 +96,8 @@ for source in \
     "$multiplayer/Core/CMultiPlayerNetwork.cpp" "$multiplayer/Core/CMultiPlayerOpcode.cpp" "$native/source/game_morgan/CEntryExitManager.cpp" \
     "$multiplayer/Pools/CNetGamePool.cpp" "$multiplayer/Pools/Process/CPlayerPool.cpp" \
     "$multiplayer/Syncs/Core/CMarkerIcon.cpp" "$multiplayer/Pools/Process/CMapIconPool.cpp" \
+    "$multiplayer/Guis/Gps/CGPSMarker.cpp" "$native/source/game_morgan/CSprite.cpp" \
+    "$multiplayer/Snapshot/CModelSnapshot.cpp" \
     "$multiplayer/Syncs/CLocalPlayer.cpp" \
     "$multiplayer/Audio/CAudio.cpp" \
     "$multiplayer/Audio/Stream/CAudioStream.cpp" \
@@ -158,6 +160,8 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CMultiPlayerNetwork.o" "$out/fileio-objects/CMultiPlayerOpcode.o" "$out/fileio-objects/CEntryExitManager.o" \
     "$out/fileio-objects/CNetGamePool.o" "$out/fileio-objects/CPlayerPool.o" \
     "$out/fileio-objects/CMarkerIcon.o" "$out/fileio-objects/CMapIconPool.o" \
+    "$out/fileio-objects/CGPSMarker.o" "$out/fileio-objects/CSprite.o" \
+    "$out/fileio-objects/CModelSnapshot.o" \
     "$out/fileio-objects/CLocalPlayer.o" \
     "$out/fileio-objects/CAudio.o" \
     "$out/fileio-objects/CAudioStream.o" \

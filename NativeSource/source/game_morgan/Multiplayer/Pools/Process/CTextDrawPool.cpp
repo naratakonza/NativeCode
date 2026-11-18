@@ -168,7 +168,6 @@ void CTextDrawPool::Draw()
 
 void CTextDrawPool::SnapshotProcess()
 {
-    /*
     for (int i = 0; i < eMaxItem::MAX_TEXT_DRAWS; i++)
     {
         if (CTextDrawPool::m_pTextDraws[i] && CTextDrawPool::GetTextDrawInSlot(i))
@@ -176,5 +175,4 @@ void CTextDrawPool::SnapshotProcess()
             CTextDrawPool::m_pTextDraws[i]->SnapshotProcess();
         }
     }
-    */
 }

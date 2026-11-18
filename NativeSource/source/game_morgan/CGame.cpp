@@ -11,6 +11,7 @@
 
 CCamera* CGame::m_pGameCamera = (CCamera*)nullptr;
 CPlayerPed* CGame::m_pGamePlayer = nullptr;
+CModelSnapshot* CGame::m_pModelSnapshot = nullptr;
 
 void CGame::Initialize()
 {
@@ -22,6 +23,7 @@ void CGame::Uninitialise()
 	CNecessary::Log(OBFUSCATE("CGame Uninitialise"));
 
 	SAFE_DELETE(CGame::m_pGameCamera);
+    SAFE_DELETE(CGame::m_pModelSnapshot);
     
 	if (CGame::m_pGamePlayer)
 	{

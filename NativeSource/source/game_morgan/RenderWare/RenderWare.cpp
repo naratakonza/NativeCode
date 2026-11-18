@@ -25,7 +25,7 @@ RwFrame* (*RwFrameForAllObjects)(RwFrame* frame, RwObjectCallBack callBack, void
 
 RpMaterial* (*RpMaterialCreate)(void);
 
-RwObject *(*RwObjectHasFrameSetFrame)(void *camera, RwFrame *frame);
+void (*RwObjectHasFrameSetFrame)(void* object, RwFrame* frame);
 RwBool (*RwCameraDestroy)(RwCamera * camera);
 RwBool (*RwFrameDestroy)(RwFrame * frame);
 
@@ -35,6 +35,7 @@ RpWorld* (*RpWorldAddLight)(RpWorld* world, RpLight* light);
 RpWorld* (*RpWorldRemoveLight)(RpWorld* world, RpLight* light);
 
 RpLight* (*RpLightCreate)(RwInt32 type);
+RwBool (*RpLightDestroy)(RpLight* light);
 RpLight* (*RpLightSetColor)(RpLight* light, const RwRGBAReal* color);
 
 RwRaster *(*RwRasterCreate)(RwInt32 width, RwInt32 height, RwInt32 depth, RwInt32 flags);
@@ -152,6 +153,7 @@ void InitialiseRenderWare()
     bound += SetFuncAddr(&RwFrameDestroy, SA_ADDR(0x2AD150), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9");
     bound += SetFuncAddr(&RwFrameTranslateAMZ, SA_ADDR(0x2AD42C), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9");
     bound += SetFuncAddr(&RwFrameRotateAMZ, SA_ADDR(0x2AD544), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9");
+    bound += SetFuncAddr(&RwObjectHasFrameSetFrame, SA_ADDR(0x2B2124), "\x08\x04\x40\xF9\xA8\x00\x00\xB4");
     bound += SetFuncAddr(&RwFrameForAllObjects, SA_ADDR(0x2AD728), "\xF8\x5F\xBC\xA9\xF6\x57\x01\xA9");
     bound += SetFuncAddr(&RwImageCreate, SA_ADDR(0x2ADC5C), "\xF6\x57\xBD\xA9\xF4\x4F\x01\xA9");
     bound += SetFuncAddr(&RwImageDestroy, SA_ADDR(0x2ADCD0), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9");
@@ -202,7 +204,9 @@ void InitialiseRenderWare()
     bound += SetFuncAddr(&RpClumpStreamRead, SA_ADDR(0x2C3A80), "\xFF\x03\x03\xD1\xFC\x6F\x06\xA9");
     bound += SetFuncAddr(&RpGeometryUnlock, SA_ADDR(0x2C4244), "\xF8\x5F\xBC\xA9\xF6\x57\x01\xA9");
     bound += SetFuncAddr(&RpGeometryForAllMaterials, SA_ADDR(0x2C4988), "\xF8\x5F\xBC\xA9\xF6\x57\x01\xA9");
+    bound += SetFuncAddr(&RpLightSetColor, SA_ADDR(0x2C4E10), "\x20\x00\xC0\x3D\x00\xC0\x82\x3C");
     bound += SetFuncAddr(&RpLightCreate, SA_ADDR(0x2C53D8), "\xF6\x57\xBD\xA9\xF4\x4F\x01\xA9");
+    bound += SetFuncAddr(&RpLightDestroy, SA_ADDR(0x2C5494), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9");
     bound += SetFuncAddr(&RpMaterialCreate, SA_ADDR(0x2C577C), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9");
     bound += SetFuncAddr(&RpMaterialSetTexture, SA_ADDR(0x2C587C), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9");
     bound += SetFuncAddr(&RpWorldAddCamera, SA_ADDR(0x2CA5BC), "\xF6\x57\xBD\xA9\xF4\x4F\x01\xA9");
@@ -212,5 +216,5 @@ void InitialiseRenderWare()
     bound += SetFuncAddr(&RwRasterUnlockPalette, SA_ADDR(0x2AF0A0), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9");
     bound += SetFuncAddr(&RpAtomicSetFrame, SA_ADDR(0x2C3108), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9");
 
-    CNecessary::Log(OBFUSCATE("RenderWare iOS bindings: %u/73"), bound);
+    CNecessary::Log(OBFUSCATE("RenderWare iOS bindings: %u/77"), bound);
 }
