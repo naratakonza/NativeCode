@@ -1,5 +1,6 @@
 #include "../../../Main.h"
 #include "CTiltedRadar.h"
+#include "../CRect.h"
 #include "CTiltedCameraController.h"
 #include "CTiltedRadarGeometry.h"
 
@@ -508,18 +509,23 @@ void CTiltedRadar::Render3DMapTile(int sectionX, int sectionY, int alpha, float 
     RwRenderStateSet(rwRENDERSTATESRCBLEND, reinterpret_cast<void*>(rwBLENDSRCALPHA));
     RwRenderStateSet(rwRENDERSTATEDESTBLEND, reinterpret_cast<void*>(rwBLENDINVSRCALPHA));
 
-    uint32_t vertColor = (static_cast<uint32_t>(alpha & 0xFF) << 24) | 0x00FFFFFF;
+    const uint32_t vertColor = (static_cast<uint32_t>(alpha & 0xFF) << 24) | 0x00FFFFFF;
+    CTiltedRadar::RenderProjectedRectangle(tileLeft, tileBottom, tileRight, tileTop, vertColor, centerX, centerY, radiusX, radiusY, rtSize, aspect);
+}
+
+void CTiltedRadar::RenderProjectedRectangle(float tileLeft, float tileBottom, float tileRight, float tileTop, uint32_t vertColor, float centerX, float centerY, float radiusX, float radiusY, float rtSize, float aspect)
+{
 
     int vertIndex = 0;
     for (int j = 0; j <= SUBDIV_N; ++j)
     {
         float vRatio = static_cast<float>(j) / static_cast<float>(SUBDIV_N);
-        float worldY = tileTop - vRatio * 500.0f;
+        float worldY = tileTop - vRatio * (tileTop - tileBottom);
 
         for (int i = 0; i <= SUBDIV_N; ++i)
         {
             float uRatio = static_cast<float>(i) / static_cast<float>(SUBDIV_N);
-            float worldX = tileLeft + uRatio * 500.0f;
+            float worldX = tileLeft + uRatio * (tileRight - tileLeft);
 
             CTiltedVector3 radarPos;
             CTiltedRadarGeometry::WorldToRadarPos(worldX, worldY, radarPos);
@@ -749,4 +755,75 @@ void CTiltedRadar::Render3DMapTile(int sectionX, int sectionY, int alpha, float 
     }
 
     flush();
+}
+
+bool CTiltedRadar::DrawGangZone(const CRect& rect, uint32_t color)
+{
+    if (!drawingMap || !tiltedFrame || !CTiltedRadar::IsEnabled() || CGame::IsDrawingBigMap())
+    {
+        return false;
+    }
+
+    if (!std::isfinite(rect.X1) || !std::isfinite(rect.Y1) || !std::isfinite(rect.X2) || !std::isfinite(rect.Y2))
+    {
+        return true;
+    }
+
+    const RwRenderState states[] = {
+        rwRENDERSTATETEXTURERASTER, rwRENDERSTATEVERTEXALPHAENABLE,
+        rwRENDERSTATESRCBLEND, rwRENDERSTATEDESTBLEND,
+        rwRENDERSTATEZTESTENABLE, rwRENDERSTATEZWRITEENABLE
+    };
+    
+    void* saved[sizeof(states) / sizeof(states[0])]{};
+    for (std::size_t index = 0; index < sizeof(states) / sizeof(states[0]); ++index)
+    {
+        if (!RwRenderStateGet(states[index], &saved[index]))
+        {
+            return false;
+        }
+    }
+
+    RwRenderStateSet(rwRENDERSTATETEXTURERASTER, nullptr);
+    RwRenderStateSet(rwRENDERSTATEVERTEXALPHAENABLE, reinterpret_cast<void*>(1));
+    RwRenderStateSet(rwRENDERSTATESRCBLEND, reinterpret_cast<void*>(rwBLENDSRCALPHA));
+    RwRenderStateSet(rwRENDERSTATEDESTBLEND, reinterpret_cast<void*>(rwBLENDINVSRCALPHA));
+    RwRenderStateSet(rwRENDERSTATEZTESTENABLE, nullptr);
+    RwRenderStateSet(rwRENDERSTATEZWRITEENABLE, nullptr);
+
+    const float left = std::min(rect.X1, rect.X2);
+    const float right = std::max(rect.X1, rect.X2);
+    const float bottom = std::min(rect.Y1, rect.Y2);
+    const float top = std::max(rect.Y1, rect.Y2);
+    const uint32_t vertColor = ((color & 0xFF) << 24) | ((color >> 8) & 0xFF00) | ((color >> 24) & 0xFF) | ((color << 8) & 0xFF0000);
+    const float rtSize = std::min(m_fRadiusX, m_fRadiusY) * 2.0f;
+    const float aspect = CTiltedRadarMath::GetRadarProjectionAspect(false);
+    const int centerCol = static_cast<int>(std::floor((radarOriginX + 3000.0f) / 500.0f));
+    const int centerRow = static_cast<int>(std::floor((3000.0f - radarOriginY) / 500.0f));
+
+    for (int row = std::max(0, centerRow - 2); row <= std::min(11, centerRow + 2); ++row)
+    {
+        for (int col = std::max(0, centerCol - 2); col <= std::min(11, centerCol + 2); ++col)
+        {
+            const float tileLeft = -3000.0f + static_cast<float>(col) * 500.0f;
+            const float tileBottom = 3000.0f - static_cast<float>(row + 1) * 500.0f;
+            const float areaLeft = std::max(left, tileLeft);
+            const float areaRight = std::min(right, tileLeft + 500.0f);
+            const float areaBottom = std::max(bottom, tileBottom);
+            const float areaTop = std::min(top, tileBottom + 500.0f);
+            if (areaLeft >= areaRight || areaBottom >= areaTop)
+            {
+                continue;
+            }
+
+            CTiltedRadar::RenderProjectedRectangle(areaLeft, areaBottom, areaRight, areaTop, vertColor, m_fCenterX, m_fCenterY, m_fRadiusX, m_fRadiusY, rtSize, aspect);
+        }
+    }
+
+    for (std::size_t index = 0; index < sizeof(states) / sizeof(states[0]); ++index)
+    {
+        RwRenderStateSet(states[index], saved[index]);
+    }
+
+    return true;
 }

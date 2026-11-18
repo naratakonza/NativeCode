@@ -6,6 +6,7 @@
 #include "../../CCameraController.h"
 #include "../../CUtil.h"
 #include "../../CWorld.h"
+#include "../../CPedIntelligence.h"
 #include "../../CCommon.h"
 #include "../../CStreaming.h"
 #include "../../CWeapon.h"
@@ -663,4 +664,20 @@ uint16_t CPlayerPed::GetKeys(uint16_t* lrAnalog, uint16_t* udAnalog, bool clear)
 	}
 
 	return wRet;
+}
+
+bool CPlayerPed::IsInJetpack()
+{
+    if (!CPlayerPed::VerifyInstance() || !GetPed()->pPedIntelligence)
+    {
+        return false;
+    }
+
+    CTask* task = GetPed()->pPedIntelligence->m_taskManager.m_tasks[ePrimaryTasks::TASK_PRIMARY_PRIMARY];
+    if (!task)
+    {
+        return false;
+    }
+
+    return task->vtable == SA_ADDR(0x4B17B8) + _dyld_get_image_vmaddr_slide(0);
 }

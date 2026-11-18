@@ -1,5 +1,6 @@
 #include "../../Main.h"
 #include "CRadar.h"
+#include "RadarMod/CTiltedRadar.h"
 #include "CGame.h"
 #include "CUtil.h"
 #include "Base/CPad.h"
@@ -426,6 +427,11 @@ float CRadar::GetAlpha()
 
 void CRadar::DrawAreaOnRadar(CRect const& rect, uint32_t dwCurColor, bool inMenu)
 {
+    if (!inMenu && CTiltedRadar::DrawGangZone(rect, dwCurColor))
+    {
+        return;
+    }
+
 	reinterpret_cast<void (*)(CRect const&, uint32_t*, bool)>(SA_ADDR(0x1F5A68) + _dyld_get_image_vmaddr_slide(0))(rect, &dwCurColor, inMenu);
 }
 

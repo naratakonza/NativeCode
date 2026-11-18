@@ -165,13 +165,13 @@ eWidgetState CWidgets::ProcessWidget(uintptr_t pWidget)
 				{
 					return eWidgetState::STATE_FIXED;
 				}
-				// else
-				// {
-					// if (CGame::GetPlayer()->IsInJetpack())
-					// {
-						// return eWidgetState::STATE_FIXED;
-					// }
-				// }
+				else
+				{
+					if (CGame::GetPlayer()->IsInJetpack())
+					{
+						return eWidgetState::STATE_FIXED;
+					}
+				}
 
 				break;
 			}
@@ -181,19 +181,19 @@ eWidgetState CWidgets::ProcessWidget(uintptr_t pWidget)
 				{
 					return eWidgetState::STATE_FIXED;
 				}
-				// else
-				// {
-					// if (CGame::GetPlayer()->IsInJetpack())
-					// {
-						// return eWidgetState::STATE_FIXED;
-					// }
-				// }
+				else
+				{
+					if (CGame::GetPlayer()->IsInJetpack())
+					{
+						return eWidgetState::STATE_FIXED;
+					}
+				}
 
 				break;
 			}
 
 			case eWidgetType::TYPE_ACCELERATE: {
-				if (!CGame::GetPlayer()->IsInVehicle() /* && !CGame::GetPlayer()->IsInJetpack() */)
+				if (!CGame::GetPlayer()->IsInVehicle() && !CGame::GetPlayer()->IsInJetpack())
 				{
 					return eWidgetState::STATE_FIXED;
 				}
@@ -202,7 +202,7 @@ eWidgetState CWidgets::ProcessWidget(uintptr_t pWidget)
 			}
 
 			case eWidgetType::TYPE_BRAKE: {
-				if (!CGame::GetPlayer()->IsInVehicle() /* && !CGame::GetPlayer()->IsInJetpack() */)
+				if (!CGame::GetPlayer()->IsInVehicle() && !CGame::GetPlayer()->IsInJetpack())
 				{
 					return eWidgetState::STATE_FIXED;
 				}
@@ -211,7 +211,7 @@ eWidgetState CWidgets::ProcessWidget(uintptr_t pWidget)
 			}
 
 			case eWidgetType::TYPE_FIRE_LEFT: {
-				if (!CGame::GetPlayer()->IsInVehicle() /* && !CGame::GetPlayer()->IsInJetpack() */)
+				if (!CGame::GetPlayer()->IsInVehicle() && !CGame::GetPlayer()->IsInJetpack())
 				{
 					return eWidgetState::STATE_FIXED;
 				}
@@ -220,7 +220,7 @@ eWidgetState CWidgets::ProcessWidget(uintptr_t pWidget)
 			}
 
 			case eWidgetType::TYPE_FIRE_RIGHT: {
-				if (!CGame::GetPlayer()->IsInVehicle() /* && !CGame::GetPlayer()->IsInJetpack() */)
+				if (!CGame::GetPlayer()->IsInVehicle() && !CGame::GetPlayer()->IsInJetpack())
 				{
 					return eWidgetState::STATE_FIXED;
 				}

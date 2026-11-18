@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+class CRect;
+
 class CTiltedRadar
 {
 private:
@@ -13,6 +16,7 @@ private:
     static void UpdateRadarEdgeTable(float centerX, float centerY, float radiusX, float radiusY);
     static void DrawRadarBackgroundDisk(float centerX, float centerY, float radiusX, float radiusY, int alpha);
     static void Render3DMapTile(int sectionX, int sectionY, int alpha, float centerX, float centerY, float radiusX, float radiusY, float rtSize, float aspect, float playerWorldX, float playerWorldY);
+    static void RenderProjectedRectangle(float tileLeft, float tileBottom, float tileRight, float tileTop, uint32_t vertColor, float centerX, float centerY, float radiusX, float radiusY, float rtSize, float aspect);
     static bool ProjectWorldToTiltedHud(float worldX, float worldY, float& outX, float& outY);
     static void SetBounds(float cx, float cy, float rx, float ry);
     static bool UpdateRadarWidgetBounds();
@@ -25,6 +29,7 @@ public:
     static bool GetWidgetBottomLeft(float& left, float& bottom);
     static bool BeginMap();
     static bool DrawTiles(int alpha);
+    static bool DrawGangZone(const CRect& rect, uint32_t color);
     static void ProjectBlip(const void* worldPos, float& x, float& y);
     static void ReprojectFlatSprite(float& x, float& y);
     static void ProjectPlayerArrow(float& x, float& y);
