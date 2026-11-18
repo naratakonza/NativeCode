@@ -60,7 +60,6 @@ void CModelSnapshot::SetUpScene()
 
     RwRGBAReal rwColor = {1.0f, 1.0f, 1.0f, 1.0f};
     RpLightSetColor(m_light, &rwColor);
-    m_light->object.object.flags |= rpLIGHTLIGHTATOMICS;
 
     m_camera = RwCameraCreate();
     m_frame = RwFrameCreate();
