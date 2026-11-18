@@ -35,13 +35,13 @@ extern "C" __attribute__((visibility("default"))) void CWidgetButton_Draw_hook(u
 		return;
 	}
 
-	// if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()) 
-    // {
-	// 	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetState())
-	// 	{
-	// 		return;
-	// 	}
-	// }
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()) 
+    {
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetState())
+		{
+			return;
+		}
+	}
 
 	if (!CWidgets::IsToggleActive()) {
 		return;

@@ -19,4 +19,7 @@ public:
     static float GetDistanceBetweenPointAndLine(CVector* p, CVector* a, CVector* b);
     static CVector Multiply3x3(const CMatrix *m, const CVector *v);
     static std::string ReplaceKey(const std::string& input);
+    static std::string ProcessTextDrawString(const std::string& input);
+    static bool HasNewlineTag(const std::string& str);
+    static void DrawMultiLineTextDraw(float fUseX, float fUseY, const std::string& strString);
 };

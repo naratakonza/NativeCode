@@ -75,7 +75,7 @@ for source in \
     "$native/source/game_morgan/CCommon.cpp" "$native/source/game_morgan/Entity/CEntity.cpp" "$native/source/game_morgan/Entity/CPhysical.cpp" "$native/source/game_morgan/CStats.cpp" "$native/source/game_morgan/CWeapon.cpp" \
     "$native/source/game_morgan/FrontEnd/CWidgetPlayerInfo.cpp" "$native/source/game_morgan/CSprite2d.cpp" "$native/source/game_morgan/CRGBA.cpp" "$native/source/game_morgan/CHud.cpp" \
     "$native/source/game_morgan/CPedIntelligence.cpp" "$native/source/game_morgan/Tasks/CTaskManager.cpp" "$native/source/game_morgan/Tasks/CTask.cpp" \
-    "$native/source/game_morgan/Animation/CAnimManager.cpp" "$native/source/game_morgan/Entity/Actor/CActor.cpp" "$multiplayer/Pools/Process/CActorPool.cpp" \
+    "$native/source/game_morgan/Animation/CAnimManager.cpp" "$native/source/game_morgan/Entity/Actor/CActor.cpp" "$multiplayer/Pools/Process/CActorPool.cpp" "$multiplayer/Guis/CTextDraw.cpp" "$multiplayer/Pools/Process/CTextDrawPool.cpp" \
     "$native/source/game_morgan/CRadar.cpp" "$native/source/game_morgan/CGangZone.cpp" "$multiplayer/Pools/Process/CGangZonePool.cpp" \
     "$native/source/game_morgan/CPickup.cpp" "$multiplayer/Pools/Process/CPickupPool.cpp" \
     "$native/source/game_morgan/Entity/Ped/CPed.cpp" "$native/source/game_morgan/Entity/Ped/CPlayerPed.cpp" "$native/source/game_morgan/Entity/Ped/CPlayerPedSlot.cpp" "$native/source/game_morgan/Entity/Ped/CPedPointerRecorder.cpp" \
@@ -92,7 +92,7 @@ for source in \
     "$multiplayer/Texts/CDebugInfo.cpp" "$multiplayer/Texts/CGameText.cpp" "$native/source/game_morgan/CFont.cpp" "$multiplayer/Guis/CGui.cpp" "$multiplayer/Guis/Font/CFontRender.cpp" \
     "$multiplayer/Guis/CSpawnScreen.cpp" "$multiplayer/Guis/CDialog.cpp" "$multiplayer/Guis/CButton.cpp" \
     "$hooks/MultiTouch/CTouchEvent.cpp" "$hooks/CWidgets.cpp" "$hooks/CCrashFix.cpp" \
-    "$multiplayer/Guis/CChat.cpp" "$multiplayer/Guis/CCommand.cpp" "$multiplayer/Core/CMultiPlayerPacket.cpp" "$native/source/game_morgan/CUtil.cpp" "$native/source/game_morgan/CWorld.cpp" \
+    "$multiplayer/Guis/CChat.cpp" "$multiplayer/Guis/CCommand.cpp" "$multiplayer/Core/CMultiPlayerPacket.cpp" "$native/source/game_morgan/CUtil.cpp" "$native/source/game_morgan/TextureDatabaseRuntime.cpp" "$native/source/game_morgan/CTxdStore.cpp" "$native/source/game_morgan/CTxdManager.cpp" "$native/source/game_morgan/CWorld.cpp" \
     "$multiplayer/Core/CMultiPlayerNetwork.cpp" "$multiplayer/Core/CMultiPlayerOpcode.cpp" "$native/source/game_morgan/CEntryExitManager.cpp" \
     "$multiplayer/Pools/CNetGamePool.cpp" "$multiplayer/Pools/Process/CPlayerPool.cpp" \
     "$multiplayer/Syncs/CLocalPlayer.cpp" \
@@ -140,7 +140,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CCommon.o" "$out/fileio-objects/CEntity.o" "$out/fileio-objects/CPhysical.o" "$out/fileio-objects/CStats.o" "$out/fileio-objects/CWeapon.o" \
     "$out/fileio-objects/CWidgetPlayerInfo.o" "$out/fileio-objects/CSprite2d.o" "$out/fileio-objects/CRGBA.o" "$out/fileio-objects/CHud.o" \
     "$out/fileio-objects/CPedIntelligence.o" "$out/fileio-objects/CTaskManager.o" "$out/fileio-objects/CTask.o" \
-    "$out/fileio-objects/CAnimManager.o" "$out/fileio-objects/CActor.o" "$out/fileio-objects/CActorPool.o" \
+    "$out/fileio-objects/CAnimManager.o" "$out/fileio-objects/CActor.o" "$out/fileio-objects/CActorPool.o" "$out/fileio-objects/CTextDraw.o" "$out/fileio-objects/CTextDrawPool.o" \
     "$out/fileio-objects/CRadar.o" "$out/fileio-objects/CGangZone.o" "$out/fileio-objects/CGangZonePool.o" \
     "$out/fileio-objects/CPickup.o" "$out/fileio-objects/CPickupPool.o" \
     "$out/fileio-objects/CPed.o" "$out/fileio-objects/CPlayerPed.o" "$out/fileio-objects/CPlayerPedSlot.o" "$out/fileio-objects/CPedPointerRecorder.o" \
@@ -153,7 +153,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CDebugInfo.o" "$out/fileio-objects/CGameText.o" "$out/fileio-objects/CFont.o" "$out/fileio-objects/CGui.o" "$out/fileio-objects/CFontRender.o" \
     "$out/fileio-objects/CSpawnScreen.o" "$out/fileio-objects/CDialog.o" "$out/fileio-objects/CButton.o" \
     "$out/fileio-objects/CTouchEvent.o" "$out/fileio-objects/CWidgets.o" "$out/fileio-objects/CCrashFix.o" \
-    "$out/fileio-objects/CChat.o" "$out/fileio-objects/CCommand.o" "$out/fileio-objects/CMultiPlayerPacket.o" "$out/fileio-objects/CUtil.o" "$out/fileio-objects/CWorld.o" \
+    "$out/fileio-objects/CChat.o" "$out/fileio-objects/CCommand.o" "$out/fileio-objects/CMultiPlayerPacket.o" "$out/fileio-objects/CUtil.o" "$out/fileio-objects/TextureDatabaseRuntime.o" "$out/fileio-objects/CTxdStore.o" "$out/fileio-objects/CTxdManager.o" "$out/fileio-objects/CWorld.o" \
     "$out/fileio-objects/CMultiPlayerNetwork.o" "$out/fileio-objects/CMultiPlayerOpcode.o" "$out/fileio-objects/CEntryExitManager.o" \
     "$out/fileio-objects/CNetGamePool.o" "$out/fileio-objects/CPlayerPool.o" \
     "$out/fileio-objects/CLocalPlayer.o" \

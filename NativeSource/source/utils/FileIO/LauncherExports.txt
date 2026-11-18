@@ -66,4 +66,5 @@ _CRadar_DrawRadarGangOverlay_bridge
 _CRadar_DrawAreaOnRadar_bridge
 _RpMaterialDestroy_hook
 _RwTextureDestroy_hook
+_TextureDatabaseRuntime_GetTexture_hook
 _CHudColours_GetIntColour_bridge

@@ -183,6 +183,7 @@ void InitialiseRenderWare()
     bound += SetFuncAddr(&RwTexDictionaryFindNamedTexture, SA_ADDR(0x2B0714), "\x08\x0C\x41\xF8\x1F\x01\x00\xEB");
     bound += SetFuncAddr(&RwTexDictionaryGetCurrent, SA_ADDR(0x2B07B4), "\x88\x2A\x00\xB0\x08\xA1\x3C\x91");
     bound += SetFuncAddr(&RwTextureRead, SA_ADDR(0x2B07D4), "\xF6\x57\xBD\xA9\xF4\x4F\x01\xA9");
+    bound += SetFuncAddr(&TextureDatabaseRuntime_GetRWTexture, SA_ADDR(0x2BE618), "\x3F\x04\x00\x31\x20\x03\x00\x54");
     bound += SetFuncAddr(&RwStreamFindChunk, SA_ADDR(0x2B6FA4), "\xFF\x43\x01\xD1\xF6\x57\x02\xA9");
     bound += SetFuncAddr(&RwIm2DGetNearScreenZ, SA_ADDR(0x2B7794), "\x48\x2A\x00\xD0\x08\xA1\x3C\x91");
     bound += SetFuncAddr(&RwIm2DGetFarScreenZ, SA_ADDR(0x2B77A8), "\x48\x2A\x00\xD0\x08\xA1\x3C\x91");

@@ -7,7 +7,7 @@ CNetGamePool::CNetGamePool()
 
     CNetGamePool::m_pPlayerPool = new CPlayerPool();
     // CNetGamePool::m_pVehiclePool = new CVehiclePool();
-    // CNetGamePool::m_pTextDrawPool = new CTextDrawPool();
+    CNetGamePool::m_pTextDrawPool = new CTextDrawPool();
     CNetGamePool::m_pActorPool = new CActorPool();
     CNetGamePool::m_pGangZonePool = new CGangZonePool();
     // CNetGamePool::m_pTextLabelPool = new CTextLabelPool();
@@ -27,7 +27,7 @@ CNetGamePool::~CNetGamePool()
 
     SAFE_DELETE(CNetGamePool::m_pPlayerPool);
     // SAFE_DELETE(CNetGamePool::m_pVehiclePool);
-    // SAFE_DELETE(CNetGamePool::m_pTextDrawPool);
+    SAFE_DELETE(CNetGamePool::m_pTextDrawPool);
     SAFE_DELETE(CNetGamePool::m_pActorPool);
     SAFE_DELETE(CNetGamePool::m_pGangZonePool);
     // SAFE_DELETE(CNetGamePool::m_pTextLabelPool);
@@ -115,13 +115,13 @@ void CNetGamePool::DeleteAll()
 
     // CNetGamePool::m_pTextLabelPool = new CTextLabelPool();
 
-    // // TextDraw
-    // if (CNetGamePool::GetTextDrawPool())
-    // {
-    //     SAFE_DELETE(CNetGamePool::m_pTextDrawPool);
-    // }
+    // TextDraw
+    if (CNetGamePool::GetTextDrawPool())
+    {
+        SAFE_DELETE(CNetGamePool::m_pTextDrawPool);
+    }
 
-    // CNetGamePool::m_pTextDrawPool = new CTextDrawPool();
+    CNetGamePool::m_pTextDrawPool = new CTextDrawPool();
 
     // // Menu
     // if (CNetGamePool::GetMenuPool())

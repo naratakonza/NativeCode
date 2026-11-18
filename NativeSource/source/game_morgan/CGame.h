@@ -17,6 +17,7 @@ public:
     static uint8_t IsMenuActive();
     static bool IsRadarActive();
     static void DisplayHUD(bool bDisp);
+    static void GetScreenWidthAndHeight(int* w, int* h);
     static bool IsAnimationLoaded(const char* animation);
     static void RequestAnimation(const char* animation);
     static void LoadAnimationsAndModels();

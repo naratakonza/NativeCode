@@ -3,7 +3,10 @@
 #include "../../Multiplayer/CMultiPlayer.h"
 #include "../../Multiplayer/Guis/CGui.h"
 
+#include <CoreGraphics/CGGeometry.h>
+#include <limits>
 #include <mach-o/dyld.h>
+#include <objc/message.h>
 
 CTouchEvent::TouchMethod CTouchEvent::m_TouchMethods[] = {
     {"touchesBegan:withEvent:", SA_ADDR(0x32F40), nullptr, nullptr},
@@ -12,6 +15,7 @@ CTouchEvent::TouchMethod CTouchEvent::m_TouchMethods[] = {
     {"touchesCancelled:withEvent:", SA_ADDR(0x334C0), nullptr, nullptr},
 };
 char CTouchEvent::m_ActiveTouchesKey;
+char CTouchEvent::m_GuiTouchKey;
 bool CTouchEvent::m_bInstalled;
 
 void CTouchEvent::AddTouch(const void* touch, void* set)
@@ -62,9 +66,47 @@ void CTouchEvent::IOS_TouchEvent_hook(id view, SEL selector, id touches, id even
     const auto incoming = reinterpret_cast<CFSetRef>(touches);
     const auto active = CTouchEvent::GetActiveTouches(view, phase == Began);
 
-    if (CMultiPlayer::IsSampActive() && !CGame::IsMenuActive())
+    const bool sampTouch = CMultiPlayer::IsSampActive() && !CGame::IsMenuActive();
+    auto* network = sampTouch ? CMultiPlayer::GetActiveNetwork() : nullptr;
+    auto* fontRender = CGui::GetFontRender();
+
+    id guiTouch = objc_getAssociatedObject(view, &CTouchEvent::m_GuiTouchKey);
+    if constexpr (phase == Began)
     {
-        if (!CMultiPlayer::GetActiveNetwork() || !CGui::GetFontRender())
+        if (!guiTouch && network && fontRender)
+        {
+            CFSetApplyFunction(incoming, [](const void* touch, void* context)
+            {
+                auto& primary = *static_cast<id*>(context);
+                if (!primary)
+                {
+                    primary = reinterpret_cast<id>(const_cast<void*>(touch));
+                }
+            }, &guiTouch);
+            if (guiTouch)
+            {
+                objc_setAssociatedObject(view, &CTouchEvent::m_GuiTouchKey, guiTouch, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            }
+        }
+    }
+
+    const bool hasGuiTouch = guiTouch && CFSetContainsValue(incoming, guiTouch);
+    if constexpr (phase == Ended || phase == Cancelled)
+    {
+        if (hasGuiTouch)
+        {
+            objc_setAssociatedObject(view, &CTouchEvent::m_GuiTouchKey, nullptr, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
+    }
+
+    if (fontRender && hasGuiTouch && (!network || phase == Cancelled))
+    {
+        fontRender->OnTouchEvent(eTouchType::TOUCH_POP, ImVec2(-1.0f, -1.0f));
+    }
+
+    if (sampTouch)
+    {
+        if (!network || !fontRender)
         {
             if (active)
             {
@@ -78,23 +120,44 @@ void CTouchEvent::IOS_TouchEvent_hook(id view, SEL selector, id touches, id even
             return;
         }
 
-        // The optional Android handlers below still use eTouchType, screen coordinates, and
-        // iNum. iOS assigns the engine slot later, inside the stock dispatcher at 0x38BA4.
-        // Keep these handlers disabled until those arguments are mapped for the iOS path.
+        constexpr eTouchType iType = phase == Began ? eTouchType::TOUCH_PUSH : phase == Moved ? eTouchType::TOUCH_MOVE : eTouchType::TOUCH_POP;
+        ImVec2 position;
+        bool hasPosition = false;
+        if (hasGuiTouch && phase != Cancelled)
+        {
+            const CGPoint point = reinterpret_cast<CGPoint (*)(id, SEL, id)>(objc_msgSend)(guiTouch, sel_registerName("locationInView:"), view);
+            const id layer = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(view, sel_registerName("layer"));
+            const float scale = static_cast<float>(reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend)(layer, sel_registerName("contentsScale")));
+            position = ImVec2(static_cast<float>(point.x * scale), static_cast<float>(point.y * scale));
+            constexpr double intMin = std::numeric_limits<int>::min();
+            constexpr double intMax = std::numeric_limits<int>::max();
+            hasPosition = scale > 0.0f && position.x >= intMin && position.x <= intMax && position.y >= intMin && position.y <= intMax;
+            if (!hasPosition && phase == Ended)
+            {
+                fontRender->OnTouchEvent(eTouchType::TOUCH_POP, ImVec2(-1.0f, -1.0f));
+            }
+        }
 
-        // if (CGui::GetDialog() && CGui::GetDialog()->GetActiveDialog())
-        // {
-        //     if (CGui::GetSpawnScreen() && CGui::GetSpawnScreen()->GetActiveSpawnScreen())
-        //     {
-        //         if (!CGui::GetFontRender()->OnTouchEvent(static_cast<eTouchType>(iType), ImVec2(iPosX, iPosY)))
-        //         {
-        //             return;
-        //         }
-        //     }
-        //
-        //     CTouchEvent::CancelActiveTouches(view, event, active);
-        //     return;
-        // }
+        if (CGui::GetDialog() && CGui::GetDialog()->GetActiveDialog())
+        {
+            if (hasPosition)
+            {
+                if (CGui::GetSpawnScreen() && CGui::GetSpawnScreen()->GetActiveSpawnScreen())
+                {
+                    if (!fontRender->OnTouchEvent(iType, position))
+                    {
+                        return;
+                    }
+                }
+                else
+                {
+                    fontRender->OnTouchEvent(eTouchType::TOUCH_POP, ImVec2(-1.0f, -1.0f));
+                }
+            }
+
+            CTouchEvent::CancelActiveTouches(view, event, active);
+            return;
+        }
 
         // if (CGui::GetScoreBoard()->GetActiveScore() || CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() || CGui::GetVoiceMenu()->GetActiveVoiceMenu() /*|| CGui::GetClientMenu()->GetActiveClientMenu() || CGui::GetChatMenu()->GetActiveChatMenu()*/)
         // {
@@ -102,31 +165,29 @@ void CTouchEvent::IOS_TouchEvent_hook(id view, SEL selector, id touches, id even
         //     return;
         // }
 
-        // if (CMultiPlayer::GetActiveNetwork())
-        // {
-        //     if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool())
-        //     {
-        //         if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->OnTouchEvent(static_cast<eTouchType>(iType), iNum, iPosX, iPosY))
-        //         {
-        //             if (CGui::GetFontRender())
-        //             {
-        //                 if (!CGui::GetFontRender()->OnTouchEvent(static_cast<eTouchType>(iType), ImVec2(iPosX, iPosY)))
-        //                 {
-        //                     return;
-        //                 }
-        //             }
-        //
-        //             CTouchEvent::CancelActiveTouches(view, event, active);
-        //             return;
-        //         }
-        //     }
-        // }
+        if (auto* pools = network->GetNetGamePools())
+        {
+            if (auto* textDrawPool = pools->GetTextDrawPool())
+            {
+                const bool consumed = hasPosition ? !textDrawPool->OnTouchEvent(iType, CFSetGetCount(incoming) > 1, static_cast<int>(position.x), static_cast<int>(position.y)) : textDrawPool->GetState();
+                if (consumed)
+                {
+                    if (hasPosition && !fontRender->OnTouchEvent(iType, position))
+                    {
+                        return;
+                    }
 
-        // if (!CGui::GetFontRender()->OnTouchEvent(static_cast<eTouchType>(iType), ImVec2(iPosX, iPosY)))
-        // {
-        //     CTouchEvent::CancelActiveTouches(view, event, active);
-        //     return;
-        // }
+                    CTouchEvent::CancelActiveTouches(view, event, active);
+                    return;
+                }
+            }
+        }
+
+        if (hasPosition && !fontRender->OnTouchEvent(iType, position))
+        {
+            CTouchEvent::CancelActiveTouches(view, event, active);
+            return;
+        }
     }
 
     if (!active)

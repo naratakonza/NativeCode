@@ -1,9 +1,14 @@
 #include "CCommon.h"
+#include "CSprite2d.h"
+#include "RenderWare/RenderWare.h"
 #include "Models/CModelInfo.h"
 #include "Enums/eMaxItem.h"
 #include "../utils/Memory/CMemory.h"
 
 #include <mach-o/dyld.h>
+
+std::unordered_map<int, bool> CCommon::bTextDrawTextureSlotState;
+std::unordered_map<int, RwTexture*> CCommon::pTextDrawTexture;
 
 uintptr_t CCommon::GetModelInfoByID(int iModelID)
 {
@@ -78,4 +83,63 @@ bool CCommon::ModelInfoGetCol(int iModel, [[maybe_unused]] const char* opcode)
     }
 
 	return true;
+}
+
+bool CCommon::IsPointInRect(float x, float y, CRect* rect)
+{
+    return (x >= rect->X1 && x <= rect->X2 && y >= rect->Y1 && y <= rect->Y2);
+}
+
+int CCommon::GetFreeTextDrawTextureSlot()
+{
+    for (int slot = 0; slot < 200; ++slot)
+    {
+        auto stateIter = CCommon::bTextDrawTextureSlotState.find(slot);
+        if (stateIter == CCommon::bTextDrawTextureSlotState.end())
+        {
+            CCommon::bTextDrawTextureSlotState[slot] = true;
+            return slot;
+        }
+        else if (!stateIter->second)
+        {
+            CCommon::bTextDrawTextureSlotState[slot] = true;
+            return slot;
+        }
+    }
+
+    return -1;
+}
+
+void CCommon::DestroyTextDrawTexture(int index)
+{
+    auto textureIter = CCommon::pTextDrawTexture.find(index);
+    auto stateIter = CCommon::bTextDrawTextureSlotState.find(index);
+
+    if (textureIter != CCommon::pTextDrawTexture.end())
+    {
+        if (textureIter->second)
+        {
+            CSprite2d::Destructor(textureIter->second);
+        }
+
+        CCommon::pTextDrawTexture.erase(textureIter);
+    }
+
+    if (stateIter != CCommon::bTextDrawTextureSlotState.end())
+    {
+        stateIter->second = false;
+    }
+}
+
+void CCommon::DrawTextureUV(RwTexture *texture, CRect *rect, uint32_t dwColor, float *uv)
+{
+    if (texture)
+    {
+        if (RwRenderStateSet)
+        {
+            RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, reinterpret_cast<void*>(rwFILTERLINEAR));
+        }
+        
+        CSprite2d::Draw(texture, rect, dwColor, uv);
+    }
 }

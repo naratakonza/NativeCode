@@ -2,7 +2,7 @@
 
 #include "Process/CPlayerPool.h"
 // #include "Process/CVehiclePool.h"
-// #include "Process/CTextDrawPool.h"
+#include "Process/CTextDrawPool.h"
 #include "Process/CActorPool.h"
 #include "Process/CGangZonePool.h"
 // #include "Process/CTextLabelPool.h"
@@ -14,7 +14,7 @@ class CNetGamePool
 {
 	CPlayerPool* m_pPlayerPool;
 	// CVehiclePool* m_pVehiclePool;
-	// CTextDrawPool* m_pTextDrawPool;
+	CTextDrawPool* m_pTextDrawPool;
 	CActorPool* m_pActorPool;
 	CGangZonePool* m_pGangZonePool;
 	// CTextLabelPool* m_pTextLabelPool;
@@ -39,9 +39,9 @@ public:
 	// 	return CNetGamePool::m_pVehiclePool;
 	// };
 
-	// CTextDrawPool* GetTextDrawPool() {
-	// 	return CNetGamePool::m_pTextDrawPool;
-	// };
+	CTextDrawPool* GetTextDrawPool() {
+		return CNetGamePool::m_pTextDrawPool;
+	};
 
 	CActorPool* GetActorPool() {
 		return CNetGamePool::m_pActorPool;

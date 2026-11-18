@@ -1,0 +1,10 @@
+#pragma once
+
+enum eTextDrawStyle : unsigned char {
+    TEXTDRAW_FONT_GOTHIC,
+    TEXTDRAW_FONT_SUBTITLES,
+    TEXTDRAW_FONT_MENU,
+    TEXTDRAW_FONT_PRICEDOWN,
+    TEXTDRAW_TXD_SPRITE,
+    TEXTDRAW_MODEL_PREVIEW
+};

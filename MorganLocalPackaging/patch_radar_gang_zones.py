@@ -20,6 +20,11 @@ CRASH_FIX_HOOKS = (
 )
 CRASH_FIX_EXPECTED = {site: bytes.fromhex('F44FBEA9') for site, _, _ in CRASH_FIX_HOOKS}
 
+TEXTURE_DATABASE_HOOKS = (
+    (0x2BF374, 1, b'_TextureDatabaseRuntime_GetTexture_hook'),
+)
+TEXTURE_DATABASE_EXPECTED = {0x2BF374: bytes.fromhex('FFC303D1FA670AA9')}
+
 PATCHES = (
     (0x1ED22C, bytes.fromhex('096EA852')),
     (0x1F42C0, bytes.fromhex('E103142A')),
@@ -31,15 +36,15 @@ PATCHES = (
 )
 EXPECTED = {0x1F47D4: bytes.fromhex('08008092'), 0x1ECD6C: bytes.fromhex('f44fbea9'), 0x1F5D00: bytes.fromhex('ff0302d1'), 0x1F5A68: bytes.fromhex('FF8304D1'), 0x2187B0: bytes.fromhex('0848218b'), 0x1ED22C: bytes.fromhex('097ca852'), 0x1F42C0: bytes.fromhex('9f220071'), 0x1F42C4: bytes.fromhex('68040054'), 0x1F2810: bytes.fromhex('df220071'), 0x1F2814: bytes.fromhex('e8040054'), 0x1F1E30: bytes.fromhex('df220071'), 0x1F1E34: bytes.fromhex('68020054')}  # Filled from the verified unmodified instructions, never inferred at packaging time.
 
-def patch_radar_gang_zones(binary, *, radar=True, crash_fix=False):
-    hooks = (HOOKS if radar else ()) + (CRASH_FIX_HOOKS if crash_fix else ())
+def patch_radar_gang_zones(binary, *, radar=True, crash_fix=False, texture_database=False):
+    hooks = (HOOKS if radar else ()) + (CRASH_FIX_HOOKS if crash_fix else ()) + (TEXTURE_DATABASE_HOOKS if texture_database else ())
     patches = PATCHES if radar else ()
     if not hooks:
         return binary
 
     if sha256(binary).hexdigest() != BASE_SHA:
         raise ValueError('Radar or RenderWare crash fixes require the verified Keybar25 executable')
-    for offset, data in ((EXPECTED if radar else {}) | (CRASH_FIX_EXPECTED if crash_fix else {})).items():
+    for offset, data in ((EXPECTED if radar else {}) | (CRASH_FIX_EXPECTED if crash_fix else {}) | (TEXTURE_DATABASE_EXPECTED if texture_database else {})).items():
         if binary[offset:offset + len(data)] != data:
             raise ValueError(f'Unexpected radar instruction at 0x{offset:X}')
     text_size, text_offset = unpack_from('<QI', binary, 0x768)

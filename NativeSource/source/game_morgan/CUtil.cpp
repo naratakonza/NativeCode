@@ -1,11 +1,14 @@
 #include "CUtil.h"
+#include "CFont.h"
 #include "CWorld.h"
 #include "Core/CMatrix.h"
 #include "../utils/Memory/CMemory.h"
+#include "../utils/Necessary/CNecessary.h"
 
 #include <mach-o/dyld.h>
 #include <pthread.h>
 #include <unordered_map>
+#include <vector>
 
 CPedGta* CUtil::GamePool_FindPlayerPed()
 {
@@ -116,6 +119,277 @@ std::string CUtil::ReplaceKey(const std::string& input)
     }
 
     return output;
+}
+
+std::string CUtil::ProcessTextDrawString(const std::string& input)
+{
+    if (input.empty()) {
+        return "";
+    }
+
+    std::string output = "";
+    bool pc_highlight = false;
+
+    size_t i = 0;
+    size_t len = input.length();
+
+    while (i < len)
+    {
+        if (input[i] == '~' && i + 2 < len && input[i + 2] == '~')
+        {
+            char tag = input[i + 1];
+            char lower_tag = (tag >= 'A' && tag <= 'Z') ? (tag - 'A' + 'a') : tag;
+
+            if (lower_tag == 'h')
+            {
+                pc_highlight = !pc_highlight;
+                output += std::string(OBFUSCATE("~h~"));
+                i += 3;
+            }
+            else if (lower_tag == 'n')
+            {
+                output += std::string(OBFUSCATE("~n~~w~"));
+
+                if (pc_highlight)
+                {
+                    output += std::string(OBFUSCATE("~h~"));
+                }
+
+                i += 3;
+            }
+            else if (lower_tag == 'r' || lower_tag == 'g' || lower_tag == 'b' || lower_tag == 'w' || lower_tag == 'y' || lower_tag == 'p' || lower_tag == 'l')
+            {
+                pc_highlight = false;
+
+                if (i + 8 < len && input[i + 3] == '~' && (input[i + 4] == 'h' || input[i + 4] == 'H') && input[i + 5] == '~' && input[i + 6] == '~' && (input[i + 7] == 'h' || input[i + 7] == 'H') && input[i + 8] == '~')
+                {
+                    output += std::string(OBFUSCATE("~"));
+                    output += tag;
+                    output += std::string(OBFUSCATE("~~h~~h~"));
+
+                    pc_highlight = true;
+                    i += 9;
+                }
+                else if (i + 5 < len && input[i + 3] == '~' && (input[i + 4] == 'h' || input[i + 4] == 'H') && input[i + 5] == '~')
+                {
+                    output += std::string(OBFUSCATE("~"));
+                    output += tag;
+                    output += std::string(OBFUSCATE("~~h~~h~"));
+
+                    pc_highlight = true;
+                    i += 6;
+                }
+                else
+                {
+                    output += std::string(OBFUSCATE("~"));
+                    output += tag;
+                    output += std::string(OBFUSCATE("~"));
+                    i += 3;
+                }
+            }
+            else
+            {
+                if (lower_tag == 's')
+                {
+                    pc_highlight = false;
+                }
+
+                output += std::string(OBFUSCATE("~"));
+                output += tag;
+                output += std::string(OBFUSCATE("~"));
+                i += 3;
+            }
+        }
+        else
+        {
+            output += input[i];
+            i++;
+        }
+    }
+
+    return output;
+}
+
+bool CUtil::HasNewlineTag(const std::string& str)
+{
+    if (str.empty()) {
+        return false;
+    }
+
+    size_t i = 0;
+    size_t len = str.length();
+    while (i < len)
+    {
+        if (str[i] == '~' && i + 2 < len && str[i + 2] == '~')
+        {
+            char tag = str[i + 1];
+            char lower_tag = (tag >= 'A' && tag <= 'Z') ? (tag - 'A' + 'a') : tag;
+
+            if (lower_tag == 'n')
+            {
+                return true;
+            }
+            else if (lower_tag == 'r' || lower_tag == 'g' || lower_tag == 'b' || lower_tag == 'w' || lower_tag == 'y' || lower_tag == 'p' || lower_tag == 'l')
+            {
+                if (i + 8 < len && str[i + 3] == '~' && (str[i + 4] == 'h' || str[i + 4] == 'H') && str[i + 5] == '~' && str[i + 6] == '~' && (str[i + 7] == 'h' || str[i + 7] == 'H') && str[i + 8] == '~')
+                {
+                    i += 9;
+                    continue;
+                }
+                else if (i + 5 < len && str[i + 3] == '~' && (str[i + 4] == 'h' || str[i + 4] == 'H') && str[i + 5] == '~')
+                {
+                    i += 6;
+                    continue;
+                }
+            }
+
+            i += 3;
+        }
+        else
+        {
+            i++;
+        }
+    }
+
+    return false;
+}
+
+void CUtil::DrawMultiLineTextDraw(float fUseX, float fUseY, const std::string& strString)
+{
+    std::vector<std::string> raw_lines;
+    std::string temp = strString;
+
+    while (true)
+    {
+        size_t p = std::string::npos;
+        size_t delim_len = 3;
+
+        size_t i = 0;
+        size_t len = temp.length();
+        while (i < len)
+        {
+            if (temp[i] == '~' && i + 2 < len && temp[i + 2] == '~')
+            {
+                char tag = temp[i + 1];
+                char lower_tag = (tag >= 'A' && tag <= 'Z') ? (tag - 'A' + 'a') : tag;
+
+                if (lower_tag == 'n')
+                {
+                    p = i;
+                    delim_len = 3;
+                    break;
+                }
+                else if (lower_tag == 'r' || lower_tag == 'g' || lower_tag == 'b' || lower_tag == 'w' || lower_tag == 'y' || lower_tag == 'p' || lower_tag == 'l')
+                {
+                    if (i + 8 < len && temp[i + 3] == '~' && (temp[i + 4] == 'h' || temp[i + 4] == 'H') && temp[i + 5] == '~' && temp[i + 6] == '~' && (temp[i + 7] == 'h' || temp[i + 7] == 'H') && temp[i + 8] == '~')
+                    {
+                        i += 9;
+                        continue;
+                    }
+                    else if (i + 5 < len && temp[i + 3] == '~' && (temp[i + 4] == 'h' || temp[i + 4] == 'H') && temp[i + 5] == '~')
+                    {
+                        i += 6;
+                        continue;
+                    }
+                }
+                i += 3;
+            }
+            else
+            {
+                i++;
+            }
+        }
+
+        if (p == std::string::npos) {
+            raw_lines.push_back(temp);
+            break;
+        }
+
+        raw_lines.push_back(temp.substr(0, p));
+        temp = temp.substr(p + delim_len);
+    }
+
+    bool pc_highlight = false;
+    float currentY = fUseY;
+    float lineHeight = CFont::GetHeight(false);
+
+    for (size_t k = 0; k < raw_lines.size(); k++)
+    {
+        std::string line = raw_lines[k];
+        if (pc_highlight)
+        {
+            line = std::string(OBFUSCATE("~h~")) + line;
+        }
+
+        std::string processed_line = "";
+        size_t j = 0;
+        size_t len = line.length();
+        while (j < len)
+        {
+            if (line[j] == '~' && j + 2 < len && line[j + 2] == '~')
+            {
+                char tag = line[j + 1];
+                char lower_tag = (tag >= 'A' && tag <= 'Z') ? (tag - 'A' + 'a') : tag;
+
+                if (lower_tag == 'h')
+                {
+                    pc_highlight = !pc_highlight;
+                    processed_line += std::string(OBFUSCATE("~h~"));
+                    j += 3;
+                }
+                else if (lower_tag == 'r' || lower_tag == 'g' || lower_tag == 'b' || lower_tag == 'w' || lower_tag == 'y' || lower_tag == 'p' || lower_tag == 'l')
+                {
+                    pc_highlight = false;
+
+                    if (j + 8 < len && line[j + 3] == '~' && (line[j + 4] == 'h' || line[j + 4] == 'H') && line[j + 5] == '~' && line[j + 6] == '~' && (line[j + 7] == 'h' || line[j + 7] == 'H') && line[j + 8] == '~')
+                    {
+                        processed_line += std::string(OBFUSCATE("~"));
+                        processed_line += tag;
+                        processed_line += std::string(OBFUSCATE("~~h~~h~"));
+
+                        pc_highlight = true;
+                        j += 9;
+                    }
+                    else if (j + 5 < len && line[j + 3] == '~' && (line[j + 4] == 'h' || line[j + 4] == 'H') && line[j + 5] == '~')
+                    {
+                        processed_line += std::string(OBFUSCATE("~"));
+                        processed_line += tag;
+                        processed_line += std::string(OBFUSCATE("~~h~~h~"));
+
+                        pc_highlight = true;
+                        j += 6;
+                    }
+                    else
+                    {
+                        processed_line += std::string(OBFUSCATE("~"));
+                        processed_line += tag;
+                        processed_line += std::string(OBFUSCATE("~"));
+                        j += 3;
+                    }
+                }
+                else
+                {
+                    if (lower_tag == 's')
+                    {
+                        pc_highlight = false;
+                    }
+
+                    processed_line += std::string(OBFUSCATE("~"));
+                    processed_line += tag;
+                    processed_line += std::string(OBFUSCATE("~"));
+                    j += 3;
+                }
+            }
+            else
+            {
+                processed_line += line[j];
+                j++;
+            }
+        }
+
+        CFont::PrintString(fUseX, currentY, reinterpret_cast<const char*>(processed_line.c_str()));
+        currentY += lineHeight;
+    }
 }
 
 bool CUtil::LIB_PointerGetCoordinates(int device, int* x, int* y, float* pressure)

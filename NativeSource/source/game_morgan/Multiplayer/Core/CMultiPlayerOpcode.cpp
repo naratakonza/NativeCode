@@ -1258,6 +1258,111 @@ void ResetPlayerWeapons(RakNet::BitStream)
 	}
 }
 
+void ShowTextDraw(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ShowTextDraw"));
+	
+	uint16_t wTextId;
+	TEXT_DRAW_TRANSMIT TextDrawTransmit;
+	uint16_t byteTextLen;
+	char cText[eMaxItem::MAX_TEXT_DRAW_LINE + 1];
+
+	bsData.Read(wTextId);
+	bsData.Read((char*)&TextDrawTransmit, sizeof(TEXT_DRAW_TRANSMIT));
+	bsData.Read(byteTextLen);
+
+	if (byteTextLen > sizeof(cText)) {
+		CGui::GetChat()->AddInfoMessage(OBFUSCATE("Warning: ignoring large TextDraw size=%u"), byteTextLen);
+		return;
+	}
+
+	bsData.Read(cText, byteTextLen);
+	cText[byteTextLen] = '\0';
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool())
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->Add(wTextId, &TextDrawTransmit, cText);
+		}
+	}
+}
+
+void HideTextDraw(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: HideTextDraw"));
+
+	uint16_t wTextId;
+	bsData.Read(wTextId);
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool())
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->Delete(wTextId);
+		}
+	}
+}
+
+void TextDrawSetString(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: TextDrawSetString"));
+
+	uint16_t wTextId;
+	uint16_t byteTextLen;
+	char cText[eMaxItem::MAX_TEXT_DRAW_LINE + 1];
+
+	bsData.Read(wTextId);
+	bsData.Read(byteTextLen);
+
+	if (byteTextLen > sizeof(cText)) {
+		return;
+	}
+
+	bsData.Read(cText, byteTextLen);
+	cText[byteTextLen] = '\0';
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool())
+		{	
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetTextDraw(wTextId))
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetTextDraw(wTextId)->SetText(cText);
+			}		
+		}
+	}
+}
+
+void ToggleSelectTextDraw(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ToggleSelectTextDraw"));
+
+	bool bEnable;
+	uint32_t dwColor;
+
+	bsData.Read(bEnable);
+	bsData.Read(dwColor);
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		// if (CGui::GetObjectSelection() && CGui::GetObjectSelection()->GetActiveSelectObject())
+		// {
+		// 	CGui::GetObjectSelection()->Enable(false);
+		// }
+
+		// if (CGui::GetObjectEdit() && CGui::GetObjectEdit()->GetActiveObjectEdit())
+		// {
+		// 	CGui::GetObjectEdit()->Enable(false);
+		// }
+
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool())
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->SetSelectState(bEnable, dwColor);
+		}
+	}
+}
+
 void CreatePickup(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: CreatePickup"));
@@ -1990,25 +2095,25 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_ClickTextdraw: {
-		//     ToggleSelectTextDraw(*bsData);
-		//     break;
-		// }
+		case RPC_ClickTextdraw: {
+		    ToggleSelectTextDraw(*bsData);
+		    break;
+		}
 
-		// case RPC_ShowTextDraw: {
-		//     ShowTextDraw(*bsData);
-		//     break;
-		// }
+		case RPC_ShowTextDraw: {
+		    ShowTextDraw(*bsData);
+		    break;
+		}
 
-		// case RPC_HideTextDraw: {
-		//     HideTextDraw(*bsData);
-		//     break;
-		// }
+		case RPC_HideTextDraw: {
+		    HideTextDraw(*bsData);
+		    break;
+		}
 
-		// case RPC_TextDrawSetString: {
-		//     TextDrawSetString(*bsData);
-		// 	break;
-		// }
+		case RPC_TextDrawSetString: {
+		    TextDrawSetString(*bsData);
+			break;
+		}
 
 		// case RPC_Create3DTextLabel: {
 		//     Create3DTextLabel(*bsData);
