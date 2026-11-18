@@ -95,6 +95,7 @@ for source in \
     "$multiplayer/Guis/CChat.cpp" "$multiplayer/Guis/CCommand.cpp" "$multiplayer/Core/CMultiPlayerPacket.cpp" "$native/source/game_morgan/CUtil.cpp" "$native/source/game_morgan/TextureDatabaseRuntime.cpp" "$native/source/game_morgan/CTxdStore.cpp" "$native/source/game_morgan/CTxdManager.cpp" "$native/source/game_morgan/CWorld.cpp" \
     "$multiplayer/Core/CMultiPlayerNetwork.cpp" "$multiplayer/Core/CMultiPlayerOpcode.cpp" "$native/source/game_morgan/CEntryExitManager.cpp" \
     "$multiplayer/Pools/CNetGamePool.cpp" "$multiplayer/Pools/Process/CPlayerPool.cpp" \
+    "$multiplayer/Syncs/Core/CMarkerIcon.cpp" "$multiplayer/Pools/Process/CMapIconPool.cpp" \
     "$multiplayer/Syncs/CLocalPlayer.cpp" \
     "$multiplayer/Audio/CAudio.cpp" \
     "$multiplayer/Audio/Stream/CAudioStream.cpp" \
@@ -156,6 +157,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CChat.o" "$out/fileio-objects/CCommand.o" "$out/fileio-objects/CMultiPlayerPacket.o" "$out/fileio-objects/CUtil.o" "$out/fileio-objects/TextureDatabaseRuntime.o" "$out/fileio-objects/CTxdStore.o" "$out/fileio-objects/CTxdManager.o" "$out/fileio-objects/CWorld.o" \
     "$out/fileio-objects/CMultiPlayerNetwork.o" "$out/fileio-objects/CMultiPlayerOpcode.o" "$out/fileio-objects/CEntryExitManager.o" \
     "$out/fileio-objects/CNetGamePool.o" "$out/fileio-objects/CPlayerPool.o" \
+    "$out/fileio-objects/CMarkerIcon.o" "$out/fileio-objects/CMapIconPool.o" \
     "$out/fileio-objects/CLocalPlayer.o" \
     "$out/fileio-objects/CAudio.o" \
     "$out/fileio-objects/CAudioStream.o" \

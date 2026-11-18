@@ -5,6 +5,7 @@
 #include "../CMultiPlayer.h"
 #include "../CNetGame.h"
 #include "../Guis/CGui.h"
+#include "../Pools/Process/CMapIconPool.h"
 #include "../../CGame.h"
 #include "../../CClock.h"
 #include "../../CTimer.h"
@@ -556,6 +557,54 @@ void ToggleClock(RakNet::BitStream bsData)
 		CMultiPlayer::GetActiveNetwork()->m_bHoldTime = true;
 		CClock::GetWorldTime((int*)&CMultiPlayer::GetActiveNetwork()->m_byteWorldTime, (int*)&CMultiPlayer::GetActiveNetwork()->m_byteWorldMinute);
 	}
+}
+
+void SetMapIcon(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetMapIcon"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint8_t)) +
+		bytesToBits(sizeof(uint32_t)) +
+		bytesToBits(sizeof(CVector)) +
+		bytesToBits(sizeof(uint8_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetMapIcon"));
+        return;
+    }
+
+	uint8_t byteIndex, byteIcon;
+	uint32_t dwColor;
+	CVector vecPos;
+	uint8_t byteStyle;
+
+	bsData.Read(byteIndex);
+	bsData.Read((char*)&vecPos, sizeof(CVector));
+	bsData.Read(byteIcon);
+	bsData.Read(dwColor);
+	bsData.Read(byteStyle);
+
+	CMapIconPool::Add(byteIndex, vecPos.x, vecPos.y, vecPos.z, byteIcon, dwColor, byteStyle);
+}
+
+void RemoveMapIcon(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: RemoveMapIcon"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint8_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for RemoveMapIcon"));
+        return;
+    }
+
+	uint8_t byteIndex;
+
+	bsData.Read(byteIndex);
+
+	CMapIconPool::Delete(byteIndex);
 }
 
 void GivePlayerMoney(RakNet::BitStream bsData)
@@ -1710,15 +1759,15 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 			break;
 		}
 
-		// case RPC_SetPlayerMapIcon: {
-		//     SetMapIcon(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerMapIcon: {
+		    SetMapIcon(*bsData);
+		    break;
+		}
 
-		// case RPC_RemovePlayerMapIcon: {
-		//     RemoveMapIcon(*bsData);
-		//     break;
-		// }
+		case RPC_RemovePlayerMapIcon: {
+		    RemoveMapIcon(*bsData);
+		    break;
+		}
 
 		// case RPC_SetPlayerWorldBounds: {
 		//     SetWorldBounds(*bsData);

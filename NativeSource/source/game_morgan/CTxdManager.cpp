@@ -122,7 +122,6 @@ bool CTxdManager::LoadTxdSlotIfNeeded(const char *szTxdName)
 
     if (CTxdStore::FindTxdSlot(szTxdName) == -1)
     {
-        // The iOS engine copies this name into a 20-byte TXD slot field.
         constexpr std::size_t txdNameCapacity = 20;
         if (strnlen(szTxdName, txdNameCapacity) == txdNameCapacity) {
             return false;
@@ -190,6 +189,7 @@ void CTxdManager::ParseDatabaseRedirects(const std::string& dbname)
         if (lowerDbname != dbname) {
             file = openDatabase(lowerDbname);
         }
+        
         if (!file) {
             return;
         }
