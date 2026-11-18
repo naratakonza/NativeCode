@@ -199,7 +199,7 @@ void CTxdManager::ParseDatabaseRedirects(const std::string& dbname)
     while (fgets(line, sizeof(line), file.get()))
     {
         std::string strLine(line);
-        size_t affPos = strLine.find((char*)OBFUSCATE("affiliate="));
+        size_t affPos = strLine.find(static_cast<const char*>(OBFUSCATE("affiliate=")));
         if (affPos == std::string::npos) {
             continue;
         }
@@ -316,10 +316,10 @@ RwTexture* CTxdManager::LoadTextureFromFile(const char* filepath)
         return nullptr;
     }
 
-    RwTexture* texture = RwTextureCreate(convertedRaster);
+    RwTexture* texture = RwTextureCreate(raster);
     if (!texture) {
         CNecessary::Log(OBFUSCATE("LoadTextureFromFile: Failed to create texture"));
-        RwRasterDestroy(convertedRaster);
+        RwRasterDestroy(raster);
         return nullptr;
     }
 
