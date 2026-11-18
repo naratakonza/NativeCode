@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'samp_chat.dart';
+
 class KeysBarBridge {
   static const channel = MethodChannel('flutter_keysbar');
   static const _uiChannel = MethodChannel('flutter/ui_control');
@@ -46,13 +48,20 @@ class SampKeysBarOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<Map<dynamic, dynamic>>(
       valueListenable: KeysBarBridge.state,
-      builder: (context, data, _) => SampKeysBar(
-        visible: data['visible'] == true,
-        isInVehicle: data['isInVehicle'] == true,
-        isMenuActive: data['isMenuActive'] == true,
-        isF4Enabled: data['isF4Enabled'] == true,
-        radarLeft: (data['radarLeft'] as num?)?.toDouble() ?? -1,
-        radarBottom: (data['radarBottom'] as num?)?.toDouble() ?? -1,
+      builder: (context, data, _) => ValueListenableBuilder<bool>(
+        valueListenable: SampChatController.inputActive,
+        builder: (context, inputActive, _) => Offstage(
+          // Hide immediately, retaining the expanded/collapsed state.
+          offstage: inputActive,
+          child: SampKeysBar(
+            visible: data['visible'] == true && !inputActive,
+            isInVehicle: data['isInVehicle'] == true,
+            isMenuActive: data['isMenuActive'] == true,
+            isF4Enabled: data['isF4Enabled'] == true,
+            radarLeft: (data['radarLeft'] as num?)?.toDouble() ?? -1,
+            radarBottom: (data['radarBottom'] as num?)?.toDouble() ?? -1,
+          ),
+        ),
       ),
     );
   }

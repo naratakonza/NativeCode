@@ -11,6 +11,7 @@ struct CPedGta;
 class CUtil
 {
 public:
+    static bool LIB_PointerGetCoordinates(int device, int* x, int* y, float* pressure);
     static CPedGta* GamePool_FindPlayerPed();
     static CPedGta* GamePool_Ped_GetAt(int iID);
     static float DegToRad(float fDegrees);

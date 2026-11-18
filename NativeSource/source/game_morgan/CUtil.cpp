@@ -117,3 +117,8 @@ std::string CUtil::ReplaceKey(const std::string& input)
 
     return output;
 }
+
+bool CUtil::LIB_PointerGetCoordinates(int device, int* x, int* y, float* pressure)
+{
+    return reinterpret_cast<bool (*)(int, int*, int*, float*)>(SA_ADDR(0x0254AC) + _dyld_get_image_vmaddr_slide(0))(device, x, y, pressure);
+}

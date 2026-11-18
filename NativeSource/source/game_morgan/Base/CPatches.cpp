@@ -315,6 +315,21 @@ void CPatches::InstallRadarPatches()
     // ปิดการเรียกใช้งาน CSprite2d::Draw ไม่ให้แสดงผล Marker GPS
     CMemory::makeNOP(SA_ADDR(0x1F21E0), 1); 
     CMemory::makeNOP(SA_ADDR(0x1F2DA0), 1);
+
+    // CRadar::Draw3dMarkers (PlayerColor)
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F42C0), (uintptr_t)"\xE1\x03\x14\x2A", 4); // mov w1, w20
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F42C4), (uintptr_t)"\x1F\x00\x00\x14", 4); // B 0x1F4340
+
+    // CRadar::DrawEntityBlip (PlayerColor)
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F2810), (uintptr_t)"\xE1\x03\x16\x2A", 4); // mov w1, w22
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F2814), (uintptr_t)"\x22\x00\x00\x14", 4); // B 0x1F289C
+
+    // CRadar::DrawCoordBlip (PlayerColor)
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F1E30), (uintptr_t)"\xE1\x03\x16\x2A", 4); // mov w1, w22
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F1E34), (uintptr_t)"\x0F\x00\x00\x14", 4); // B 0x1F1E70
+
+    // แก้ไข Marker ให้สามารถ mark ได้ในด้านขวาของหน้าจอ (ตัวหารแกน X จาก 448.0f เป็น 240.0f)
+    CMemory::WriteProcessMemory(SA_ADDR(0x1ED22C), (uintptr_t)"\x09\x6E\xA8\x52", 4); // mov w9, #0x43700000 (240.0f)
 }
 
 void CPatches::InstallDisableAutoAimPatches()

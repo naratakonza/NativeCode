@@ -1,0 +1,38 @@
+{
+  "source_app": "gta-sa-v2.2.21/Payload/gtasa.app",
+  "original_ipa": "gta-sa-v2.2.21.ipa",
+  "verified_ipa": "Builds/Verified/GTA-SA-2.2.21-Private-Test.ipa",
+  "output_ipa": "Builds/Current/GTA-SA-2.2.21-Local.ipa",
+  "original_sha256": "84840e546fad90b5bc3390faa5b40f9c7a18af088499de6546a8e12769b2f035",
+  "verified_sha256": "4dd3f55eb9b8c7f1c5b9350680150bffbe3540a74eec7a4ba343df8e667fdad4",
+  "bundle_id": "com.rockstargames.gta3sa",
+  "member_count": 544,
+  "frameworks": [
+    "App",
+    "Flutter",
+    "RockstarMobile",
+    "Vendor_mpg123"
+  ],
+  "preserved_weak_dylibs": [
+    "masterSideloadFix.dylib"
+  ],
+  "exclude_local_analysis": [
+    "gtasa.id0",
+    "gtasa.id1",
+    "gtasa.id2",
+    "gtasa.nam",
+    "gtasa.til"
+  ],
+  "required_resources": [
+    "Info.plist",
+    "Assets.car",
+    "Main.storyboardc/Info.plist",
+    "Main.storyboardc/UIViewController-Y6W-OH-hqX.nib",
+    "Main.storyboardc/Y6W-OH-hqX-view-5EZ-qb-Rvc.nib",
+    "LaunchScreen.storyboardc/Info.plist",
+    "data/gta.dat",
+    "texdb/gta3.img",
+    "Frameworks/App.framework/flutter_assets/AssetManifest.json",
+    "_CodeSignature/CodeResources"
+  ]
+}

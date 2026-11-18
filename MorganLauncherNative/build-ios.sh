@@ -76,6 +76,7 @@ for source in \
     "$native/source/game_morgan/FrontEnd/CWidgetPlayerInfo.cpp" "$native/source/game_morgan/CSprite2d.cpp" "$native/source/game_morgan/CRGBA.cpp" "$native/source/game_morgan/CHud.cpp" \
     "$native/source/game_morgan/CPedIntelligence.cpp" "$native/source/game_morgan/Tasks/CTaskManager.cpp" "$native/source/game_morgan/Tasks/CTask.cpp" \
     "$native/source/game_morgan/Animation/CAnimManager.cpp" "$native/source/game_morgan/Entity/Actor/CActor.cpp" "$multiplayer/Pools/Process/CActorPool.cpp" \
+    "$native/source/game_morgan/CRadar.cpp" "$native/source/game_morgan/CGangZone.cpp" "$multiplayer/Pools/Process/CGangZonePool.cpp" \
     "$native/source/game_morgan/CPickup.cpp" "$multiplayer/Pools/Process/CPickupPool.cpp" \
     "$native/source/game_morgan/Entity/Ped/CPed.cpp" "$native/source/game_morgan/Entity/Ped/CPlayerPed.cpp" "$native/source/game_morgan/Entity/Ped/CPlayerPedSlot.cpp" "$native/source/game_morgan/Entity/Ped/CPedPointerRecorder.cpp" \
     "$native/source/game_morgan/CStreaming.cpp" "$native/source/game_morgan/CClock.cpp" "$native/source/game_morgan/CTimer.cpp" "$native/source/game_morgan/COptimizeDistance.cpp" "$native/source/game_morgan/CGame.cpp" "$native/source/game_morgan/Models/CModelInfo.cpp" "$native/source/game_morgan/CPools.cpp" "$native/source/game_morgan/CSetting.cpp" "$multiplayer/CServer.cpp" "$multiplayer/CNetGame.cpp" "$native/source/game_morgan/CTheZones.cpp" "$native/source/game_morgan/CWeather.cpp" "$native/source/game_morgan/CCamera.cpp" "$hooks/CPad.cpp" \
@@ -140,6 +141,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CWidgetPlayerInfo.o" "$out/fileio-objects/CSprite2d.o" "$out/fileio-objects/CRGBA.o" "$out/fileio-objects/CHud.o" \
     "$out/fileio-objects/CPedIntelligence.o" "$out/fileio-objects/CTaskManager.o" "$out/fileio-objects/CTask.o" \
     "$out/fileio-objects/CAnimManager.o" "$out/fileio-objects/CActor.o" "$out/fileio-objects/CActorPool.o" \
+    "$out/fileio-objects/CRadar.o" "$out/fileio-objects/CGangZone.o" "$out/fileio-objects/CGangZonePool.o" \
     "$out/fileio-objects/CPickup.o" "$out/fileio-objects/CPickupPool.o" \
     "$out/fileio-objects/CPed.o" "$out/fileio-objects/CPlayerPed.o" "$out/fileio-objects/CPlayerPedSlot.o" "$out/fileio-objects/CPedPointerRecorder.o" \
     "$out/fileio-objects/CCameraAim.o" "$out/fileio-objects/CAspectRatio.o" "$out/fileio-objects/CCameraController.o" "$out/fileio-objects/CDraw.o" "$out/fileio-objects/CSensitivity.o" "$out/fileio-objects/CGyro.o" "$out/fileio-objects/MGGyro.o" \

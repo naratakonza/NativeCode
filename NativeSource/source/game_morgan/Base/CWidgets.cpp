@@ -1,6 +1,7 @@
 #include "../../../Main.h"
 #include "CWidgets.h"
 #include "../CHud.h"
+#include "../CRadar.h"
 #include "../Multiplayer/CMultiPlayer.h"
 #include "../Multiplayer/Guis/CGui.h"
 
@@ -127,12 +128,12 @@ void CWidgets::ManageAlpha(uintptr_t thiz)
 
         float maxAlpha = CWidgets::GetAlpha();
         const auto widgetType = CWidgets::GetWidgetTypeFromWidget(thiz);
-        // if (widgetType == eWidgetType::TYPE_MAP)
-        // {
-        //     maxAlpha = CRadar::GetAlpha();
-        // }
-        if (widgetType == eWidgetType::TYPE_PLAYER_INFO)
-        {
+        if (widgetType == eWidgetType::TYPE_MAP)
+		{
+            maxAlpha = CRadar::GetAlpha();
+        }
+		else if (widgetType == eWidgetType::TYPE_PLAYER_INFO)
+		{
             maxAlpha = CHud::GetAlpha();
         }
 

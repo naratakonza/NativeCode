@@ -9,7 +9,7 @@ CNetGamePool::CNetGamePool()
     // CNetGamePool::m_pVehiclePool = new CVehiclePool();
     // CNetGamePool::m_pTextDrawPool = new CTextDrawPool();
     CNetGamePool::m_pActorPool = new CActorPool();
-    // CNetGamePool::m_pGangZonePool = new CGangZonePool();
+    CNetGamePool::m_pGangZonePool = new CGangZonePool();
     // CNetGamePool::m_pTextLabelPool = new CTextLabelPool();
     CNetGamePool::m_pPickupPool = new CPickupPool();
     // CNetGamePool::m_pObjectPool = new CObjectPool();
@@ -29,7 +29,7 @@ CNetGamePool::~CNetGamePool()
     // SAFE_DELETE(CNetGamePool::m_pVehiclePool);
     // SAFE_DELETE(CNetGamePool::m_pTextDrawPool);
     SAFE_DELETE(CNetGamePool::m_pActorPool);
-    // SAFE_DELETE(CNetGamePool::m_pGangZonePool);
+    SAFE_DELETE(CNetGamePool::m_pGangZonePool);
     // SAFE_DELETE(CNetGamePool::m_pTextLabelPool);
     SAFE_DELETE(CNetGamePool::m_pPickupPool);
     // SAFE_DELETE(CNetGamePool::m_pObjectPool);
@@ -91,13 +91,13 @@ void CNetGamePool::DeleteAll()
 
     CNetGamePool::m_pPickupPool = new CPickupPool();
 
-    // // GangZone
-    // if (CNetGamePool::GetGangZonePool())
-    // {
-    //     SAFE_DELETE(CNetGamePool::m_pGangZonePool);
-    // }
+    // GangZone
+    if (CNetGamePool::GetGangZonePool())
+    {
+        SAFE_DELETE(CNetGamePool::m_pGangZonePool);
+    }
 
-    // CNetGamePool::m_pGangZonePool = new CGangZonePool();
+    CNetGamePool::m_pGangZonePool = new CGangZonePool();
 
     // Actor
     if (CNetGamePool::GetActorPool())

@@ -1317,6 +1317,122 @@ void DestroyPickup(RakNet::BitStream bsData)
 	}
 }
 
+void AddGangZone(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: AddGangZone"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(int16_t)) +
+		bytesToBits(sizeof(float) * 4) +
+		bytesToBits(sizeof(uint32_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for AddGangZone"));
+        return;
+    }
+
+	int16_t wZoneID;
+	float minx, miny, maxx, maxy;
+	uint32_t dwColor;
+
+	bsData.Read(wZoneID);
+	bsData.Read(minx);
+	bsData.Read(miny);
+	bsData.Read(maxx);
+	bsData.Read(maxy);
+	bsData.Read(dwColor);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetGangZonePool())
+	{
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetGangZonePool()->Add(wZoneID, minx, miny, maxx, maxy, dwColor);
+	}
+}
+
+void GangZoneDestroy(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: GangZoneDestroy"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(int16_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for GangZoneDestroy"));
+        return;
+    }
+
+	int16_t wZoneID;
+
+	bsData.Read(wZoneID);
+	if (wZoneID < 0 || wZoneID >= eMaxItem::MAX_GANG_ZONES) {
+		return;
+	}
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetGangZonePool())
+	{
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetGangZonePool()->Delete(wZoneID);
+	}
+}
+
+void GangZoneFlash(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: GangZoneFlash"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(int16_t)) +
+		bytesToBits(sizeof(uint32_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for GangZoneFlash"));
+        return;
+    }
+
+	int16_t wZoneID;
+	uint32_t dwColor;
+
+	bsData.Read(wZoneID);
+	if (wZoneID < 0 || wZoneID >= eMaxItem::MAX_GANG_ZONES) {
+		return;
+	}
+
+	bsData.Read(dwColor);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetGangZonePool())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetGangZonePool()->GetGangZoneInSlot(wZoneID))
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetGangZonePool()->GetGangZone(wZoneID)->Flash(dwColor);
+		}
+	}
+}
+
+void GangZoneStopFlash(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: GangZoneStopFlash"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(int16_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for GangZoneStopFlash"));
+        return;
+    }
+
+	int16_t wZoneID;
+
+	bsData.Read(wZoneID);
+	if (wZoneID < 0 || wZoneID >= eMaxItem::MAX_GANG_ZONES) {
+		return;
+	}
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetGangZonePool())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetGangZonePool()->GetGangZoneInSlot(wZoneID))
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetGangZonePool()->GetGangZone(wZoneID)->StopFlash();
+		}
+	}
+}
+
 bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 {
     if (rpcid >= 255) {
@@ -1939,25 +2055,25 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_AddGangZone: {
-		//     AddGangZone(*bsData);
-		//     break;
-		// }
+		case RPC_AddGangZone: {
+		    AddGangZone(*bsData);
+		    break;
+		}
 
-		// case RPC_GangZoneDestroy: {
-		//     GangZoneDestroy(*bsData);
-		//     break;
-		// }
+		case RPC_GangZoneDestroy: {
+		    GangZoneDestroy(*bsData);
+		    break;
+		}
 
-		// case RPC_GangZoneFlash: {
-		//     GangZoneFlash(*bsData);
-		//     break;
-		// }
+		case RPC_GangZoneFlash: {
+		    GangZoneFlash(*bsData);
+		    break;
+		}
 
-		// case RPC_GangZoneStopFlash: {
-		//     GangZoneStopFlash(*bsData);
-		//     break;
-		// }
+		case RPC_GangZoneStopFlash: {
+		    GangZoneStopFlash(*bsData);
+		    break;
+		}
 
 		// case RPC_SetPlayerSkillLevel: {
 		// 	SetPlayerSkillLevel(*bsData);

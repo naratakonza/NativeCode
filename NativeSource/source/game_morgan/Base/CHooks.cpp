@@ -7,6 +7,7 @@
 #include "../CAspectRatio.h"
 #include "../CDraw.h"
 #include "../CHud.h"
+#include "../CRadar.h"
 #include "../CCameraController.h"
 #include "../CTimer.h"
 #include "../CWorld.h"
@@ -467,6 +468,7 @@ void CHooks::SetHooking(eHookType type)
             CHud::Initialise();
             CPhysical::Initialise();
             CStats::Initialise();
+            CRadar::Initialise();
 
             break;
         }

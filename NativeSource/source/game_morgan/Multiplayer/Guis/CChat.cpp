@@ -6,6 +6,7 @@
 #include "../Core/CMultiPlayerPacket.h"
 #include "../../Base/CPad.h"
 #include "../../CUtil.h"
+#include "../../CRadar.h"
 #include "../../RadarMod/CTiltedRadar.h"
 #include "../../../../Launcher/MGFlutter.h"
 #include <queue>
@@ -110,7 +111,7 @@ void CChat::Render()
     const bool radarHidden = CGame::IsRadarActive();
     const float radarRight = radarHidden ? -1.0f : CTiltedRadar::GetWidgetRightFraction();
 
-    if (CPad::IsActiveWidgets() || radarHidden /* || CRadar::GetAlpha() <= 0 || CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsSpectating()*/)
+    if (CPad::IsActiveWidgets() || radarHidden || CRadar::GetAlpha() <= 0 || CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsSpectating())
     {
         MGSetFlutterChatPosition(0, radarRight);
     }

@@ -121,6 +121,7 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
 
   void hideInput() {
     _focusNode.unfocus();
+    SampChatController.inputActive.value = false;
     if (!chatInputstatus) return;
     setState(() {
       chatInputstatus = false;
@@ -133,6 +134,7 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
   void showInput() {
     if (!_visible || _paused || chatstatus || chatInputstatus) return;
     setState(() => chatInputstatus = true);
+    SampChatController.inputActive.value = true;
     unawaited(SampChatController.notify('inputActive', true));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _visible && !_paused && chatInputstatus) {
@@ -829,6 +831,7 @@ class _ChatMessage {
 
 class SampChatController {
   static const MethodChannel channel = MethodChannel('flutter_chat');
+  static final inputActive = ValueNotifier<bool>(false);
 
   static Future<void> notify(String method, [Object? args]) async {
     try {
@@ -849,6 +852,7 @@ class SampChatController {
   }
 
   static void init(SampChatState state) {
+    inputActive.value = false;
     channel.setMethodCallHandler((call) async {
       if (!state.mounted) return;
       switch (call.method) {

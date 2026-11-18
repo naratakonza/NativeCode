@@ -7,6 +7,7 @@
 #include "../../CAspectRatio.h"
 #include "../../CDraw.h"
 #include "../../CHud.h"
+#include "../../CRadar.h"
 #include "../../CSensitivity.h"
 #include "../../CGyro.h"
 #include "../../Enums/eMaxConfig.h"
@@ -35,6 +36,7 @@ void CCommand::Initialise()
     CCommand::Add(OBFUSCATE("/gyromode"), CCommand::SetGyroMode);
     CCommand::Add(OBFUSCATE("/gyro"), CCommand::SetGyroScope);
     CCommand::Add(OBFUSCATE("/wgalpha"), CCommand::SetWidgetAlpha);
+    CCommand::Add(OBFUSCATE("/rdalpha"), CCommand::SetRadarAlpha);
     CCommand::Add(OBFUSCATE("/hudalpha"), CCommand::SetHudAlpha);
     CCommand::Add(OBFUSCATE("/shs"), CCommand::SetShadowStyle);
     CCommand::Add(OBFUSCATE("/audiomsg"), CCommand::SetAudioMessages);
@@ -408,6 +410,27 @@ void CCommand::SetGyroMode(const std::vector<std::string>& args)
     }
 }
 
+void CCommand::SetShadowStyle(const std::vector<std::string>&)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    const bool bShadowStyle = CRealTimeShadowManager::GetShadowStyle() == 0;
+    CRealTimeShadowManager::SetShadowStyle(bShadowStyle);
+
+    if (bShadowStyle)
+    {
+        CSetting::GetConfig()->WriteIntValue(OBFUSCATE("Shadow"), 1);
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> ShadowStyle Advance"));
+    }
+    else
+    {
+        CSetting::GetConfig()->WriteIntValue(OBFUSCATE("Shadow"), 0);
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> ShadowStyle Classic"));
+    }
+}
+
 void CCommand::SetWidgetAlpha(const std::vector<std::string>& args)
 {
     if (!CSetting::GetConfig() || !CGui::GetChat()) {
@@ -438,24 +461,33 @@ void CCommand::SetWidgetAlpha(const std::vector<std::string>& args)
     }
 }
 
-void CCommand::SetShadowStyle(const std::vector<std::string>&)
+void CCommand::SetRadarAlpha(const std::vector<std::string>& args)
 {
     if (!CSetting::GetConfig() || !CGui::GetChat()) {
         return;
     }
 
-    const bool bShadowStyle = CRealTimeShadowManager::GetShadowStyle() == 0;
-    CRealTimeShadowManager::SetShadowStyle(bShadowStyle);
-
-    if (bShadowStyle)
+    if (args.size() >= 2)
     {
-        CSetting::GetConfig()->WriteIntValue(OBFUSCATE("Shadow"), 1);
-        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> ShadowStyle Advance"));
+        const char* value = args[1].c_str();
+        char* end = nullptr;
+        const long type = std::strtol(value, &end, 10);
+
+        if (end != value && *end == '\0' && type >= 0 && type <= eMaxConfig::MAX_WIDGETALPHA)
+        {
+            CRadar::SetAlpha(static_cast<int>(type));
+            CSetting::GetConfig()->WriteIntValue(OBFUSCATE("RadarAlpha"), static_cast<int>(type));
+
+            CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> RadarAlpha Limiter: %u"), static_cast<unsigned>(type));
+        }
+        else
+        {
+            CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("-> RadarAlpha Limiter: valid amounts are 0-255"));
+        }
     }
     else
     {
-        CSetting::GetConfig()->WriteIntValue(OBFUSCATE("Shadow"), 0);
-        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> ShadowStyle Classic"));
+        CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /rdalpha <value>"));
     }
 }
 

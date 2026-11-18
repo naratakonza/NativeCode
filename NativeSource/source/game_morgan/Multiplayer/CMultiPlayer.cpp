@@ -8,6 +8,7 @@
 #include "../CCameraController.h"
 #include "../CDraw.h"
 #include "../CHud.h"
+#include "../CRadar.h"
 #include "../CSensitivity.h"
 #include "../CGyro.h"
 #include "../CTimer.h"
@@ -84,6 +85,7 @@ void CMultiPlayer::Process()
     }
     else
     {
+		CRadar::ResetRadarColor();
         CMultiPlayer::SetThread(eThreadType::THREAD_TYPE_PROCESS);
 
         CMultiPlayer::pNetGame = new CNetGame(CServer::GetIpConnect(), CServer::GetPortConnect(), CMultiPlayer::GetPlayerName(), CServer::GetPassConnect(), 576);
@@ -118,6 +120,7 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 			CGame::GetPlayer()->SetArmour(0.0f);
 		}
 
+		CRadar::ResetRadarColor();
 		CGame::ResetPlayerMoney();
 		CClock::EnableGameClock(false);
 		CTheZones::EnableZoneNames(false);
@@ -188,6 +191,7 @@ void CMultiPlayer::SetThread(eThreadType type)
 			CPatches::SetPatches(ePatchType::PATCH_TYPE_MENU);
 			CHooks::SetHooking(eHookType::HOOK_TYPE_START);
 			CWidgets::SetAlpha(CSetting::GetConfig()->GetIntValue(OBFUSCATE("WidgetAlpha")));
+			CRadar::SetAlpha(CSetting::GetConfig()->GetIntValue(OBFUSCATE("RadarAlpha")));
 			CHud::SetAlpha(CSetting::GetConfig()->GetIntValue(OBFUSCATE("HudAlpha")));
 			CRealTimeShadowManager::SetShadowStyle(CSetting::GetConfig()->GetIntValue(OBFUSCATE("Shadow")));
 			CGame::SetFramerate(static_cast<std::uint8_t>(std::clamp(CSetting::GetConfig()->GetIntValue(OBFUSCATE("SetFps")), 0, static_cast<int>(UINT8_MAX))));
