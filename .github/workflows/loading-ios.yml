@@ -20,6 +20,7 @@ on:
           - macos-15-intel
           - macos-15
           - macos-26
+          - macos-26-intel
         default: macos-15-intel
 
 permissions:
