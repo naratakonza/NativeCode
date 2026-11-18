@@ -42,7 +42,8 @@ def patch_radar_gang_zones(binary):
     assert bind_end == weak_start
     table = binary[bind_start:bind_end].rstrip(b'\0')
     for idx, (_, _, symbol) in enumerate(HOOKS):
-        table += b'\x20\x30\x40' + symbol + b'\0\x51\x60\x00\x72' + uleb(SLOT + idx*8 - data_file) + b'\x90\0'
+        table += b'\x20\x30\x40' + symbol + b'\0\x51\x60\x00\x72' + uleb(SLOT + idx*8 - data_file) + b'\x90'
+    table += b'\0'
     table += bytes((bind_size-len(table)) % 16)
     growth = len(table)-bind_size
     vm_size, link_offset, link_size = unpack_from('<QQQ', binary, 0xF70)
