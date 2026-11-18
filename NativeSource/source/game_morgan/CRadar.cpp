@@ -256,7 +256,7 @@ extern "C" __attribute__((visibility("default"))) void PlaceRedMarker_bridge(boo
 
 extern "C" __attribute__((visibility("default"))) void CRadar_DrawRadarGangOverlay_bridge(bool inMenu, void (*original)(bool))
 {
-    if (radarHooksInstalled)
+    if (radarHooksInstalled && CMultiPlayer::IsSampActive())
     {
         CRadar::DrawRadarGangOverlay(inMenu);
     }
@@ -425,14 +425,18 @@ float CRadar::GetAlpha()
     return CRadar::m_iAlpha;
 }
 
-void CRadar::DrawAreaOnRadar(CRect const& rect, uint32_t dwCurColor, bool inMenu)
+extern "C" __attribute__((visibility("default"))) void CRadar_DrawAreaOnRadar_bridge(const CRect& rect, const uint32_t* color, bool inMenu, void (*original)(const CRect&, const uint32_t*, bool))
 {
-    if (!inMenu && CTiltedRadar::DrawGangZone(rect, dwCurColor))
-    {
+    if (!inMenu && CTiltedRadar::DrawAreaOnRadar(rect, *color)) {
         return;
     }
 
-	reinterpret_cast<void (*)(CRect const&, uint32_t*, bool)>(SA_ADDR(0x1F5A68) + _dyld_get_image_vmaddr_slide(0))(rect, &dwCurColor, inMenu);
+    original(rect, color, inMenu);
+}
+
+void CRadar::DrawAreaOnRadar(CRect const& rect, uint32_t dwCurColor, bool inMenu)
+{
+    reinterpret_cast<void (*)(const CRect&, const uint32_t*, bool)>(SA_ADDR(0x1F5A68) + _dyld_get_image_vmaddr_slide(0))(rect, &dwCurColor, inMenu);
 }
 
 void CRadar::ClearBlip(int nIndex)

@@ -87,7 +87,7 @@ def snapshot_header(binary):
     raise ValueError("Missing Dart isolate snapshot data")
 
 
-def package(baseline, digest, launcher, module, output, render_title=False, timer_pause=False, cd_stream_fix=False, radar_blips=False, img_slots=False, img_read_fix=False, camera_size=False, cdraw=False, thunder_main=False, stock_player_weapon=False, clothes_rebuild=False, world_player_slots=False, cj_walk=False, physical=False, gyro=False, stats=False, widget_player_info=False, spawn_fade=False, player_ped_ctor=False, gun_movement=False, ambient_audio=False, hud=False, aim_patches=False, texture_load_fix=False, *, bass_sdk=None, widgets=False, pad_process_control=False, shadow_style=False, weapon_camera_radar=False, radar_gang_zones=False):
+def package(baseline, digest, launcher, module, output, render_title=False, timer_pause=False, cd_stream_fix=False, radar_blips=False, img_slots=False, img_read_fix=False, camera_size=False, cdraw=False, thunder_main=False, stock_player_weapon=False, clothes_rebuild=False, world_player_slots=False, cj_walk=False, physical=False, gyro=False, stats=False, widget_player_info=False, spawn_fade=False, player_ped_ctor=False, gun_movement=False, ambient_audio=False, hud=False, aim_patches=False, texture_load_fix=False, *, bass_sdk=None, widgets=False, pad_process_control=False, shadow_style=False, weapon_camera_radar=False, radar_gang_zones=False, crash_fix=False):
     assert not output.exists(), output
     assert sha256(baseline.read_bytes()).hexdigest() == digest, "Unexpected baseline IPA"
     launcher_files = verified_framework(launcher, "MorganLauncher.framework")
@@ -345,12 +345,13 @@ def package(baseline, digest, launcher, module, output, render_title=False, time
                 source = replacement_files.get(executable)
                 replacement_files[executable] = patch_weapon_camera_radar(source if source is not None else original.read(executable))
 
-            if radar_gang_zones:
-                from patch_radar_gang_zones import HOOKS, patch_radar_gang_zones
-                assert all(symbol + b"\0" in launcher_data for _, _, symbol in HOOKS), "Launcher lacks the radar/GangZone bridges"
+            if radar_gang_zones or crash_fix:
+                from patch_radar_gang_zones import HOOKS, CRASH_FIX_HOOKS, patch_radar_gang_zones
+                hooks = (HOOKS if radar_gang_zones else ()) + (CRASH_FIX_HOOKS if crash_fix else ())
+                assert all(symbol + b"\0" in launcher_data for _, _, symbol in hooks), "Launcher lacks the selected radar or crash fix bridges"
                 executable = APP + "gtasa"
                 source = replacement_files.get(executable)
-                replacement_files[executable] = patch_radar_gang_zones(source if source is not None else original.read(executable))
+                replacement_files[executable] = patch_radar_gang_zones(source if source is not None else original.read(executable), radar=radar_gang_zones, crash_fix=crash_fix)
 
             with ZipFile(temporary, "x") as ipa:
                 ipa.comment = original.comment
@@ -421,6 +422,7 @@ if __name__ == "__main__":
     parser.add_argument("--shadow-style", action="store_true", help="Enable the Classic/Advance shadow controls with --pad-process-control.")
     parser.add_argument("--weapon-camera-radar", action="store_true", help="Apply the sniper shake, resurrection camera and GPS sprite patches on the verified Pickup executable.")
     parser.add_argument("--radar-gang-zones", action="store_true", help="Install verified iOS radar/GangZone bridges and Thunder map/colour patches on Keybar25 baseline.")
+    parser.add_argument("--crash-fix", action="store_true", help="Guard RenderWare material and texture destruction on the verified Keybar25 executable.")
     arguments = parser.parse_args()
     if arguments.shadow_style and not arguments.pad_process_control:
         parser.error("--shadow-style requires --pad-process-control")
@@ -445,4 +447,4 @@ if __name__ == "__main__":
     if arguments.clothes_rebuild and (arguments.render_title or arguments.cd_stream_fix or arguments.img_slots or arguments.img_read_fix or arguments.camera_size or arguments.cdraw or arguments.thunder_main):
         parser.error("--clothes-rebuild expects the Sensitivity IPA with the earlier patches already present")
     package(arguments.baseline, arguments.baseline_sha256, arguments.launcher_tar, arguments.flutter_tar, arguments.output,
-            arguments.render_title, arguments.timer_pause, arguments.cd_stream_fix, arguments.radar_blips, arguments.img_slots, arguments.img_read_fix, arguments.camera_size, arguments.cdraw, arguments.thunder_main, arguments.stock_player_weapon, arguments.clothes_rebuild, arguments.world_player_slots, arguments.cj_walk, arguments.physical, arguments.gyro, arguments.stats, arguments.widget_player_info, arguments.spawn_fade, arguments.player_ped_ctor, arguments.gun_movement, arguments.ambient_audio, arguments.hud, arguments.aim_patches, arguments.texture_load_fix, bass_sdk=arguments.bass_sdk, widgets=arguments.widgets, pad_process_control=arguments.pad_process_control, shadow_style=arguments.shadow_style, weapon_camera_radar=arguments.weapon_camera_radar, radar_gang_zones=arguments.radar_gang_zones)
+            arguments.render_title, arguments.timer_pause, arguments.cd_stream_fix, arguments.radar_blips, arguments.img_slots, arguments.img_read_fix, arguments.camera_size, arguments.cdraw, arguments.thunder_main, arguments.stock_player_weapon, arguments.clothes_rebuild, arguments.world_player_slots, arguments.cj_walk, arguments.physical, arguments.gyro, arguments.stats, arguments.widget_player_info, arguments.spawn_fade, arguments.player_ped_ctor, arguments.gun_movement, arguments.ambient_audio, arguments.hud, arguments.aim_patches, arguments.texture_load_fix, bass_sdk=arguments.bass_sdk, widgets=arguments.widgets, pad_process_control=arguments.pad_process_control, shadow_style=arguments.shadow_style, weapon_camera_radar=arguments.weapon_camera_radar, radar_gang_zones=arguments.radar_gang_zones, crash_fix=arguments.crash_fix)

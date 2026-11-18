@@ -1,5 +1,6 @@
 #include "../../../Main.h"
 #include "CHooks.h"
+#include "CCrashFix.h"
 #include "CPad.h"
 #include "Graphics/CRealTimeShadowManager.h"
 #include "CWidgets.h"
@@ -448,6 +449,7 @@ void CHooks::SetHooking(eHookType type)
         case eHookType::HOOK_TYPE_ONLOAD: {
             CTimer::Initialise();
             CHooks::InstallNecessary();
+            CCrashFix::Initialise();
             CWorld::Initialise();
             CModelInfo::Initialise();
             CPools::Install();

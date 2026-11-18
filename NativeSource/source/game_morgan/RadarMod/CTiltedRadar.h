@@ -29,7 +29,7 @@ public:
     static bool GetWidgetBottomLeft(float& left, float& bottom);
     static bool BeginMap();
     static bool DrawTiles(int alpha);
-    static bool DrawGangZone(const CRect& rect, uint32_t color);
+    static bool DrawAreaOnRadar(const CRect& rect, uint32_t color);
     static void ProjectBlip(const void* worldPos, float& x, float& y);
     static void ReprojectFlatSprite(float& x, float& y);
     static void ProjectPlayerArrow(float& x, float& y);

@@ -12,7 +12,14 @@ HOOKS = (
     (0x1ECD6C, 1, b'_PlaceRedMarker_bridge'),
     (0x1F5D00, 1, b'_CRadar_DrawRadarGangOverlay_bridge'),
     (0x2187B0, 2, b'_CHudColours_GetIntColour_bridge'),
+    (0x1F5A68, 3, b'_CRadar_DrawAreaOnRadar_bridge'),
 )
+CRASH_FIX_HOOKS = (
+    (0x2C57F8, 1, b'_RpMaterialDestroy_hook'),
+    (0x2B03EC, 1, b'_RwTextureDestroy_hook'),
+)
+CRASH_FIX_EXPECTED = {site: bytes.fromhex('F44FBEA9') for site, _, _ in CRASH_FIX_HOOKS}
+
 PATCHES = (
     (0x1ED22C, bytes.fromhex('096EA852')),
     (0x1F42C0, bytes.fromhex('E103142A')),
@@ -22,26 +29,31 @@ PATCHES = (
     (0x1F1E30, bytes.fromhex('E103162A')),
     (0x1F1E34, bytes.fromhex('0F000014')),
 )
-EXPECTED = {0x1F47D4: bytes.fromhex('08008092'), 0x1ECD6C: bytes.fromhex('f44fbea9'), 0x1F5D00: bytes.fromhex('ff0302d1'), 0x2187B0: bytes.fromhex('0848218b'), 0x1ED22C: bytes.fromhex('097ca852'), 0x1F42C0: bytes.fromhex('9f220071'), 0x1F42C4: bytes.fromhex('68040054'), 0x1F2810: bytes.fromhex('df220071'), 0x1F2814: bytes.fromhex('e8040054'), 0x1F1E30: bytes.fromhex('df220071'), 0x1F1E34: bytes.fromhex('68020054')}  # Filled from the verified unmodified instructions, never inferred at packaging time.
+EXPECTED = {0x1F47D4: bytes.fromhex('08008092'), 0x1ECD6C: bytes.fromhex('f44fbea9'), 0x1F5D00: bytes.fromhex('ff0302d1'), 0x1F5A68: bytes.fromhex('FF8304D1'), 0x2187B0: bytes.fromhex('0848218b'), 0x1ED22C: bytes.fromhex('097ca852'), 0x1F42C0: bytes.fromhex('9f220071'), 0x1F42C4: bytes.fromhex('68040054'), 0x1F2810: bytes.fromhex('df220071'), 0x1F2814: bytes.fromhex('e8040054'), 0x1F1E30: bytes.fromhex('df220071'), 0x1F1E34: bytes.fromhex('68020054')}  # Filled from the verified unmodified instructions, never inferred at packaging time.
 
-def patch_radar_gang_zones(binary):
+def patch_radar_gang_zones(binary, *, radar=True, crash_fix=False):
+    hooks = (HOOKS if radar else ()) + (CRASH_FIX_HOOKS if crash_fix else ())
+    patches = PATCHES if radar else ()
+    if not hooks:
+        return binary
+
     if sha256(binary).hexdigest() != BASE_SHA:
-        raise ValueError('Radar/GangZone patches require the verified Keybar25 executable')
-    for offset, data in EXPECTED.items():
+        raise ValueError('Radar or RenderWare crash fixes require the verified Keybar25 executable')
+    for offset, data in ((EXPECTED if radar else {}) | (CRASH_FIX_EXPECTED if crash_fix else {})).items():
         if binary[offset:offset + len(data)] != data:
             raise ValueError(f'Unexpected radar instruction at 0x{offset:X}')
     text_size, text_offset = unpack_from('<QI', binary, 0x768)
     hud_size, hud_offset = unpack_from('<QI', binary, 0xA30)
     assert text_size + text_offset == THUNK and hud_size + hud_offset == SLOT
-    assert not any(binary[THUNK:THUNK+32*len(HOOKS)])
-    assert not any(binary[SLOT:SLOT+8*len(HOOKS)])
-    assert THUNK + 32*len(HOOKS) <= 0x498000 and SLOT + 8*len(HOOKS) <= 0x4B8000
+    assert not any(binary[THUNK:THUNK+32*len(hooks)])
+    assert not any(binary[SLOT:SLOT+8*len(hooks)])
+    assert THUNK + 32*len(hooks) <= 0x498000 and SLOT + 8*len(hooks) <= 0x4B8000
     data_file = unpack_from('<Q', binary, 0x7B8)[0]
     bind_start, bind_size, weak_start = unpack_from('<III', binary, 0xFA8)
     bind_end = bind_start + bind_size
     assert bind_end == weak_start
     table = binary[bind_start:bind_end].rstrip(b'\0')
-    for idx, (_, _, symbol) in enumerate(HOOKS):
+    for idx, (_, _, symbol) in enumerate(hooks):
         table += b'\x20\x30\x40' + symbol + b'\0\x51\x60\x00\x72' + uleb(SLOT + idx*8 - data_file) + b'\x90'
     table += b'\0'
     table += bytes((bind_size-len(table)) % 16)
@@ -57,9 +69,9 @@ def patch_radar_gang_zones(binary):
         if offset:
             assert bind_end <= offset <= link_offset + link_size
             pack_into('<I', image, field, offset+growth)
-    pack_into('<Q', image, 0x768, text_size+32*len(HOOKS))
-    pack_into('<Q', image, 0xA30, hud_size+8*len(HOOKS))
-    for idx, (site, reg, _) in enumerate(HOOKS):
+    pack_into('<Q', image, 0x768, text_size+32*len(hooks))
+    pack_into('<Q', image, 0xA30, hud_size+8*len(hooks))
+    for idx, (site, reg, _) in enumerate(hooks):
         thunk = THUNK + idx*32
         original = thunk+24
         slot = SLOT + idx*8
@@ -68,6 +80,6 @@ def patch_radar_gang_zones(binary):
             adrp(16, thunk+8, slot), 0xF9400210 | (((slot & 0xFFF)//8) << 10),
             0xD61F0200, 0xD503201F, unpack_from('<I', binary, site)[0], branch(thunk+28, site+4))
         pack_into('<I', image, site, branch(site, thunk))
-    for site, data in PATCHES:
+    for site, data in patches:
         image[site:site+len(data)] = data
     return bytes(image)
