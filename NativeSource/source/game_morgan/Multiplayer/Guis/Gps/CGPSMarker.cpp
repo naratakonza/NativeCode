@@ -124,7 +124,7 @@ bool CGPSMarker::CalculateDistanceAndPosition(CVector& screenPos, float& distanc
     distance = sqrtf((CGPSMarker::m_position.x - playerPos.x) * (CGPSMarker::m_position.x - playerPos.x) + (CGPSMarker::m_position.y - playerPos.y) * (CGPSMarker::m_position.y - playerPos.y) + (CGPSMarker::m_position.z - playerPos.z) * (CGPSMarker::m_position.z - playerPos.z));
 
     if (!std::isfinite(distance) || !RsGlobal || RsGlobal->maximumWidth <= 0 || RsGlobal->maximumHeight <= 0 ||
-        !CSprite::CalcScreenCoors(&CGPSMarker::m_position, &screenPos, nullptr, nullptr, false, false) ||
+        !CSprite::CalcScreenCoors(&this->m_position, &screenPos, nullptr, nullptr, false, false) ||
         !std::isfinite(screenPos.x) || !std::isfinite(screenPos.y) || !std::isfinite(screenPos.z))
     {
         return false;
