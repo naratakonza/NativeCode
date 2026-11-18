@@ -108,7 +108,7 @@ public:
 private:
     char            m_szText[eMaxItem::MAX_TEXT_DRAW_LINE + 1];
     char            m_szString[eMaxItem::MAX_TEXT_DRAW_LINE * 4];
-    uint16_t        m_gxtString[eMaxItem::MAX_TEXT_DRAW_LINE + 1];
+    [[maybe_unused]] uint16_t m_gxtString[eMaxItem::MAX_TEXT_DRAW_LINE + 1];
 
 public:
     TEXT_DRAW_DATA  m_TextDrawData;
