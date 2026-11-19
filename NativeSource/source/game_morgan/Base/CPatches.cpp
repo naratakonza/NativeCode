@@ -334,7 +334,16 @@ void CPatches::InstallRadarPatches()
     CMemory::WriteProcessMemory(SA_ADDR(0x1F42C0), (uintptr_t)"\xE1\x03\x14\x2A", 4); // mov w1, w20
     CMemory::WriteProcessMemory(SA_ADDR(0x1F42C4), (uintptr_t)"\x1F\x00\x00\x14", 4); // B 0x1F4340
 
-    // CRadar::DrawEntityBlip (PlayerColor)
+    // CRadar::DrawEntityBlip (PlayerColor): iOS แยกทางเลือกสีไว้หลายทาง
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F2470), (uintptr_t)"\xE1\x03\x16\x2A", 4); // mov w1, w22
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F2474), (uintptr_t)"\x0A\x01\x00\x14", 4); // B 0x1F289C
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F24A8), (uintptr_t)"\xE1\x03\x16\x2A", 4); // mov w1, w22
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F24AC), (uintptr_t)"\xFC\x00\x00\x14", 4); // B 0x1F289C
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F2790), (uintptr_t)"\xE1\x03\x16\x2A", 4); // mov w1, w22
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F2794), (uintptr_t)"\x42\x00\x00\x14", 4); // B 0x1F289C
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F27EC), (uintptr_t)"\xE1\x03\x16\x2A", 4); // mov w1, w22
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F27F0), (uintptr_t)"\x2B\x00\x00\x14", 4); // B 0x1F289C
+
     CMemory::WriteProcessMemory(SA_ADDR(0x1F2810), (uintptr_t)"\xE1\x03\x16\x2A", 4); // mov w1, w22
     CMemory::WriteProcessMemory(SA_ADDR(0x1F2814), (uintptr_t)"\x22\x00\x00\x14", 4); // B 0x1F289C
 

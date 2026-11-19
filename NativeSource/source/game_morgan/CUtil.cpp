@@ -446,4 +446,3 @@ void CUtil::FilterColors(char* szStr)
     szNonColored[iNonColoredMsgLen] = 0;
     strcpy(szStr, szNonColored);
 }
-
