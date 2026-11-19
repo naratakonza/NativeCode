@@ -1497,10 +1497,8 @@ void SetCheckpoint(RakNet::BitStream bsData)
 	CCheckPoint::ToggleCheckpoints(true);
 }
 
-void DisableCheckpoint(RakNet::BitStream bsData)
+void DisableCheckpoint(RakNet::BitStream)
 {
-    (void)bsData;
-
 	CNecessary::Log(OBFUSCATE("RPC: DisableCheckpoint"));
 
 	CCheckPoint::ToggleCheckpoints(false);

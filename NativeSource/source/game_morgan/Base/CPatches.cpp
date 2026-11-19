@@ -70,6 +70,11 @@ void CPatches::InstallLevelZPatches()
     CMemory::makeNOP(SA_ADDR(0x349944), 1);
     CMemory::WriteProcessMemory(SA_ADDR(0x34AB2C), (uintptr_t)"\x08\x00\xA8\x52", 4);
     CMemory::makeNOP(SA_ADDR(0x34AB30), 1);
+
+    // แก้ไข Crash CFont::ProcessCurrentString (แก้ไขให้รองรับ TextDraw String ยาวๆ)
+    CMemory::WriteProcessMemory(SA_ADDR(0x2F265C), (uintptr_t)"\xFF\x03\x32\xD1", 4); // ปรับเป็น SUB SP, SP, #0xC80 (3200)
+    CMemory::WriteProcessMemory(SA_ADDR(0x2F273C), (uintptr_t)"\x09\x71\x30\x91", 4); // ปรับเป็น ADD X9, X8, #0xC1C (3100)
+    CMemory::WriteProcessMemory(SA_ADDR(0x2F2E40), (uintptr_t)"\xFF\x03\x32\x91", 4); // ปรับเป็น ADD SP, SP, #0xC80 (3200)
 }
 
 void CPatches::InstallSettingGamePatches()

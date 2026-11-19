@@ -147,14 +147,14 @@ void ImGui_ImplRenderWare_RenderDrawData(const ImDrawData* drawData)
         auto* indices = list.IdxBuffer.Data;
         for (const auto& command : list.CmdBuffer)
         {
-            if (!command.UserCallback && command.TextureId == fontRaster && command.ElemCount)
+            if (!command.UserCallback && command.ElemCount)
             {
                 for (std::size_t i = 0; i < count - 1; ++i) {
                     if (savedState[i]) {
                         RwRenderStateSet(states[i], reinterpret_cast<void*>(values[i]));
                     }
                 }
-                RwRenderStateSet(rwRENDERSTATETEXTURERASTER, fontRaster);
+                RwRenderStateSet(rwRENDERSTATETEXTURERASTER, command.TextureId);
                 const bool submitted = RwIm2DRenderIndexedPrimitive(rwPRIMTYPETRILIST, vertices.data(), list.VtxBuffer.Size, indices, command.ElemCount);
                 static bool loggedDraw = false;
                 if (submitted && !loggedDraw)
