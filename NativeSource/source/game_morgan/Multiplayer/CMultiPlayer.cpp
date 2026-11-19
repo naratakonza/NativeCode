@@ -213,6 +213,7 @@ void CMultiPlayer::SetThread(eThreadType type)
 		case eThreadType::THREAD_TYPE_ONLOAD: {
 			CPatches::SetPatches(ePatchType::PATCH_TYPE_ZERO);
 			CHooks::SetHooking(eHookType::HOOK_TYPE_ONLOAD);
+            CPlayerTags::SetStyleHealthBar(false);
 
 			break;
 		}
@@ -220,6 +221,7 @@ void CMultiPlayer::SetThread(eThreadType type)
 		case eThreadType::THREAD_TYPE_START: {
 			CPatches::SetPatches(ePatchType::PATCH_TYPE_MENU);
 			CHooks::SetHooking(eHookType::HOOK_TYPE_START);
+            CPlayerTags::SetWeaponTag(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("WeaponTag")));
 			CWidgets::SetAlpha(CSetting::GetConfig()->GetIntValue(OBFUSCATE("WidgetAlpha")));
 			CRadar::SetAlpha(CSetting::GetConfig()->GetIntValue(OBFUSCATE("RadarAlpha")));
 			CHud::SetAlpha(CSetting::GetConfig()->GetIntValue(OBFUSCATE("HudAlpha")));

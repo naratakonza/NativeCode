@@ -35,6 +35,44 @@ void CMemory::WriteProcessMemory(std::uint64_t address, std::uintptr_t bytes, st
     }
 }
 
+bool CMemory::InstallMethodHook(std::uint64_t address, std::uintptr_t method)
+{
+    if (method && address % sizeof(method) == 0 && HasMappedInstruction(SA_ADDR(0x23B32C), "\xF4\x4F\xBE\xA9"))
+    {
+        const auto* image = _dyld_get_image_header(0);
+        const auto* cursor = reinterpret_cast<const std::uint8_t*>(image) + sizeof(mach_header_64);
+        for (std::uint32_t i = 0; i < image->ncmds; ++i)
+        {
+            const auto* command = reinterpret_cast<const load_command*>(cursor);
+            if (command->cmd == LC_SEGMENT_64)
+            {
+                const auto* segment = reinterpret_cast<const segment_command_64*>(command);
+                if (std::strncmp(segment->segname, "__DATA_CONST", 16) == 0 && (segment->initprot & VM_PROT_READ))
+                {
+                    const auto* sections = reinterpret_cast<const section_64*>(segment + 1);
+                    for (std::uint32_t j = 0; j < segment->nsects; ++j)
+                    {
+                        const auto& section = sections[j];
+                        if (std::strncmp(section.sectname, "__const", 16) == 0 && std::strncmp(section.segname, "__DATA_CONST", 16) == 0 && address >= section.addr && section.size >= sizeof(method) && address - section.addr <= section.size - sizeof(method))
+                        {
+                            const auto* installed = reinterpret_cast<const std::uintptr_t*>(address + _dyld_get_image_vmaddr_slide(0));
+                            if (*installed == method)
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            cursor += command->cmdsize;
+        }
+    }
+
+    CNecessary::Log(OBFUSCATE("Method hook missing at 0x%" PRIX64), address);
+    return false;
+}
+
 bool CMemory::HasMappedInstruction(std::uint64_t address, const void* expected, const char* sectionName)
 {
     return address % instructionSize == 0 && HasMappedBytes(address, expected, instructionSize, sectionName);

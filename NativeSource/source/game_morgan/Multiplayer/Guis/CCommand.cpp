@@ -38,6 +38,8 @@ void CCommand::Initialise()
     CCommand::Add(OBFUSCATE("/wgalpha"), CCommand::SetWidgetAlpha);
     CCommand::Add(OBFUSCATE("/rdalpha"), CCommand::SetRadarAlpha);
     CCommand::Add(OBFUSCATE("/hudalpha"), CCommand::SetHudAlpha);
+    CCommand::Add(OBFUSCATE("/ntstyle"), CCommand::SetNameTagStyle);
+    CCommand::Add(OBFUSCATE("/wptag"), CCommand::SetWeaponTag);
     CCommand::Add(OBFUSCATE("/shs"), CCommand::SetShadowStyle);
     CCommand::Add(OBFUSCATE("/audiomsg"), CCommand::SetAudioMessages);
     CCommand::Add(OBFUSCATE("/chip"), CCommand::SetConnect);
@@ -518,6 +520,39 @@ void CCommand::SetHudAlpha(const std::vector<std::string>& args)
     else
     {
         CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /hudalpha <value>"));
+    }
+}
+
+void CCommand::SetNameTagStyle(const std::vector<std::string>& /*args*/)
+{
+    static bool bNameTagStyle = false;
+    bNameTagStyle = !bNameTagStyle;
+
+    CPlayerTags::SetStyleHealthBar(bNameTagStyle);
+
+    if (bNameTagStyle)
+    {
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> NameTag Style New"));
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> NameTag Style Default"));
+    }
+}
+
+void CCommand::SetWeaponTag(const std::vector<std::string>& /*args*/)
+{
+    static bool bWeaponTag = false;
+    bWeaponTag = !bWeaponTag;
+    CPlayerTags::SetWeaponTag(bWeaponTag);
+
+    if (bWeaponTag)
+    {
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> WeaponTag Enable"));
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> WeaponTag Disable"));
     }
 }
 

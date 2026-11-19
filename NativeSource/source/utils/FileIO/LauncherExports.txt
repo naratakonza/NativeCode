@@ -68,3 +68,5 @@ _RpMaterialDestroy_hook
 _RwTextureDestroy_hook
 _TextureDatabaseRuntime_GetTexture_hook
 _CHudColours_GetIntColour_bridge
+_CCivilianPed_ProcessControl_hook
+_CPlayerPed_ProcessCollision_hook

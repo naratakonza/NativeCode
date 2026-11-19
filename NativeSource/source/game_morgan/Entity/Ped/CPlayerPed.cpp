@@ -878,3 +878,16 @@ bool CPlayerPed::IsExitingVehicle()
 
     return false;
 }
+
+void CPlayerPed::GetBonePosition(int iBoneID, CVector* vecOut)
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    if (CCommon::IsGameEntityArePlaceable(m_pEntity)) {
+        return;
+    }
+
+    CPed::GetBonePosition(GetPed(), vecOut, iBoneID, 0);
+}

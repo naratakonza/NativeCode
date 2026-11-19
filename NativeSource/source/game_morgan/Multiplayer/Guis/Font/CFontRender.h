@@ -17,11 +17,26 @@ public:
 	CFontRender();
 	~CFontRender();
 
+    ImFont* GetFont() { return m_pFont; }
+    ImFont* GetSampFont() { return m_pSampFont; }
+    ImFont* GetWeaponFont() { return m_pFontGTAWeap; }
+    float GetFontSize() { return m_fFontSize; }
+    void Render3DLabel(float fontSize, ImVec2 pos, char* utf8string, uint32_t dwColor);
+    ImVec2 CalcTextSizeWithoutTags(char* szStr);
+    bool ProcessInlineHexColor(const char* start, const char* end, ImVec4& color);
+    bool IsColorDark(ImU32 col);
+    void RenderTextMethod(ImVec2& posCur, ImU32 col, bool bOutline, const char* text_begin, const char* text_end, float font_size, ImFont* font, bool bOutlineUseTextColor);
+    void TextWithColorsW(ImFont* font, const float font_size, uint8_t outline, ImVec2 pos, ImColor col, const char* szStr);
+
 	void Render();
 	bool OnTouchEvent(eTouchType type, ImVec2 pos);
 	void RenderText(ImVec2& pos, ImU32 col, bool bOutline, const char* text_begin, const char* text_end = nullptr, float fontSize = 0.0f);
 
 private:
+    ImFont* m_pFont = nullptr;
+    ImFont* m_pSampFont = nullptr;
+    ImFont* m_pFontGTAWeap = nullptr;
+    float m_fFontSize = 30.0f;
 	ImFont* LoadFont(const char* font, float fontsize, const ImWchar* ranges = nullptr);
 
 	void PreProcessInput();
