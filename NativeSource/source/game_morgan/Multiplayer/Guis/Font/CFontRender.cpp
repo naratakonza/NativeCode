@@ -289,15 +289,7 @@ ImFont* CFontRender::LoadFont(const char* font, float fontsize, const ImWchar* r
         const auto length = static_cast<std::size_t>(size);
         if (std::fread(data, 1, length, result.file.get()) == length && (std::memcmp(data, "\x00\x01\x00\x00", 4) == 0 || std::memcmp(data, "true", 4) == 0))
         {
-            CGDataProviderRef provider = CGDataProviderCreateWithData(nullptr, data, length, nullptr);
-            CGFontRef validated = provider ? CGFontCreateWithDataProvider(provider) : nullptr;
-            if (validated) CGFontRelease(validated);
-            if (provider) CGDataProviderRelease(provider);
-
-            if (validated)
-            {
-                return io.Fonts->AddFontFromMemoryTTF(data, static_cast<int>(size), fontsize, &fontCfg, ranges);
-            }
+            return io.Fonts->AddFontFromMemoryTTF(data, static_cast<int>(size), fontsize, &fontCfg, ranges);
         }
 
         ImGui::MemFree(data);
