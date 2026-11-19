@@ -69,6 +69,7 @@ plutil -lint "$framework/Info.plist"
 xcodebuild -version
 xcrun --sdk iphoneos clang++ --version
 mkdir "$out/fileio-objects"
+compile_failed=0
 for source in \
     "$native/source/game_morgan/CCameraAim.cpp" "$native/source/game_morgan/CAspectRatio.cpp" "$native/source/game_morgan/CCameraController.cpp" "$native/source/game_morgan/CDraw.cpp" "$native/source/game_morgan/CSensitivity.cpp" "$native/source/game_morgan/CGyro.cpp" \
     "$native/source/game_morgan/CdStreamInfo.cpp" \
@@ -105,11 +106,17 @@ for source in \
     "$native/source/game_morgan/Audio/CBass.cpp" \
     "$imgui/imgui_impl_renderware.cpp"; do
     object="${source##*/}"
-    xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
-        -std=c++17 "${fileio_flags[@]}" -isystem "$native/source/vendor" -Wall -Wextra -Werror -fstack-protector-strong \
+    if ! xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
+        -std=c++17 "${fileio_flags[@]}" -isystem "$native/source/vendor" -Wall -Wextra -Werror -ferror-limit=0 -fstack-protector-strong \
         -fvisibility=hidden -fvisibility-inlines-hidden \
-        -c "$source" -o "$out/fileio-objects/${object%.cpp}.o"
+        -c "$source" -o "$out/fileio-objects/${object%.cpp}.o"; then
+        compile_failed=1
+    fi
 done
+if [[ "$compile_failed" -ne 0 ]]; then
+    echo "Native C++ compilation failed; see all diagnostics above." >&2
+    exit 1
+fi
 for unit in imgui imgui_draw; do
     xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
         -std=c++17 "${fileio_flags[@]}" -fvisibility=hidden -fvisibility-inlines-hidden \

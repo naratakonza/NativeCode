@@ -330,7 +330,7 @@ void CRemotePlayer::HandleRemovingFromVehicle()
 
 void CRemotePlayer::WritePlayerSyncData(ONFOOT_SYNC_DATA *syncData, uint32_t dwTime)
 {
-	CRemotePlayer::SetGameVehicle(nullptr);
+	// CRemotePlayer::SetGameVehicle(nullptr);
 
 	if (dwTime == 0 || dwTime - CRemotePlayer::GetReceiveDataTimeSyncTick() >= 0)
     {

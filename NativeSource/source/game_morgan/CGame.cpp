@@ -133,7 +133,7 @@ uint8_t CGame::FindFirstFreePlayerPedSlot()
     return 0;
 }
 
-CPlayerPed* CGame::NewPlayer(int iSkin, float fX, float fY, float fZ, float fRotation, uint8_t byteCreateMarker)
+CPlayerPed* CGame::NewPlayer(int iSkin, float fX, float fY, float fZ, float fRotation, [[maybe_unused]] uint8_t byteCreateMarker)
 {
 	// CNecessary::Log(OBFUSCATE("NewPlayer: %d %.2f %.2f %.2f %.2f %d"), iSkin, fX, fY, fZ, fRotation, byteCreateMarker);
 
