@@ -1,4 +1,5 @@
 #include "CEntity.h"
+#include "../CGame.h"
 #include "../CWorld.h"
 #include "../CCommon.h"
 #include "../CStreaming.h"
