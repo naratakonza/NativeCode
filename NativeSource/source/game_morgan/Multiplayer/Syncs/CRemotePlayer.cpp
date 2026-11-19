@@ -453,6 +453,97 @@ void CRemotePlayer::UpdatePlayerTargetPosition()
 	}
 }
 
+void CRemotePlayer::DoOnFootFrame()
+{
+	CPlayerPed* pGamePlayer = CRemotePlayer::GetGamePlayer();
+	if (!pGamePlayer) {
+		return;
+	}
+
+	if (!CRemotePlayer::IsGamePlayerValid(CRemotePlayer::GetRemotePlayerID(), pGamePlayer)) {
+		CNecessary::Log(OBFUSCATE("DoOnFootFrame: pGamePlayer is no longer valid."));
+		return;
+	}
+
+	CMatrix matPlayer, matVehicle;
+	CVector vecMoveSpeed = CVector();
+
+	CRemotePlayer::UpdateGamePlayerRotation();
+
+	// CRemotePlayer::ProcessGamePlayerHead();
+	// CRemotePlayer::ProcessGamePlayerSpecialAction(CRemotePlayer::GetSpecialAction());
+
+	CRemotePlayer::SetRemotePassengerDriveBy(false);
+
+	pGamePlayer->SetKeys(CRemotePlayer::m_ofSyncData.wKeys, CRemotePlayer::m_ofSyncData.lrAnalog, CRemotePlayer::m_ofSyncData.udAnalog);
+
+	// if (CRemotePlayer::IsSurfingOnVehicle())
+	// {
+	// 	if (CRemotePlayer::m_ofSyncData.wSurfInfo < 2000)
+	// 	{
+	// 		CRemotePlayer::GetGamePlayer()->SetGravityProcessing(false);
+	// 		CRemotePlayer::GetGamePlayer()->SetCollisionChecking(false);
+	// 	}
+	// }
+	// else
+	// {
+	// 	if (CRemotePlayer::m_ofSyncData.byteSpecialAction == eSpecialAction::SPECIAL_ACTION_ENTER_VEHICLE)
+	// 	{
+	// 		CRemotePlayer::GetGamePlayer()->SetGravityProcessing(false);
+	// 		CRemotePlayer::GetGamePlayer()->SetCollisionChecking(false);
+	// 	}
+	// 	else
+	// 	{
+	// 		CRemotePlayer::GetGamePlayer()->SetGravityProcessing(true);
+	// 		CRemotePlayer::GetGamePlayer()->SetCollisionChecking(true);
+	// 	}
+	// }
+
+    if (CRemotePlayer::m_ofSyncData.byteSpecialAction == eSpecialAction::SPECIAL_ACTION_ENTER_VEHICLE)
+	{
+		CRemotePlayer::GetGamePlayer()->SetGravityProcessing(false);
+		CRemotePlayer::GetGamePlayer()->SetCollisionChecking(false);
+	}
+	else
+	{
+		CRemotePlayer::GetGamePlayer()->SetGravityProcessing(true);
+		CRemotePlayer::GetGamePlayer()->SetCollisionChecking(true);
+	}
+
+	if (CRemotePlayer::m_ofSyncData.vecMoveSpeed.x != 0.0f && CRemotePlayer::m_ofSyncData.vecMoveSpeed.y != 0.0f && CRemotePlayer::m_ofSyncData.vecMoveSpeed.z != 0.0f)
+	{
+		if ((CNecessary::GetTickCount() - CRemotePlayer::GetReceiveSyncTick()) > NETMODE_PLAYERS_UPDATE_DELAY / 2)
+		{
+			CRemotePlayer::SetRemoteAFK(true);
+		}
+	}
+	else
+	{
+		CRemotePlayer::SetGamePlayerMoveSpeed(CVector());
+		if ((CNecessary::GetTickCount() - CRemotePlayer::GetReceiveSyncTick()) > NETMODE_PLAYERS_UPDATE_DELAY)
+		{
+			CRemotePlayer::SetRemoteAFK(true);
+		}
+	}
+
+	if (CRemotePlayer::IsRemoteAFK() && (CNecessary::GetTickCount() - CRemotePlayer::GetReceiveSyncTick()) > NETMODE_PLAYERS_UPDATE_DELAY)
+	{
+		CRemotePlayer::m_ofSyncData.lrAnalog = 0;
+		CRemotePlayer::m_ofSyncData.udAnalog = 0;
+
+		vecMoveSpeed.x = 0.0f;
+		vecMoveSpeed.y = 0.0f;
+		vecMoveSpeed.z = 0.0f;
+		CRemotePlayer::SetGamePlayerMoveSpeed(vecMoveSpeed);
+
+		pGamePlayer->GetMatrix(&matPlayer);
+		matPlayer.pos.x = CRemotePlayer::m_ofSyncData.vecPos.x;
+		matPlayer.pos.y = CRemotePlayer::m_ofSyncData.vecPos.y;
+		matPlayer.pos.z = CRemotePlayer::m_ofSyncData.vecPos.z;
+		pGamePlayer->SetMatrix(matPlayer);
+	}
+}
+
 void CRemotePlayer::UpdateGamePlayerRotation()
 {
     if (!CRemotePlayer::IsValidInstance()) {

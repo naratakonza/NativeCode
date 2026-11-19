@@ -863,3 +863,18 @@ bool CPlayerPed::IsInJetpack()
 
     return task->vtable == SA_ADDR(0x4B17B8) + _dyld_get_image_vmaddr_slide(0);
 }
+
+bool CPlayerPed::IsExitingVehicle()
+{
+    if (!CPlayerPed::VerifyInstance())
+    {
+        return false;
+    }
+
+    if (GetPed() && GetPed()->pPedIntelligence && GetPed()->pPedIntelligence->m_taskManager.m_tasks[ePrimaryTasks::TASK_PRIMARY_PRIMARY])
+    {
+        return CCommon::GetTaskTypeFromTask(reinterpret_cast<uintptr_t*>(GetPed()->pPedIntelligence->m_taskManager.m_tasks[ePrimaryTasks::TASK_PRIMARY_PRIMARY])) == 704;
+    }
+
+    return false;
+}

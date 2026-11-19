@@ -486,3 +486,18 @@ void CEntity::CleanUpOldReference(CEntityGta* thiz, CEntityGta **ppAddress)
 {
     reinterpret_cast<void (*)(CEntityGta*, CEntityGta**)>(SA_ADDR(0x19275C) + _dyld_get_image_vmaddr_slide(0))(thiz, ppAddress);
 }
+
+bool CEntity::GetCollisionChecking()
+{
+    if (!m_pEntity)
+    {
+        return true;
+    }
+
+    if (CCommon::IsGameEntityArePlaceable(m_pEntity))
+    {
+        return true;
+    }
+
+    return m_pEntity->nEntityFlags.m_bCollisionProcessed;
+}

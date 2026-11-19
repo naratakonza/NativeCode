@@ -76,12 +76,10 @@ uint8_t CGame::IsMenuActive()
 bool CGame::IsStarted()
 {
     static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x47F4C), "\x49\x3A\x00\x90\x29\xA1\x07\x91\x29\xE5\x42\x39", 12, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x43AC60), "\xA8\x1A\x00\xB0\x08\xA1\x07\x91\x1F\xE5\x02\x39", 12, "__text");
-    if (!verified)
-    {
+    if (!verified) {
         return false;
     }
 
-    // FrontEndMenuManager->m_MainMenu บน iOS
     return *reinterpret_cast<const std::uint8_t*>(SA_ADDR(0x78F2A1) + _dyld_get_image_vmaddr_slide(0)) == 0;
 }
 

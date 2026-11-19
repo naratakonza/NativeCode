@@ -18,6 +18,7 @@ public:
 	static bool IsGameEntityArePlaceable(CEntityGta *pEntity);
     static bool IsGameEntityRenderable(CEntityGta *pEntity);
     static bool IsValidGamePed(CPedGta *pPed);
+    static int GetTaskTypeFromTask(void* task);
     static bool IsPedModel(unsigned int iModelID);
     static bool IsExistForModelInfo(int iModelID);
     static bool ModelInfoGetCol(int iModel, const char* opcode);
