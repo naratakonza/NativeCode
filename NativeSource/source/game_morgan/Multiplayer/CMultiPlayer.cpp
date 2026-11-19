@@ -1,4 +1,5 @@
 #include "../../../Main.h"
+#include "Syncs/Core/CCheckPoint.h"
 #include "CMultiPlayer.h"
 #include "CServer.h"
 #include "Audio/CAudio.h"
@@ -108,6 +109,7 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 		CCameraAim::GameResetLocalPlayerSkills();
 
 		CGui::GetButton()->Enable(false);
+		CGui::GetXSing()->Enable(false);
 		CGui::GetSpawnScreen()->Enable(false);
 		CGui::GetDialog()->Enable(false);
 		
@@ -122,12 +124,20 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 			CGame::GetPlayer()->SetArmour(0.0f);
 		}
 
+		if (CGui::GetGPSNavigator())
+		{
+			CGui::GetGPSNavigator()->SetPosition(0.0f, 0.0f, 0.0f);
+			CGui::GetGPSNavigator()->SetVisible(false);
+		}
+
 		if (CGui::GetGPSMarker())
 		{
 			CGui::GetGPSMarker()->SetPosition(0.0f, 0.0f, 0.0f);
 			CGui::GetGPSMarker()->SetVisible(false);
 		}
 
+		CCheckPoint::ToggleCheckpoints(false);
+		CCheckPoint::ToggleRaceCheckpoints(false);
 		CRadar::ResetRadarColor();
 		CGame::ResetPlayerMoney();
 		CClock::EnableGameClock(false);

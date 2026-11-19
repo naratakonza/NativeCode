@@ -1,6 +1,7 @@
 #include "../../../../../Main.h"
 #include "CFontRender.h"
 #include "../CGui.h"
+#include "../../CMultiPlayer.h"
 #include "../../../../utils/Storage/CStorage.h"
 #include "../../../../vendor/imgui/imgui_impl_renderware.h"
 
@@ -113,6 +114,11 @@ void CFontRender::Render()
 		CGui::GetGPSMarker()->Render();
 	}
 
+	if (CGui::GetGPSNavigator())
+    {
+        CGui::GetGPSNavigator()->Render();
+    }
+
 	if (CGui::GetDebug())
 	{
 		CGui::GetDebug()->RenderTitle();
@@ -122,6 +128,22 @@ void CFontRender::Render()
 	if (CGui::GetButton())
     {
         CGui::GetButton()->Render();
+    }
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetState())
+    {
+        if (CGui::GetXSing())
+        {
+            CGui::GetXSing()->Render();
+        }
+    }
+    else
+    {
+		// เดียวมาทำต่อภายหลัง
+        // if (CGui::GetGButton())
+        // {
+        //     CGui::GetGButton()->Render();
+        // }
     }
 
 	ImGui::EndFrame();

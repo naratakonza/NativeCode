@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CCamera.h"
+#include "CRect.h"
 #include "Entity/Ped/CPlayerPed.h"
 #include "Multiplayer/Snapshot/CModelSnapshot.h"
 
@@ -20,6 +21,7 @@ public:
     static bool IsRadarActive();
     static void DisplayHUD(bool bDisp);
     static void GetScreenWidthAndHeight(int* w, int* h);
+    static CRect GetScreenSafeArea();
     static bool IsAnimationLoaded(const char* animation);
     static void RequestAnimation(const char* animation);
     static void LoadAnimationsAndModels();

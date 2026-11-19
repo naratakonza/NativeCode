@@ -4,9 +4,11 @@
 #include "CChat.h"
 #include "CButton.h"
 #include "CDialog.h"
+#include "CXSing.h"
 #include "CSpawnScreen.h"
 #include "Font/CFontRender.h"
 #include "Gps/CGPSMarker.h"
+#include "Gps/CGPSNavigator.h"
 
 class CGui
 {
@@ -40,8 +42,18 @@ public:
         return CGui::pGPSMarker;
     }
 
+    static CGPSNavigator* GetGPSNavigator()
+    {
+        return CGui::pGPSNavigator;
+    }
+
     static CDebugInfo* GetDebug() {
         return pDebug;
+    }
+
+    static CXSing* GetXSing()
+    {
+        return CGui::pXSing;
     }
 
     static CFontRender* GetFontRender() {
@@ -54,6 +66,8 @@ private:
     static CDialog* pDialog;
     static CSpawnScreen* pSpawnScreen;
     static CGPSMarker* pGPSMarker;
+    static CGPSNavigator* pGPSNavigator;
     static CDebugInfo* pDebug;
+    static CXSing* pXSing;
     static CFontRender* pFontRender;
 };

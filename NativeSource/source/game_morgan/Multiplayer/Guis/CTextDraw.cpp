@@ -92,17 +92,18 @@ void CTextDraw::Draw()
 
 void CTextDraw::DrawTextured()
 {
-    if (!RsGlobal || RsGlobal->maximumWidth <= 0 || RsGlobal->maximumHeight <= 0) {
+    const CRect screenArea = CGame::GetScreenSafeArea();
+    if (screenArea.X2 <= screenArea.X1 || screenArea.Y2 <= screenArea.Y1) {
         return;
     }
 
-    float scaleX = RsGlobal->maximumWidth * (1.0f / 640.0f);
-    float scaleY = RsGlobal->maximumHeight * (1.0f / 448.0f);
+    float scaleX = (screenArea.X2 - screenArea.X1) * (1.0f / 640.0f);
+    float scaleY = (screenArea.Y2 - screenArea.Y1) * (1.0f / 448.0f);
 
-    CTextDraw::m_rectArea.X1 = CTextDraw::m_TextDrawData.fX * scaleX;
-    CTextDraw::m_rectArea.Y1 = CTextDraw::m_TextDrawData.fY * scaleY;
-    CTextDraw::m_rectArea.X2 = (CTextDraw::m_TextDrawData.fX + CTextDraw::m_TextDrawData.fLineWidth) * scaleX;
-    CTextDraw::m_rectArea.Y2 = (CTextDraw::m_TextDrawData.fY + CTextDraw::m_TextDrawData.fLineHeight) * scaleY;
+    CTextDraw::m_rectArea.X1 = screenArea.X1 + CTextDraw::m_TextDrawData.fX * scaleX;
+    CTextDraw::m_rectArea.Y1 = screenArea.Y1 + CTextDraw::m_TextDrawData.fY * scaleY;
+    CTextDraw::m_rectArea.X2 = screenArea.X1 + (CTextDraw::m_TextDrawData.fX + CTextDraw::m_TextDrawData.fLineWidth) * scaleX;
+    CTextDraw::m_rectArea.Y2 = screenArea.Y1 + (CTextDraw::m_TextDrawData.fY + CTextDraw::m_TextDrawData.fLineHeight) * scaleY;
 
     static float uv_reflected[8] = {
         0.0f, 1.0f,
@@ -150,18 +151,18 @@ void CTextDraw::DrawDefault()
 
     strcpy(CTextDraw::m_szString, CTextDraw::m_szText);
 
-    int iScreenWidth;
-    int iScreenHeight;
-    CGame::GetScreenWidthAndHeight(&iScreenWidth, &iScreenHeight);
-    if (iScreenWidth <= 0 || iScreenHeight <= 0) {
+    const CRect screenArea = CGame::GetScreenSafeArea();
+    float fScreenWidth = screenArea.X2 - screenArea.X1;
+    float fScreenHeight = screenArea.Y2 - screenArea.Y1;
+    if (fScreenWidth <= 0.0f || fScreenHeight <= 0.0f) {
         return;
     }
 
     float fHorizHudScale = 1.0f / 640.0f;
     float fVertHudScale = 1.0f / 448.0f;
 
-    float fScaleY = (float)iScreenHeight * fVertHudScale * CTextDraw::m_TextDrawData.fLetterHeight * 0.5f;
-    float fScaleX = (float)iScreenWidth * fHorizHudScale * CTextDraw::m_TextDrawData.fLetterWidth;
+    float fScaleY = (float)fScreenHeight * fVertHudScale * CTextDraw::m_TextDrawData.fLetterHeight * 0.5f;
+    float fScaleX = (float)fScreenWidth * fHorizHudScale * CTextDraw::m_TextDrawData.fLetterWidth;
 
     CFont::SetScale(fScaleX, fScaleY);
 
@@ -191,10 +192,10 @@ void CTextDraw::DrawDefault()
         CFont::SetOrientation(eFontAlignment::ALIGN_LEFT);
     }
 
-    float fLineWidth = iScreenWidth * CTextDraw::m_TextDrawData.fLineWidth * fHorizHudScale;
-    CFont::SetWrapx(fLineWidth);
+    float fLineWidth = fScreenWidth * CTextDraw::m_TextDrawData.fLineWidth * fHorizHudScale;
+    CFont::SetWrapx(screenArea.X1 + fLineWidth);
 
-    float fLineHeight = iScreenWidth * CTextDraw::m_TextDrawData.fLineHeight * fHorizHudScale;
+    float fLineHeight = fScreenWidth * CTextDraw::m_TextDrawData.fLineHeight * fHorizHudScale;
     CFont::SetCentreSize(fLineHeight);
 
     CFont::SetBackground(CTextDraw::m_TextDrawData.byteBox, 0);
@@ -215,8 +216,8 @@ void CTextDraw::DrawDefault()
 
     CFont::SetFontStyle(static_cast<uint8_t>(CTextDraw::m_TextDrawData.dwStyle));
 
-    float fUseY = iScreenHeight - ((448.0 - CTextDraw::m_TextDrawData.fY) * (iScreenHeight * fVertHudScale));
-    float fUseX = iScreenWidth - ((640.0 - CTextDraw::m_TextDrawData.fX) * (iScreenWidth * fHorizHudScale));
+    float fUseY = screenArea.Y1 + fScreenHeight - ((448.0 - CTextDraw::m_TextDrawData.fY) * (fScreenHeight * fVertHudScale));
+    float fUseX = screenArea.X1 + fScreenWidth - ((640.0 - CTextDraw::m_TextDrawData.fX) * (fScreenWidth * fHorizHudScale));
 
     std::string strString = CUtil::ReplaceKey(std::string(CTextDraw::m_szString));
 
@@ -234,7 +235,7 @@ void CTextDraw::DrawDefault()
 
     if (CTextDraw::m_TextDrawData.byteAlignRight)
     {
-        CTextDraw::m_rectArea.X1 = fUseX - (fLineWidth - fUseX);
+        CTextDraw::m_rectArea.X1 = fUseX - (fLineWidth - (fUseX - screenArea.X1));
         CTextDraw::m_rectArea.X2 = fUseX;
         CTextDraw::m_rectArea.Y1 = fUseY;
         CTextDraw::m_rectArea.Y2 = fUseY + fLineHeight;
@@ -249,7 +250,7 @@ void CTextDraw::DrawDefault()
     else
     {
         CTextDraw::m_rectArea.X1 = fUseX;
-        CTextDraw::m_rectArea.X2 = fLineWidth - fUseX + fUseX;
+        CTextDraw::m_rectArea.X2 = screenArea.X1 + fLineWidth;
         CTextDraw::m_rectArea.Y1 = fUseY;
         CTextDraw::m_rectArea.Y2 = fUseY + fLineHeight;
     }

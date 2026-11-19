@@ -1,4 +1,5 @@
 #include "../../../../Main.h"
+#include "../Syncs/Core/CCheckPoint.h"
 #include "CMultiPlayerOpcode.h"
 #include "RPCData/eRPCID.h"
 #include "../../Enums/eConnectionRejectedType.h"
@@ -1471,6 +1472,73 @@ void DestroyPickup(RakNet::BitStream bsData)
 	}
 }
 
+void SetCheckpoint(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetCheckpoint"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(VECTOR)) +
+		bytesToBits(sizeof(float));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetCheckpoint"));
+        return;
+    }
+
+	VECTOR vecPos, vecExtent;
+	float fSize;
+
+	bsData.Read((char*)&vecPos, sizeof(VECTOR));
+	bsData.Read(fSize);
+
+	vecExtent = {fSize, fSize, fSize};
+
+	CCheckPoint::Create((CVector*)&vecPos, (CVector*)&vecExtent);
+	CCheckPoint::ToggleCheckpoints(true);
+}
+
+void DisableCheckpoint(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: DisableCheckpoint"));
+
+	CCheckPoint::ToggleCheckpoints(false);
+}
+
+void SetRaceCheckpoint(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetRaceCheckpoint"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint8_t)) +
+		bytesToBits(sizeof(CVector)) +
+		bytesToBits(sizeof(CVector)) +
+		bytesToBits(sizeof(float));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetRaceCheckpoint"));
+        return;
+    }
+
+	uint8_t byteType;
+	CVector vecPos, vecNextPos;
+	float fSize;
+
+	bsData.Read(byteType);
+	bsData.Read((char*)&vecPos, sizeof(CVector));
+	bsData.Read((char*)&vecNextPos, sizeof(CVector));
+	bsData.Read(fSize);
+
+	CCheckPoint::CreateRace(byteType, &vecPos, &vecNextPos, fSize);
+	CCheckPoint::ToggleRaceCheckpoints(true);
+}
+
+void DisableRaceCheckpoint(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: DisableRaceCheckpoint"));
+
+	CCheckPoint::ToggleRaceCheckpoints(false);
+}
+
 void AddGangZone(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: AddGangZone"));
@@ -2189,25 +2257,25 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_SetCheckpoint: {
-		//     SetCheckpoint(*bsData);
-		//     break;
-		// }
+		case RPC_SetCheckpoint: {
+		    SetCheckpoint(*bsData);
+		    break;
+		}
 
-		// case RPC_DisableCheckpoint: {
-		//     DisableCheckpoint(*bsData);
-		//     break;
-		// }
+		case RPC_DisableCheckpoint: {
+		    DisableCheckpoint(*bsData);
+		    break;
+		}
 
-		// case RPC_SetRaceCheckpoint: {
-		//     SetRaceCheckpoint(*bsData);
-		//     break;
-		// }
+		case RPC_SetRaceCheckpoint: {
+		    SetRaceCheckpoint(*bsData);
+		    break;
+		}
 
-		// case RPC_DisableRaceCheckpoint: {
-		//     DisableRaceCheckpoint(*bsData);
-		//     break;
-		// }
+		case RPC_DisableRaceCheckpoint: {
+		    DisableRaceCheckpoint(*bsData);
+		    break;
+		}
 
 		case RPC_AddGangZone: {
 		    AddGangZone(*bsData);

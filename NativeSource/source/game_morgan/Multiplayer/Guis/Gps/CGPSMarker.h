@@ -25,7 +25,6 @@ public:
     void SetVisible(bool visible);
 
 private:
-    static float EaseOutQuad(float t);
     bool CalculateDistanceAndPosition(CVector& screenPos, float& distance, bool& isOffScreen);
     bool HandleClosingAnimation(float distance);
     void UpdateHexagonAnimation();

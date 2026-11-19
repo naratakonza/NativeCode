@@ -222,11 +222,6 @@ void CGPSMarker::UpdateHexagonAnimation()
     }
 }
 
-float CGPSMarker::EaseOutQuad(float t)
-{
-    return 1.0f - (1.0f - t) * (1.0f - t);
-}
-
 float CGPSMarker::CalculateMarkerSize(float distance, float& sizeScale)
 {
     const float baseSize = 48.0f;
@@ -239,7 +234,7 @@ float CGPSMarker::CalculateMarkerSize(float distance, float& sizeScale)
     sizeScale = 1.0f;
     if (CGPSMarker::m_isClosing)
     {
-        sizeScale = CGPSMarker::EaseOutQuad(1.0f - CGPSMarker::m_closingAnimationTime);
+        sizeScale = CNecessary::EaseOutQuad(1.0f - CGPSMarker::m_closingAnimationTime);
     }
 
     return spriteSize * sizeScale;
@@ -250,9 +245,9 @@ void CGPSMarker::DrawAnimatedHexagons(ImDrawList* drawList, ImVec2 center, float
     const float maxRadius = spriteSize * 1.2f;
     const float thickness = 6.0f;
 
-    float easedTime1 = CGPSMarker::EaseOutQuad(CGPSMarker::m_animationTime1);
-    float easedTime2 = CGPSMarker::EaseOutQuad(CGPSMarker::m_animationTime2);
-    float easedTime3 = CGPSMarker::EaseOutQuad(CGPSMarker::m_animationTime3);
+    float easedTime1 = CNecessary::EaseOutQuad(CGPSMarker::m_animationTime1);
+    float easedTime2 = CNecessary::EaseOutQuad(CGPSMarker::m_animationTime2);
+    float easedTime3 = CNecessary::EaseOutQuad(CGPSMarker::m_animationTime3);
 
     if (!CGPSMarker::m_isClosing)
     {

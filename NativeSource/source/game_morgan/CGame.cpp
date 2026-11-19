@@ -1,4 +1,5 @@
 #include "../../Main.h"
+#include "Multiplayer/Syncs/Core/CCheckPoint.h"
 #include "CGame.h"
 #include "CWorld.h"
 #include "CTimer.h"
@@ -16,6 +17,8 @@ CModelSnapshot* CGame::m_pModelSnapshot = nullptr;
 void CGame::Initialize()
 {
 	CNecessary::Log(OBFUSCATE("CGame Initialize"));
+
+    CCheckPoint::Initialise();
 }
 
 void CGame::Uninitialise()

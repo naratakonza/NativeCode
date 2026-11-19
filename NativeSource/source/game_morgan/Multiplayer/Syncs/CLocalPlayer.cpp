@@ -1,4 +1,5 @@
 #include "../../../../Main.h"
+#include "Core/CCheckPoint.h"
 #include "CLocalPlayer.h"
 #include "../../CGame.h"
 #include "../../CTheZones.h"
@@ -140,7 +141,7 @@ bool CLocalPlayer::Process()
 
 		// CLocalPlayer::HandleVehicleEntryTimeout(dwThisTick);
 
-		// CCheckPoint::Process();
+		CCheckPoint::Process();
 
         CLocalPlayer::HandleInteriorChanging();
         // CLocalPlayer::UpdateWeapons();
@@ -233,12 +234,12 @@ void CLocalPlayer::HandleNeedsToRespawn()
 			CPad::DisplayWidgets(false);
 		}
 
-        if (CGui::GetButton() && /*CGui::GetDebug() && CGui::GetXSing() && CGui::GetGButton() &&*/ CGui::GetDialog())
+        if (CGui::GetButton() && /*CGui::GetDebug() &&*/ CGui::GetXSing() /*&& CGui::GetGButton()*/ && CGui::GetDialog())
 		{
 			// CGui::GetDebug()->SetRenderFramerate(false);
 			// CGui::GetDebug()->SetRenderMemory(false);
 			CGui::GetButton()->Enable(false);
-			// CGui::GetXSing()->Enable(false);
+			CGui::GetXSing()->Enable(false);
 			// CGui::GetGButton()->Enable(false);
 			CGui::GetDialog()->Enable(false);
 		}
@@ -557,12 +558,12 @@ bool CLocalPlayer::Spawn()
 	CLocalPlayer::m_bIsActive = true;
 	CLocalPlayer::m_bWaitingForSpawnRequestReply = false;
 
-    if (CGui::GetButton() /*&& CGui::GetDebug() && CGui::GetXSing() && CGui::GetGButton()*/)
+    if (CGui::GetButton() /*&& CGui::GetDebug()*/ && CGui::GetXSing() /*&& CGui::GetGButton()*/)
 	{
 		// CGui::GetDebug()->SetRenderFramerate(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("ShowFps")));
 		// CGui::GetDebug()->SetRenderMemory(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("ShowMem")));
 		CGui::GetButton()->Enable(true);
-		// CGui::GetXSing()->Enable(true);
+		CGui::GetXSing()->Enable(true);
 		// CGui::GetGButton()->Enable(true);
 	}
 

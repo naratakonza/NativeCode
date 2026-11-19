@@ -2,11 +2,13 @@
 #include "CGui.h"
 
 CDebugInfo* CGui::pDebug = nullptr;
+CXSing* CGui::pXSing = nullptr;
 CChat* CGui::pChat = nullptr;
 CButton* CGui::pButton = nullptr;
 CDialog* CGui::pDialog = nullptr;
 CSpawnScreen* CGui::pSpawnScreen = nullptr;
 CGPSMarker* CGui::pGPSMarker = nullptr;
+CGPSNavigator* CGui::pGPSNavigator = nullptr;
 CFontRender* CGui::pFontRender = nullptr;
 
 void CGui::Initialise()
@@ -14,11 +16,13 @@ void CGui::Initialise()
     CNecessary::Log(OBFUSCATE("CGui Initialise"));
 
     CGui::pDebug = new CDebugInfo();
+    CGui::pXSing = new CXSing();
     CGui::pChat = new CChat();
     CGui::pButton = new CButton();
     CGui::pDialog = new CDialog();
     CGui::pSpawnScreen = new CSpawnScreen();
     CGui::pGPSMarker = new CGPSMarker();
+    CGui::pGPSNavigator = new CGPSNavigator();
 }
 
 void CGui::InitialiseFont()
@@ -31,8 +35,10 @@ void CGui::Uninitialise()
     CNecessary::Log(OBFUSCATE("CGui Uninitialise"));
 
     SAFE_DELETE(CGui::pDebug);
+    SAFE_DELETE(CGui::pXSing);
     SAFE_DELETE(CGui::pSpawnScreen);
     SAFE_DELETE(CGui::pGPSMarker);
+    SAFE_DELETE(CGui::pGPSNavigator);
     SAFE_DELETE(CGui::pButton);
     SAFE_DELETE(CGui::pChat);
     SAFE_DELETE(CGui::pDialog);

@@ -112,41 +112,6 @@ void CEntity::SetCollisionChecking(bool bCheck)
     }
 }
 
-void CEntity::UpdateRwFrame(CEntityGta* entity)
-{
-    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x1431F0), "\x08\x10\x40\xF9\x68\x00\x00\xB4\x00\x05\x40\xF9", 12, "__text");
-    if (verified && entity && entity->m_pRwObject && entity->m_pRwObject->parent)
-    {
-        reinterpret_cast<void (*)(CEntityGta*)>(SA_ADDR(0x1431F0) + _dyld_get_image_vmaddr_slide(0))(entity);
-    }
-}
-
-void CEntity::UpdateRwMatrixAndFrame()
-{
-    if (CCommon::IsGameEntityRenderable(m_pEntity) && m_pEntity->m_pRwObject->parent)
-    {
-        RwFrame* parent = static_cast<RwFrame*>(m_pEntity->m_pRwObject->parent);
-        if (m_pEntity->mat)
-        {
-            m_pEntity->mat->UpdateRwMatrix(&parent->modelling);
-        }
-
-        CEntity::UpdateRwFrame(m_pEntity);
-    }
-}
-
-void CEntity::UpdateMatrix(CMatrix mat)
-{
-    if (!pthread_main_np() || !m_pEntity || !m_pEntity->mat || !m_pEntity->vtable || CCommon::IsGameEntityArePlaceable(m_pEntity)) {
-        return;
-    }
-
-    (*reinterpret_cast<void (*const *)(CEntityGta*)>(m_pEntity->vtable + 0x20))(m_pEntity); // CPhysical::Remove
-    SetMatrix(mat);
-    UpdateRwMatrixAndFrame();
-    (*reinterpret_cast<void (*const *)(CEntityGta*)>(m_pEntity->vtable + 0x10))(m_pEntity); // CPhysical::Add
-}
-
 bool CEntity::IsAdded()
 {
     return m_pEntity && !CCommon::IsGameEntityArePlaceable(m_pEntity) && m_pEntity->dwUnkModelRel != 0;
@@ -480,6 +445,41 @@ float CEntity::GetDistanceFromPoint(float X, float Y, float Z)
 
 	float distanceSquared = pow(matThis.pos.x - X, 2) + pow(matThis.pos.y - Y, 2) + pow(matThis.pos.z - Z, 2);
 	return sqrt(distanceSquared);
+}
+
+void CEntity::UpdateRwFrame(CEntityGta* entity)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x1431F0), "\x08\x10\x40\xF9\x68\x00\x00\xB4\x00\x05\x40\xF9", 12, "__text");
+    if (verified && entity && entity->m_pRwObject && entity->m_pRwObject->parent)
+    {
+        reinterpret_cast<void (*)(CEntityGta*)>(SA_ADDR(0x1431F0) + _dyld_get_image_vmaddr_slide(0))(entity);
+    }
+}
+
+void CEntity::UpdateRwMatrixAndFrame()
+{
+    if (CCommon::IsGameEntityRenderable(m_pEntity) && m_pEntity->m_pRwObject->parent)
+    {
+        RwFrame* parent = static_cast<RwFrame*>(m_pEntity->m_pRwObject->parent);
+        if (m_pEntity->mat)
+        {
+            m_pEntity->mat->UpdateRwMatrix(&parent->modelling);
+        }
+
+        CEntity::UpdateRwFrame(m_pEntity);
+    }
+}
+
+void CEntity::UpdateMatrix(CMatrix mat)
+{
+    if (!pthread_main_np() || !m_pEntity || !m_pEntity->mat || !m_pEntity->vtable || CCommon::IsGameEntityArePlaceable(m_pEntity)) {
+        return;
+    }
+
+    (*reinterpret_cast<void (*const *)(CEntityGta*)>(m_pEntity->vtable + 0x20))(m_pEntity); // CPhysical::Remove
+    SetMatrix(mat);
+    UpdateRwMatrixAndFrame();
+    (*reinterpret_cast<void (*const *)(CEntityGta*)>(m_pEntity->vtable + 0x10))(m_pEntity); // CPhysical::Add
 }
 
 void CEntity::CleanUpOldReference(CEntityGta* thiz, CEntityGta **ppAddress)
