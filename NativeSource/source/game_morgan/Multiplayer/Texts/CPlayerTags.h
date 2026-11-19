@@ -2,7 +2,8 @@
 
 #include "../Guis/Font/CFontRender.h"
 #include "../../Enums/eMaxItem.h"
-#include "../Syncs/CRemotePlayer.h"
+class CRemotePlayer;
+class CVector;
 
 class CPlayerTags
 {

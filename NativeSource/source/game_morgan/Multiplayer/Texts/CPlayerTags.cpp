@@ -1,5 +1,6 @@
 #include "../../../../Main.h"
 #include "CPlayerTags.h"
+#include "../Syncs/CRemotePlayer.h"
 #include "../../CGame.h"
 #include "../../CSprite.h"
 #include "../../CCameraAim.h"
@@ -109,8 +110,7 @@ void CPlayerTags::Render()
                 if (!CMultiPlayer::GetActiveNetwork()->m_bNameTagLOS || (hitEntity && !pRemotePlayer->IsRemoteNPC()))
                 {
                     CVector screenPos{};
-                    if (!RsGlobal || RsGlobal->maximumWidth <= 0 || RsGlobal->maximumHeight <= 0 || !CSprite::CalcScreenCoors(&tagPos, &screenPos, nullptr, nullptr, false, false) || !std::isfinite(screenPos.x) || !std::isfinite(screenPos.y) || !std::isfinite(screenPos.z))
-                    {
+                    if (!RsGlobal || RsGlobal->maximumWidth <= 0 || RsGlobal->maximumHeight <= 0 || !CSprite::CalcScreenCoors(&tagPos, &screenPos, nullptr, nullptr, false, false) || !std::isfinite(screenPos.x) || !std::isfinite(screenPos.y) || !std::isfinite(screenPos.z)) {
                         continue;
                     }
 

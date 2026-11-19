@@ -523,6 +523,39 @@ void CCommand::SetHudAlpha(const std::vector<std::string>& args)
     }
 }
 
+void CCommand::SetNameTagStyle(const std::vector<std::string>& /*args*/)
+{
+    static bool bNameTagStyle = false;
+    bNameTagStyle = !bNameTagStyle;
+
+    CPlayerTags::SetStyleHealthBar(bNameTagStyle);
+
+    if (bNameTagStyle)
+    {
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> NameTag Style New"));
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> NameTag Style Default"));
+    }
+}
+
+void CCommand::SetWeaponTag(const std::vector<std::string>& /*args*/)
+{
+    static bool bWeaponTag = false;
+    bWeaponTag = !bWeaponTag;
+    CPlayerTags::SetWeaponTag(bWeaponTag);
+
+    if (bWeaponTag)
+    {
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> WeaponTag Enable"));
+    }
+    else
+    {
+        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> WeaponTag Disable"));
+    }
+}
+
 void CCommand::SetAudioMessages(const std::vector<std::string>&)
 {
     static bool bAudioMessages = false;
@@ -643,37 +676,4 @@ void CCommand::Reconnect(const std::vector<std::string>&)
 void CCommand::QuitGame(const std::vector<std::string>&)
 {
     ExitGame();
-}
-
-void CCommand::SetNameTagStyle(const std::vector<std::string>& /*args*/)
-{
-    static bool bNameTagStyle = false;
-    bNameTagStyle = !bNameTagStyle;
-
-    CPlayerTags::SetStyleHealthBar(bNameTagStyle);
-
-    if (bNameTagStyle)
-    {
-        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> NameTag Style New"));
-    }
-    else
-    {
-        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> NameTag Style Default"));
-    }
-}
-
-void CCommand::SetWeaponTag(const std::vector<std::string>& /*args*/)
-{
-    static bool bWeaponTag = false;
-    bWeaponTag = !bWeaponTag;
-    CPlayerTags::SetWeaponTag(bWeaponTag);
-
-    if (bWeaponTag)
-    {
-        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> WeaponTag Enable"));
-    }
-    else
-    {
-        CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("-> WeaponTag Disable"));
-    }
 }
