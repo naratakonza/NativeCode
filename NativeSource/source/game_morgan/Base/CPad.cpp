@@ -49,6 +49,7 @@ extern uint32_t m_dwDiveTickCounter;
 extern uint32_t m_dwAbortClimbTickCounter;
 
 static bool padProcessControlInstalled = false;
+static bool pedMethodHooksInstalled = false;
 
 extern "C"
 {
@@ -226,6 +227,56 @@ extern "C" __attribute__((visibility("default"))) void CPed_UpdatePosition_hook(
     if (bFixApplied)
     {
         pPed->m_pGroundPhysical = pSavedGroundPhysical;
+    }
+}
+
+extern "C" __attribute__((visibility("default"))) void CCivilianPed_ProcessControl_hook(CPedGta* pPed)
+{
+    if (!pedMethodHooksInstalled)
+    {
+        reinterpret_cast<void (*)(CPedGta*)>(SA_ADDR(0x23B32C) + _dyld_get_image_vmaddr_slide(0))(pPed);
+        return;
+    }
+
+    if ((pPed->m_nPhysicalFlags & 0x40000) != 0 && (pPed->m_nPhysicalFlags & 0x800000) != 0 && (pPed->m_nPhysicalFlags & 0x200000) != 0)
+    {
+        pPed->vecMoveSpeed.x = 0.0f;
+        pPed->vecMoveSpeed.y = 0.0f;
+    }
+
+    if (pPed->mat)
+    {
+        matSavedMatrix = pPed->mat;
+        vecSavedMoveSpeed.x = pPed->vecMoveSpeed.x;
+        vecSavedMoveSpeed.y = pPed->vecMoveSpeed.y;
+        vecSavedMoveSpeed.z = pPed->vecMoveSpeed.z;
+    }
+
+    reinterpret_cast<void (*)(CPedGta*)>(SA_ADDR(0x23B32C) + _dyld_get_image_vmaddr_slide(0))(pPed);
+
+    if ((pPed->m_nPhysicalFlags & 0x40000) != 0 && (pPed->m_nPhysicalFlags & 0x800000) != 0 && (pPed->m_nPhysicalFlags & 0x200000) != 0)
+    {
+        if (pPed->mat)
+        {
+            pPed->mat->pos.x = matSavedMatrix->pos.x;
+            pPed->mat->pos.y = matSavedMatrix->pos.y;
+            pPed->mat->pos.z = matSavedMatrix->pos.z;
+        }
+
+        pPed->vecMoveSpeed.x = 0.0f;
+        pPed->vecMoveSpeed.y = 0.0f;
+    }
+}
+
+extern "C" __attribute__((visibility("default"))) void CPlayerPed_ProcessCollision_hook(CPhysicalGta* thiz)
+{
+    if (!thiz) {
+        return;
+    }
+
+    if (!pedMethodHooksInstalled || ((thiz->m_nEntityFlags >> 31) != 1))
+    {
+        reinterpret_cast<void (*)(CPhysicalGta*)>(SA_ADDR(0x162974) + _dyld_get_image_vmaddr_slide(0))(thiz);
     }
 }
 
@@ -965,6 +1016,9 @@ void CPad::Initialise()
     CNecessary::Log(OBFUSCATE("CPad Initialise"));
 
     padProcessControlInstalled = CMemory::HasMappedInstruction(SA_ADDR(0x26E010), "\xA5\xA5\x08\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x23EE00), "\x2F\x62\x09\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x3C1350), "\xE1\x58\x03\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x3C1020), "\xB5\x59\x03\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x3C1274), "\x28\x59\x03\x14");
+
+	pedMethodHooksInstalled = CMemory::InstallMethodHook(SA_ADDR(0x4A7150), (uintptr_t)CCivilianPed_ProcessControl_hook);
+    pedMethodHooksInstalled = CMemory::InstallMethodHook(SA_ADDR(0x4A83D8), (uintptr_t)CPlayerPed_ProcessCollision_hook) && pedMethodHooksInstalled;
 
     // สำหรับ ONFOOT
     padProcessControlInstalled = padProcessControlInstalled && CMemory::HasMappedInstruction(SA_ADDR(0x15CE14), "\x48\xEA\x0C\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x15CF34), "\x06\xEA\x0C\x14");

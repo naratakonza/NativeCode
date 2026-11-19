@@ -213,6 +213,9 @@ void CPatches::InstallMainPatches()
     // ข้ามเฉพาะ CWeaponEffects::Render ใน RenderEffects
     CMemory::makeNOP(SA_ADDR(0x159B20), 1);
 
+    // ปิด CCamera::ClearPlayerWeaponMode เฉพาะจุดเรียกจาก CPlayerPed::ClearWeaponTarget
+    CMemory::makeNOP(SA_ADDR(0x26F5CC), 1);
+
     // ปิดการเรียกใช้งาน CamShakeNoPos จาก CWeapon::FireSniper (ปิดหน้าจอสั่นขณะยิงสไน)
     CMemory::makeNOP(SA_ADDR(0x4334DC), 1);
 
@@ -224,6 +227,9 @@ void CPatches::InstallMainPatches()
 
     // ปิดการเรียกใช้งาน CCamera::RestoreWithJumpCut จาก CGameLogic::RestorePlayerStuffDuringResurrection // ปิดใช้งานการตัดภาพแบบกระโดดของกล้องหลังจากเกิดใหม่
     CMemory::makeNOP(SA_ADDR(0x0B7AB4), 1);
+
+    // ปิด CStreaming::DeleteRwObjectsAfterDeath เฉพาะจุดเรียกจาก CGameLogic::SortOutStreamingAndMemory
+    CMemory::makeNOP(SA_ADDR(0x0B7BC4), 1);
 
     // แก้ไข UvAnim
     // ตัวแพ็กเปิดแฟล็กเฉพาะ RpMaterialUVAnimAddAnimTime (0x29F904) และคืนค่าเดิมหลังอัปเดต

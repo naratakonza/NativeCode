@@ -87,7 +87,7 @@ def snapshot_header(binary):
     raise ValueError("Missing Dart isolate snapshot data")
 
 
-def package(baseline, digest, launcher, module, output, render_title=False, timer_pause=False, cd_stream_fix=False, radar_blips=False, img_slots=False, img_read_fix=False, camera_size=False, cdraw=False, thunder_main=False, stock_player_weapon=False, clothes_rebuild=False, world_player_slots=False, cj_walk=False, physical=False, gyro=False, stats=False, widget_player_info=False, spawn_fade=False, player_ped_ctor=False, gun_movement=False, ambient_audio=False, hud=False, aim_patches=False, texture_load_fix=False, *, bass_sdk=None, widgets=False, pad_process_control=False, shadow_style=False, weapon_camera_radar=False, radar_gang_zones=False, crash_fix=False, texture_database=False, raster_alpha=False, world_player_slot_reuse=False, font_current_string=False):
+def package(baseline, digest, launcher, module, output, render_title=False, timer_pause=False, cd_stream_fix=False, radar_blips=False, img_slots=False, img_read_fix=False, camera_size=False, cdraw=False, thunder_main=False, stock_player_weapon=False, clothes_rebuild=False, world_player_slots=False, cj_walk=False, physical=False, gyro=False, stats=False, widget_player_info=False, spawn_fade=False, player_ped_ctor=False, gun_movement=False, ambient_audio=False, hud=False, aim_patches=False, texture_load_fix=False, *, bass_sdk=None, widgets=False, pad_process_control=False, shadow_style=False, weapon_camera_radar=False, radar_gang_zones=False, crash_fix=False, texture_database=False, raster_alpha=False, world_player_slot_reuse=False, font_current_string=False, ped_method_hooks=False, ped_camera_streaming=False):
     assert not output.exists(), output
     assert sha256(baseline.read_bytes()).hexdigest() == digest, "Unexpected baseline IPA"
     launcher_files = verified_framework(launcher, "MorganLauncher.framework")
@@ -378,6 +378,22 @@ def package(baseline, digest, launcher, module, output, render_title=False, time
                 source = replacement_files.get(executable, original.read(executable))
                 replacement_files[executable] = patch_font_current_string(source)
 
+            if ped_method_hooks:
+                from patch_ped_methods import SYMBOLS, patch_ped_methods
+
+                if any(symbol + b"\0" not in launcher_data for symbol in SYMBOLS):
+                    raise ValueError("Launcher lacks the civilian control or player collision method hook")
+                executable = APP + "gtasa"
+                source = replacement_files.get(executable, original.read(executable))
+                replacement_files[executable] = patch_ped_methods(source)
+
+            if ped_camera_streaming:
+                from patch_ped_camera_streaming import patch_ped_camera_streaming
+
+                executable = APP + "gtasa"
+                source = replacement_files.get(executable, original.read(executable))
+                replacement_files[executable] = patch_ped_camera_streaming(source)
+
             with ZipFile(temporary, "x") as ipa:
                 ipa.comment = original.comment
                 for member in original.infolist():
@@ -452,6 +468,8 @@ if __name__ == "__main__":
     parser.add_argument("--raster-alpha", action="store_true", help="Use colour type 1 for iOS camera-texture render targets, matching Thunder.")
     parser.add_argument("--world-player-slot-reuse", action="store_true", help="Release the previous remote slot record before CREATE_PLAYER replaces its Ped.")
     parser.add_argument("--font-current-string", action="store_true", help="Expand the verified iOS CFont::ProcessCurrentString buffer to match Thunder.")
+    parser.add_argument("--ped-method-hooks", action="store_true", help="Bind the verified civilian ProcessControl and player ProcessCollision vtable slots.")
+    parser.add_argument("--ped-camera-streaming", action="store_true", help="NOP the verified weapon-target camera and post-death entity deletion calls.")
     arguments = parser.parse_args()
     if arguments.shadow_style and not arguments.pad_process_control:
         parser.error("--shadow-style requires --pad-process-control")
@@ -476,4 +494,4 @@ if __name__ == "__main__":
     if arguments.clothes_rebuild and (arguments.render_title or arguments.cd_stream_fix or arguments.img_slots or arguments.img_read_fix or arguments.camera_size or arguments.cdraw or arguments.thunder_main):
         parser.error("--clothes-rebuild expects the Sensitivity IPA with the earlier patches already present")
     package(arguments.baseline, arguments.baseline_sha256, arguments.launcher_tar, arguments.flutter_tar, arguments.output,
-            arguments.render_title, arguments.timer_pause, arguments.cd_stream_fix, arguments.radar_blips, arguments.img_slots, arguments.img_read_fix, arguments.camera_size, arguments.cdraw, arguments.thunder_main, arguments.stock_player_weapon, arguments.clothes_rebuild, arguments.world_player_slots, arguments.cj_walk, arguments.physical, arguments.gyro, arguments.stats, arguments.widget_player_info, arguments.spawn_fade, arguments.player_ped_ctor, arguments.gun_movement, arguments.ambient_audio, arguments.hud, arguments.aim_patches, arguments.texture_load_fix, bass_sdk=arguments.bass_sdk, widgets=arguments.widgets, pad_process_control=arguments.pad_process_control, shadow_style=arguments.shadow_style, weapon_camera_radar=arguments.weapon_camera_radar, radar_gang_zones=arguments.radar_gang_zones, crash_fix=arguments.crash_fix, texture_database=arguments.texture_database, raster_alpha=arguments.raster_alpha, world_player_slot_reuse=arguments.world_player_slot_reuse, font_current_string=arguments.font_current_string)
+            arguments.render_title, arguments.timer_pause, arguments.cd_stream_fix, arguments.radar_blips, arguments.img_slots, arguments.img_read_fix, arguments.camera_size, arguments.cdraw, arguments.thunder_main, arguments.stock_player_weapon, arguments.clothes_rebuild, arguments.world_player_slots, arguments.cj_walk, arguments.physical, arguments.gyro, arguments.stats, arguments.widget_player_info, arguments.spawn_fade, arguments.player_ped_ctor, arguments.gun_movement, arguments.ambient_audio, arguments.hud, arguments.aim_patches, arguments.texture_load_fix, bass_sdk=arguments.bass_sdk, widgets=arguments.widgets, pad_process_control=arguments.pad_process_control, shadow_style=arguments.shadow_style, weapon_camera_radar=arguments.weapon_camera_radar, radar_gang_zones=arguments.radar_gang_zones, crash_fix=arguments.crash_fix, texture_database=arguments.texture_database, raster_alpha=arguments.raster_alpha, world_player_slot_reuse=arguments.world_player_slot_reuse, font_current_string=arguments.font_current_string, ped_method_hooks=arguments.ped_method_hooks, ped_camera_streaming=arguments.ped_camera_streaming)

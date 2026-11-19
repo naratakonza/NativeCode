@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Texts/CDebugInfo.h"
+#include "../Texts/CPlayerTags.h"
 #include "CChat.h"
 #include "CButton.h"
 #include "CDialog.h"
@@ -16,6 +17,11 @@ public:
     static void Initialise();
     static void InitialiseFont();
     static void Uninitialise();
+
+    static CPlayerTags* GetPlayerTag()
+    {
+        return CGui::pPlayerTag;
+    }
 
     static CChat* GetChat()
     {
@@ -61,6 +67,7 @@ public:
     }
 
 private:
+    static CPlayerTags* pPlayerTag;
     static CChat* pChat;
     static CButton* pButton;
     static CDialog* pDialog;

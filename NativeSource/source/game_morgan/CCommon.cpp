@@ -260,15 +260,13 @@ void CCommon::DrawTextureUV(RwTexture *texture, CRect *rect, uint32_t dwColor, f
 int CCommon::GetTaskTypeFromTask(void* task)
 {
     static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x3764FC), "\x00\x58\x80\x52\xC0\x03\x5F\xD6", 8, "__text");
-    if (!task || !verified)
-    {
+    if (!task || !verified) {
         return 0;
     }
 
     const auto slide = _dyld_get_image_vmaddr_slide(0);
     uintptr_t pVTableTask = *reinterpret_cast<uintptr_t*>(task);
-    if (pVTableTask < SA_ADDR(0x4987B0) + slide || pVTableTask > SA_ADDR(0x4B48F0) + slide)
-    {
+    if (pVTableTask < SA_ADDR(0x4987B0) + slide || pVTableTask > SA_ADDR(0x4B48F0) + slide) {
         return 0;
     }
 

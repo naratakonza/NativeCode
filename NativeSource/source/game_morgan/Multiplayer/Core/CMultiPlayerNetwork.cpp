@@ -239,6 +239,61 @@ void CMultiPlayerNetwork::Packet_PlayerSync(Packet* pkt)
 	}
 }
 
+void CMultiPlayerNetwork::Packet_MarkersSync(Packet *pkt)
+{
+	// CNecessary::Log(OBFUSCATE("Packet_MarkersSync"));
+
+	RakNet::BitStream bsMarkersSync((unsigned char *)pkt->data, pkt->length, false);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetworkState() != eNetworkState::GAMESTATE_CONNECTED) {
+		return;
+	}
+
+	if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) {
+		return;
+	}
+
+	int	iNumberOfPlayers = 0;
+	uint16_t playerId;
+	short sPosX, sPosY, sPosZ;
+	bool bIsPlayerActive;
+	uint8_t bytePacketId = 0;
+
+	bsMarkersSync.Read(bytePacketId);
+	bsMarkersSync.Read(iNumberOfPlayers);
+	if (iNumberOfPlayers)
+	{
+		for (int i = 0; i < iNumberOfPlayers; i++)
+		{
+			bsMarkersSync.Read(playerId);
+			bsMarkersSync.ReadCompressed(bIsPlayerActive);
+
+			if (bIsPlayerActive)
+			{
+				bsMarkersSync.Read(sPosX);
+				bsMarkersSync.Read(sPosY);
+				bsMarkersSync.Read(sPosZ);
+			}
+
+			if (playerId < eMaxItem::MAX_PLAYERS && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(playerId))
+			{
+				CRemotePlayer *pPlayer = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId);
+				if (pPlayer)
+				{
+					if (bIsPlayerActive)
+					{
+						pPlayer->CreateGlobalMarker(sPosX, sPosY, sPosZ);
+					}
+					else
+					{
+						pPlayer->DestroyGlobalMarker();
+					}
+				}
+			}
+		}
+	}
+}
+
 void CMultiPlayerNetwork::Update()
 {
     // CNecessary::Log(OBFUSCATE("CMultiPlayerNetwork Update"));
@@ -370,6 +425,11 @@ void CMultiPlayerNetwork::Update()
 
 			case PacketEnumeration::ID_PLAYER_SYNC: {
                 CMultiPlayerNetwork::Packet_PlayerSync(pkt);           
+                break;
+            }
+
+			case PacketEnumeration::ID_MARKERS_SYNC: {
+                CMultiPlayerNetwork::Packet_MarkersSync(pkt);           
                 break;
             }
         }
