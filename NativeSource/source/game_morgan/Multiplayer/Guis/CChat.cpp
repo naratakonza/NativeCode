@@ -101,7 +101,7 @@ void CChat::Render()
         return;
     }
 
-    if (CGui::GetScoreBoard()->GetActiveScore() /*|| CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() || CGui::GetVoiceMenu()->GetActiveVoiceMenu() || CVoiceMenu::m_bCustomizeMode /*|| CGui::GetClientMenu()->GetActiveClientMenu()*/)
+    if (CGui::GetScoreBoard()->GetActiveScore() /*|| CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() || CGui::GetVoiceMenu()->GetActiveVoiceMenu() || CVoiceMenu::m_bCustomizeMode || CGui::GetClientMenu()->GetActiveClientMenu()*/)
     {
         MGSetFlutterChatVisible(false);
         return;

@@ -17,6 +17,7 @@
 #include "../../Scripts/CScripting.h"
 #include "../../Tasks/TaskTypes/CTaskSimpleJetPack.h"
 #include "../../Multiplayer/CMultiPlayer.h"
+#include "../../../utils/Exceptions/CExceptions.h"
 #include "../../../utils/Necessary/CNecessary.h"
 
 #include <mach-o/dyld.h>
