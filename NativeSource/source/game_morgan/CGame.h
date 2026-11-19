@@ -2,12 +2,14 @@
 
 #include "CCamera.h"
 #include "Entity/Ped/CPlayerPed.h"
+#include "Multiplayer/Snapshot/CModelSnapshot.h"
 
 class CGame
 {
 public:
 	static CCamera* m_pGameCamera;
 	static CPlayerPed* m_pGamePlayer;
+    static CModelSnapshot* m_pModelSnapshot;
 
 public:
     static void Initialize();
@@ -43,5 +45,10 @@ public:
 	static CPlayerPed* GetPlayer() {
 		if (!m_pGamePlayer) m_pGamePlayer = new CPlayerPed();
 		return m_pGamePlayer;
+	};
+
+	static CModelSnapshot* GetModelSnapshot() {
+		if (!m_pModelSnapshot) m_pModelSnapshot = new CModelSnapshot();
+		return m_pModelSnapshot;
 	};
 };

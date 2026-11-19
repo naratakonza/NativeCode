@@ -40,6 +40,33 @@ void CWorld::Initialise()
     }
 }
 
+void CWorld::AddEntity(CEntityGta* entity)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x1826BC), "\x08\x10\x40\xF9\x28\x01\x00\xB4", 8, "__text");
+    if (verified && entity && pthread_main_np())
+    {
+        reinterpret_cast<void (*)(CEntityGta*)>(SA_ADDR(0x1826AC) + _dyld_get_image_vmaddr_slide(0))(entity);
+    }
+}
+
+void CWorld::RemoveEntity(CEntityGta* entity)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x182538), "\xF3\x03\x00\xAA\x08\x00\x40\xF9", 8, "__text");
+    if (verified && entity && pthread_main_np())
+    {
+        reinterpret_cast<void (*)(CEntityGta*)>(SA_ADDR(0x18252C) + _dyld_get_image_vmaddr_slide(0))(entity);
+    }
+}
+
+void CWorld::RemovePlayerPed(unsigned int slot)
+{
+    static const bool verified = CMemory::HasMappedInstruction(SA_ADDR(0x26D07C), "\xC9\xA8\x08\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x26D0F8), "\xAF\xA8\x08\x14");
+    if (verified && slot >= 2 && slot < eMaxItem::PLAYER_PED_SLOTS && CWorld::GetPlayerPed(slot))
+    {
+        reinterpret_cast<void (*)(unsigned int)>(SA_ADDR(0x26D07C) + _dyld_get_image_vmaddr_slide(0))(slot);
+    }
+}
+
 CPedGta* CWorld::GetPlayerPed(unsigned int slot)
 {
     if (!pthread_main_np()) {

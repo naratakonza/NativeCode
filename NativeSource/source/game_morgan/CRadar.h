@@ -22,6 +22,7 @@ public:
 	static float GetAlpha();
     static void DrawAreaOnRadar(CRect const& rect, uint32_t dwCurColor, bool inMenu);
     static void ClearBlip(int nIndex);
+    static void ClearWaypoint();
     static void TransformRealWorldPointToRadarSpace(CVector2D& out, CVector2D const& in);
     static void TransformRadarPointToScreenSpace(CVector2D& out, CVector2D const& in);
     static void LimitRadarPoint(CVector2D& in);

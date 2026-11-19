@@ -49,6 +49,9 @@ void CPatches::InstallLevelZPatches()
     // LoadFullTexture อ่าน DAT และคลาย RLE ผ่าน bridge ของ iOS
     CMemory::WriteProcessMemory(SA_ADDR(0x2BE7BC), (uintptr_t)"\x9A\x63\x07\x14", 4);
 
+    // RasterCreate (แก้ไขบัค Alpha)
+    CMemory::WriteProcessMemory(SA_ADDR(0x28AA60), (uintptr_t)"\x22\x00\x80\x52", 4);
+
     CMemory::makeNOP(SA_ADDR(0x43BF58), 1); // ไม่เปิดเมนูแผนที่อัตโนมัติเมื่อกลับเข้าเกม
 
     // ให้ Aim Indicator ใช้เส้นทาง GetInputType == 0 ของ iOS
@@ -257,10 +260,10 @@ void CPatches::InstallGraphicsOptimizationPatches()
     CMemory::makeRET(SA_ADDR(0x173A6C)); // CRopes::Render
     CMemory::makeRET(SA_ADDR(0x2F9A88)); // CSkidmarks::Render
     CMemory::makeRET(SA_ADDR(0x2F99CC)); // CSkidmarks::Update
-    CMemory::makeRET(SA_ADDR(0x2F3EE0)); // CGlass::Render
+    // CMemory::makeRET(SA_ADDR(0x2F3EE0)); // CGlass::Render
     CMemory::makeRET(SA_ADDR(0x2FBDA4)); // CMotionBlurStreaks::Update
     CMemory::makeRET(SA_ADDR(0x13A628)); // CCamera::RenderMotionBlur
-    CMemory::makeRET(SA_ADDR(0x144308)); // CEntity::PreRenderForGlassWindow
+    // CMemory::makeRET(SA_ADDR(0x144308)); // CEntity::PreRenderForGlassWindow
 }
 
 void CPatches::InstallPadPatches()

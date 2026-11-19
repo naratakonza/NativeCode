@@ -6,6 +6,7 @@ CChat* CGui::pChat = nullptr;
 CButton* CGui::pButton = nullptr;
 CDialog* CGui::pDialog = nullptr;
 CSpawnScreen* CGui::pSpawnScreen = nullptr;
+CGPSMarker* CGui::pGPSMarker = nullptr;
 CFontRender* CGui::pFontRender = nullptr;
 
 void CGui::Initialise()
@@ -17,6 +18,7 @@ void CGui::Initialise()
     CGui::pButton = new CButton();
     CGui::pDialog = new CDialog();
     CGui::pSpawnScreen = new CSpawnScreen();
+    CGui::pGPSMarker = new CGPSMarker();
 }
 
 void CGui::InitialiseFont()
@@ -30,6 +32,7 @@ void CGui::Uninitialise()
 
     SAFE_DELETE(CGui::pDebug);
     SAFE_DELETE(CGui::pSpawnScreen);
+    SAFE_DELETE(CGui::pGPSMarker);
     SAFE_DELETE(CGui::pButton);
     SAFE_DELETE(CGui::pChat);
     SAFE_DELETE(CGui::pDialog);

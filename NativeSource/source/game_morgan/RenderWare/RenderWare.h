@@ -34,7 +34,7 @@ extern RwFrame* (*RwFrameTranslateAMZ)(RwFrame* frame, const RwV3d* v, RwOpCombi
 extern RwFrame* (*RwFrameRotateAMZ)(RwFrame* frame, const RwV3d* axis, RwReal angle, RwOpCombineType combine);
 extern RwFrame* (*RwFrameForAllObjects)(RwFrame *,RwObject * (*)(RwObject *,void *),void *);
 
-extern RwObject *(*RwObjectHasFrameSetFrame)(void * camera, RwFrame *frame);
+extern void (*RwObjectHasFrameSetFrame)(void* object, RwFrame* frame);
 
 extern RpWorld* (*RpWorldAddCamera)(RpWorld *, RwCamera *);
 extern RpWorld* (*RpWorldRemoveCamera)(RpWorld *, RwCamera *);
@@ -42,6 +42,7 @@ extern RpWorld* (*RpWorldAddLight)(RpWorld* world, RpLight* light);
 extern RpWorld* (*RpWorldRemoveLight)(RpWorld* world, RpLight* light);
 
 extern RpLight* (*RpLightCreate)(RwInt32 type);
+extern RwBool (*RpLightDestroy)(RpLight* light);
 extern RpLight* (*RpLightSetColor)(RpLight* light, const RwRGBAReal* color);
 
 extern RpMaterial* (*RpMaterialCreate)(void);

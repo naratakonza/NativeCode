@@ -289,7 +289,11 @@ int CRadar_SetCoordBlip_hook(int BlpType, CVector vecPosition, uint32_t nColour,
 		findZ += 1.5f;
 
         // เดียวมาทำต่อภายหลัง
-		// CGui::GetGPSMarker()->SetPosition(vecPosition.x, vecPosition.y, findZ);
+		if (CGui::GetGPSMarker())
+		{
+			CGui::GetGPSMarker()->SetPosition(vecPosition.x, vecPosition.y, findZ);
+		}
+        
 		// CGui::GetGPSLine()->Create(vecPosition.x, vecPosition.y, findZ);
 
 		RakNet::BitStream bsSend;
@@ -320,15 +324,20 @@ void PlaceRedMarker_hook(bool bClicked)
 		if (waypoint)
 		{
             // เดียวมาทำต่อภายหลัง
-			// CGui::GetGPSMarker()->SetVisible(false);
-			// CGui::GetGPSMarker()->SetPosition(0.0f, 0.0f, 0.0f);
+			if (CGui::GetGPSMarker())
+			{
+				CGui::GetGPSMarker()->SetVisible(false);
+				CGui::GetGPSMarker()->SetPosition(0.0f, 0.0f, 0.0f);
+			}
 
 			// CGui::GetGPSLine()->Delete();
 		}
 		else
 		{
-            // เดียวมาทำต่อภายหลัง
-			// CGui::GetGPSMarker()->SetVisible(true);
+			if (CGui::GetGPSMarker())
+			{
+				CGui::GetGPSMarker()->SetVisible(true);
+			}
 		}
 	}
 
@@ -442,6 +451,17 @@ void CRadar::DrawAreaOnRadar(CRect const& rect, uint32_t dwCurColor, bool inMenu
 void CRadar::ClearBlip(int nIndex)
 {
 	reinterpret_cast<void (*)(int)>(SA_ADDR(0x1F4A78) + _dyld_get_image_vmaddr_slide(0))(nIndex);
+}
+
+void CRadar::ClearWaypoint()
+{
+    const auto slide = _dyld_get_image_vmaddr_slide(0);
+    int& waypoint = *reinterpret_cast<int*>(SA_ADDR(0x790E50) + slide);
+    if (waypoint)
+    {
+        CRadar::ClearBlip(waypoint);
+        waypoint = 0;
+    }
 }
 
 void CRadar::TransformRealWorldPointToRadarSpace(CVector2D& out, CVector2D const& in)

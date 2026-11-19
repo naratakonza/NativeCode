@@ -7,6 +7,8 @@
 #include <unordered_map>
 
 class CRect;
+struct RwCamera;
+struct RpLight;
 struct RwTexture;
 
 class CCommon
@@ -19,6 +21,16 @@ public:
     static bool IsPedModel(unsigned int iModelID);
     static bool IsExistForModelInfo(int iModelID);
     static bool ModelInfoGetCol(int iModel, const char* opcode);
+
+    static void RwMatrixRotate(CMatrix* mat, int axis, float angle);
+    static bool rpWorldAddCamera(RwCamera* camera);
+    static void rpWorldRemoveCamera(RwCamera* camera);
+    static void SetRenderWareCamera(RwCamera* camera);
+    static RwCamera* GetRenderWareCamera();
+    static bool rpWorldAddLight(RpLight* light);
+    static void rpWorldRemoveLight(RpLight* light);
+    static void DefinedState();
+    static uint16_t ModelInfoGetReferenceCount(int iModelID);
 
     static std::unordered_map<int, bool> bTextDrawTextureSlotState;
     static std::unordered_map<int, RwTexture*> pTextDrawTexture;

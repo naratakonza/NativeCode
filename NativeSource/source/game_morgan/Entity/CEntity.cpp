@@ -1,4 +1,5 @@
 #include "CEntity.h"
+#include "../CWorld.h"
 #include "../CCommon.h"
 #include "../CStreaming.h"
 #include "../RenderWare/rwcore.h"
@@ -19,12 +20,96 @@
 
 void CEntity::Add()
 {
+    if (!m_pEntity || CCommon::IsGameEntityArePlaceable(m_pEntity)) {
+        return;
+    }
 
+    if (!m_pEntity->dwUnkModelRel)
+    {
+        CVector vec = CVector();
+        SetMoveSpeedVector(vec);
+        SetTurnSpeedVector(vec);
+
+        CWorld::AddEntity(m_pEntity);
+
+        CMatrix mat;
+        GetMatrix(&mat);
+        TeleportTo(mat.pos.x, mat.pos.y, mat.pos.z);
+    }
 }
 
 void CEntity::Remove()
 {
+    if (!m_pEntity || CCommon::IsGameEntityArePlaceable(m_pEntity)) {
+        return;
+    }
 
+    if (m_pEntity->dwUnkModelRel)
+    {
+        CWorld::RemoveEntity(m_pEntity);
+    }
+}
+
+void CEntity::Render()
+{
+    if (!m_pEntity) {
+        return;
+    }
+
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x16FB9C), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9", 8, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x316F14), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9", 8, "__text");
+    if (!verified || !pthread_main_np()) {
+        return;
+    }
+
+    uintptr_t pRwObject = GetRWObject();
+
+    int iModel = GetModelIndex();
+    if (iModel >= 400 && iModel <= 611 && pRwObject) {
+        // CVisibilityPlugins::SetupVehicleVariables
+        reinterpret_cast<void (*)(uintptr_t)>(SA_ADDR(0x316F14) + _dyld_get_image_vmaddr_slide(0))(pRwObject);
+    }
+
+    // m_pEntity->PreRender();
+    reinterpret_cast<void (*)(CEntityGta*)>(*reinterpret_cast<void**>(m_pEntity->vtable + 0x90))(m_pEntity);
+
+    if (iModel < 400 || iModel > 611)
+    {
+        if (!pRwObject)
+        {
+            return;
+        }
+    }
+    else if (!pRwObject)
+    {
+        return;
+    }
+
+    // CRenderer::RenderOneNonRoad
+    reinterpret_cast<void (*)(CEntityGta*)>(SA_ADDR(0x16FB9C) + _dyld_get_image_vmaddr_slide(0))(m_pEntity);
+}
+
+void CEntity::SetGravityProcessing(bool bProcess)
+{
+    if (!m_pEntity || CCommon::IsGameEntityArePlaceable(m_pEntity)) {
+        return;
+    }
+
+    if (bProcess)
+    {
+        m_pEntity->m_nEntityFlags &= 0x7FFFFFFDu;
+    }
+    else
+    {
+        m_pEntity->m_nEntityFlags |= 0x80000002u;
+    }
+}
+
+void CEntity::SetCollisionChecking(bool bCheck)
+{
+    if (m_pEntity && !CCommon::IsGameEntityArePlaceable(m_pEntity))
+    {
+        m_pEntity->nEntityFlags.m_bUsesCollision = bCheck;
+    }
 }
 
 bool CEntity::IsAdded()
@@ -360,6 +445,41 @@ float CEntity::GetDistanceFromPoint(float X, float Y, float Z)
 
 	float distanceSquared = pow(matThis.pos.x - X, 2) + pow(matThis.pos.y - Y, 2) + pow(matThis.pos.z - Z, 2);
 	return sqrt(distanceSquared);
+}
+
+void CEntity::UpdateRwFrame(CEntityGta* entity)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x1431F0), "\x08\x10\x40\xF9\x68\x00\x00\xB4\x00\x05\x40\xF9", 12, "__text");
+    if (verified && entity && entity->m_pRwObject && entity->m_pRwObject->parent)
+    {
+        reinterpret_cast<void (*)(CEntityGta*)>(SA_ADDR(0x1431F0) + _dyld_get_image_vmaddr_slide(0))(entity);
+    }
+}
+
+void CEntity::UpdateRwMatrixAndFrame()
+{
+    if (CCommon::IsGameEntityRenderable(m_pEntity) && m_pEntity->m_pRwObject->parent)
+    {
+        RwFrame* parent = static_cast<RwFrame*>(m_pEntity->m_pRwObject->parent);
+        if (m_pEntity->mat)
+        {
+            m_pEntity->mat->UpdateRwMatrix(&parent->modelling);
+        }
+
+        CEntity::UpdateRwFrame(m_pEntity);
+    }
+}
+
+void CEntity::UpdateMatrix(CMatrix mat)
+{
+    if (!pthread_main_np() || !m_pEntity || !m_pEntity->mat || !m_pEntity->vtable || CCommon::IsGameEntityArePlaceable(m_pEntity)) {
+        return;
+    }
+
+    (*reinterpret_cast<void (*const *)(CEntityGta*)>(m_pEntity->vtable + 0x20))(m_pEntity); // CPhysical::Remove
+    SetMatrix(mat);
+    UpdateRwMatrixAndFrame();
+    (*reinterpret_cast<void (*const *)(CEntityGta*)>(m_pEntity->vtable + 0x10))(m_pEntity); // CPhysical::Add
 }
 
 void CEntity::CleanUpOldReference(CEntityGta* thiz, CEntityGta **ppAddress)

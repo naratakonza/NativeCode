@@ -108,10 +108,10 @@ void CFontRender::Render()
 	CFontRender::PreProcessInput();
 	ImGui::NewFrame();
 
-	// if (CGui::GetGPSMarker())
-    // {
-    //     CGui::GetGPSMarker()->Render();
-    // }
+	if (CGui::GetGPSMarker())
+	{
+		CGui::GetGPSMarker()->Render();
+	}
 
 	if (CGui::GetDebug())
 	{

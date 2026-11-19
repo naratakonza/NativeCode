@@ -90,6 +90,119 @@ bool CCommon::IsPointInRect(float x, float y, CRect* rect)
     return (x >= rect->X1 && x <= rect->X2 && y >= rect->Y1 && y <= rect->Y2);
 }
 
+void CCommon::RwMatrixRotate(CMatrix* mat, int axis, float angle)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x2B8668), "\xFF\x43\x01\xD1\xE9\x23\x01\x6D", 8, "__text");
+    if (!verified || !mat || axis < 0 || axis > 2) {
+        return;
+    }
+
+    static float matt[3][3] =
+    {
+        {1.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f}
+    };
+
+    reinterpret_cast<CMatrix* (*)(CMatrix*, float*, float, int)>(SA_ADDR(0x2B8668) + _dyld_get_image_vmaddr_slide(0))(mat, matt[axis], angle, 1);
+}
+
+bool CCommon::rpWorldAddCamera(RwCamera* camera)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x1527EC), "\x34\x3E\x00\xD0\x94\xE2\x2A\x91\x80\x06\x00\xF9", 12, "__text");
+    if (!verified) {
+        return false;
+    }
+
+    RpWorld* rpWorld = *reinterpret_cast<RpWorld**>(SA_ADDR(0x918AB8) + _dyld_get_image_vmaddr_slide(0));
+    if (rpWorld && camera && RpWorldAddCamera)
+    {
+        return RpWorldAddCamera(rpWorld, camera) != nullptr;
+    }
+
+    return false;
+}
+
+void CCommon::rpWorldRemoveCamera(RwCamera* camera)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x1527EC), "\x34\x3E\x00\xD0\x94\xE2\x2A\x91\x80\x06\x00\xF9", 12, "__text");
+    if (!verified) {
+        return;
+    }
+
+    RpWorld* rpWorld = *reinterpret_cast<RpWorld**>(SA_ADDR(0x918AB8) + _dyld_get_image_vmaddr_slide(0));
+    if (rpWorld && camera && RpWorldRemoveCamera)
+    {
+        RpWorldRemoveCamera(rpWorld, camera);
+    }
+}
+
+void CCommon::SetRenderWareCamera(RwCamera* camera)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x31865C), "\xA8\x2E\x00\xF0\x00\x79\x03\xF9\x08\x04\x40\xF9", 12, "__text");
+    if (!verified) {
+        return;
+    }
+
+    reinterpret_cast<void (*)(RwCamera*)>(SA_ADDR(0x31865C) + _dyld_get_image_vmaddr_slide(0))(camera);
+}
+
+RwCamera* CCommon::GetRenderWareCamera()
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x31865C), "\xA8\x2E\x00\xF0\x00\x79\x03\xF9\x08\x04\x40\xF9", 12, "__text");
+    if (!verified) {
+        return nullptr;
+    }
+
+    return *reinterpret_cast<RwCamera**>(SA_ADDR(0x8EF6F0) + _dyld_get_image_vmaddr_slide(0));
+}
+
+bool CCommon::rpWorldAddLight(RpLight* light)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x1527EC), "\x34\x3E\x00\xD0\x94\xE2\x2A\x91\x80\x06\x00\xF9", 12, "__text");
+    if (!verified) {
+        return false;
+    }
+
+    RpWorld* rpWorld = *reinterpret_cast<RpWorld**>(SA_ADDR(0x918AB8) + _dyld_get_image_vmaddr_slide(0));
+    if (rpWorld && light && RpWorldAddLight)
+    {
+        return RpWorldAddLight(rpWorld, light) != nullptr;
+    }
+
+    return false;
+}
+
+void CCommon::rpWorldRemoveLight(RpLight* light)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x1527EC), "\x34\x3E\x00\xD0\x94\xE2\x2A\x91\x80\x06\x00\xF9", 12, "__text");
+    if (!verified) {
+        return;
+    }
+
+    RpWorld* rpWorld = *reinterpret_cast<RpWorld**>(SA_ADDR(0x918AB8) + _dyld_get_image_vmaddr_slide(0));
+    if (rpWorld && light && RpWorldRemoveLight)
+    {
+        RpWorldRemoveLight(rpWorld, light);
+    }
+}
+
+void CCommon::DefinedState()
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x31917C), "\xFD\x7B\xBF\xA9\xFD\x03\x00\x91\x40\x00\x80\x52", 12, "__text");
+    if (verified)
+    {
+        reinterpret_cast<void (*)()>(SA_ADDR(0x31917C) + _dyld_get_image_vmaddr_slide(0))();
+    }
+}
+
+uint16_t CCommon::ModelInfoGetReferenceCount(int iModelID)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x22C5C8), "\x08\x44\x40\x79\x08\x05\x00\x11\x08\x44\x00\x79", 12, "__text");
+    const auto* modelInfo = reinterpret_cast<const CBaseModelInfo*>(CCommon::GetModelInfoByID(iModelID));
+    return verified && modelInfo ? modelInfo->m_numRefs : 0;
+}
+
 int CCommon::GetFreeTextDrawTextureSlot()
 {
     for (int slot = 0; slot < 200; ++slot)

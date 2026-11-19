@@ -25,6 +25,15 @@ CPedGta* CUtil::GamePool_Ped_GetAt(int iID)
     return reinterpret_cast<CPedGta* (*)(int)>(SA_ADDR(0x16DA74) + _dyld_get_image_vmaddr_slide(0))(iID);
 }
 
+void CUtil::RpAnimBlendClumpUpdateAnimations(uintptr_t pClump, float fTimeStep, int bOnScreen)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x3FE98), "\xFF\x03\x04\xD1\xEB\x2B\x08\x6D", 8, "__text");
+    if (verified && pClump && pthread_main_np())
+    {
+        reinterpret_cast<void (*)(uintptr_t, float, bool)>(SA_ADDR(0x3FE98) + _dyld_get_image_vmaddr_slide(0))(pClump, fTimeStep, bOnScreen != 0);
+    }
+}
+
 float CUtil::DegToRad(float fDegrees)
 {
     if (fDegrees > 360.0f || fDegrees < 0.0f) return 0.0f;

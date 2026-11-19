@@ -122,8 +122,11 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 			CGame::GetPlayer()->SetArmour(0.0f);
 		}
 
-		// CGui::GetGPSMarker()->SetPosition(0.0f, 0.0f, 0.0f);
-		// CGui::GetGPSMarker()->SetVisible(false);
+		if (CGui::GetGPSMarker())
+		{
+			CGui::GetGPSMarker()->SetPosition(0.0f, 0.0f, 0.0f);
+			CGui::GetGPSMarker()->SetVisible(false);
+		}
 
 		CRadar::ResetRadarColor();
 		CGame::ResetPlayerMoney();

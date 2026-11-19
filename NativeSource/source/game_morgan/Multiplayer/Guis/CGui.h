@@ -6,6 +6,7 @@
 #include "CDialog.h"
 #include "CSpawnScreen.h"
 #include "Font/CFontRender.h"
+#include "Gps/CGPSMarker.h"
 
 class CGui
 {
@@ -34,6 +35,11 @@ public:
         return CGui::pSpawnScreen;
     }
 
+    static CGPSMarker* GetGPSMarker()
+    {
+        return CGui::pGPSMarker;
+    }
+
     static CDebugInfo* GetDebug() {
         return pDebug;
     }
@@ -47,6 +53,7 @@ private:
     static CButton* pButton;
     static CDialog* pDialog;
     static CSpawnScreen* pSpawnScreen;
+    static CGPSMarker* pGPSMarker;
     static CDebugInfo* pDebug;
     static CFontRender* pFontRender;
 };
