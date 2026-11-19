@@ -512,31 +512,31 @@ const char* CPlayerTags::GetWeaponSpriteId(uint8_t nWeapon)
 {
     switch (nWeapon) {
         case eWeaponSampId::WEAPON_FIST: {
-            return OBFUSCATE("%");
+            return "%";
         }
 
         case eWeaponSampId::WEAPON_BRASSKNUCKLE: {
-            return OBFUSCATE("B");
+            return "B";
         }
 
         case eWeaponSampId::WEAPON_GOLFCLUB: {
-            return OBFUSCATE(">");
+            return ">";
         }
 
         case eWeaponSampId::WEAPON_NITESTICK: {
-            return OBFUSCATE("(");
+            return "(";
         }
 
         case eWeaponSampId::WEAPON_KNIFE: {
-            return OBFUSCATE("C");
+            return "C";
         }
 
         case eWeaponSampId::WEAPON_BAT: {
-            return OBFUSCATE("?");
+            return "?";
         }
 
         case eWeaponSampId::WEAPON_SHOVEL: {
-            return OBFUSCATE("&");
+            return "&";
         }
 
         case eWeaponSampId::WEAPON_POOLSTICK: {
@@ -544,11 +544,11 @@ const char* CPlayerTags::GetWeaponSpriteId(uint8_t nWeapon)
         }
 
         case eWeaponSampId::WEAPON_KATANA: {
-            return OBFUSCATE("!");
+            return "!";
         }
 
         case eWeaponSampId::WEAPON_CHAINSAW:{
-            return OBFUSCATE("1");
+            return "1";
         }
 
         case eWeaponSampId::WEAPON_DILDO: {
@@ -564,131 +564,131 @@ const char* CPlayerTags::GetWeaponSpriteId(uint8_t nWeapon)
         }
 
         case eWeaponSampId::WEAPON_VIBRATOR2: {
-            return OBFUSCATE("E");
+            return "E";
         }
 
         case eWeaponSampId::WEAPON_FLOWER: {
-            return OBFUSCATE("$");
+            return "$";
         }
 
         case eWeaponSampId::WEAPON_CANE: {
-            return OBFUSCATE("#");
+            return "#";
         }
 
         case eWeaponSampId::WEAPON_GRENADE: {
-            return OBFUSCATE("@");
+            return "@";
         }
 
         case eWeaponSampId::WEAPON_TEARGAS: {
-            return OBFUSCATE("D");
+            return "D";
         }
 
         case eWeaponSampId::WEAPON_COLT45: {
-            return OBFUSCATE("6");
+            return "6";
         }
 
         case eWeaponSampId::WEAPON_SILENCED: {
-            return OBFUSCATE("2");
+            return "2";
         }
 
         case eWeaponSampId::WEAPON_DEAGLE: {
-            return OBFUSCATE("3");
+            return "3";
         }
 
         case eWeaponSampId::WEAPON_SHOTGUN: {
-            return OBFUSCATE("=");
+            return "=";
         }
 
         case eWeaponSampId::WEAPON_SAWEDOFF: {
-            return OBFUSCATE("0");
+            return "0";
         }
 
         case eWeaponSampId::WEAPON_SHOTGSPA: {
-            return OBFUSCATE("+");
+            return "+";
         }
 
         case eWeaponSampId::WEAPON_UZI: {
-            return OBFUSCATE("I");
+            return "I";
         }
 
         case eWeaponSampId::WEAPON_MP5: {
-            return OBFUSCATE("8");
+            return "8";
         }
 
         case eWeaponSampId::WEAPON_AK47: {
-            return OBFUSCATE("H");
+            return "H";
         }
 
         case eWeaponSampId::WEAPON_M4: {
-            return OBFUSCATE("5");
+            return "5";
         }
 
         case eWeaponSampId::WEAPON_TEC9: {
-            return OBFUSCATE("7");
+            return "7";
         }
 
         case eWeaponSampId::WEAPON_RIFLE: {
-            return OBFUSCATE(".");
+            return ".";
         }
 
         case eWeaponSampId::WEAPON_SNIPER: {
-            return OBFUSCATE("A");
+            return "A";
         }
 
         case eWeaponSampId::WEAPON_ROCKETLAUNCHER: {
-            return OBFUSCATE("4");
+            return "4";
         }
 
         case eWeaponSampId::WEAPON_HEATSEEKER: {
-            return OBFUSCATE(")");
+            return ")";
         }
 
         case eWeaponSampId::WEAPON_FLAMETHROWER: {
-            return OBFUSCATE("P");
+            return "P";
         }
 
         case eWeaponSampId::WEAPON_MINIGUN: {
-            return OBFUSCATE("F");
+            return "F";
         }
 
         case eWeaponSampId::WEAPON_SATCHEL: {
-            return OBFUSCATE("<");
+            return "<";
         }
 
         case eWeaponSampId::WEAPON_BOMB: {
-            return OBFUSCATE(";");
+            return ";";
         }
 
         case eWeaponSampId::WEAPON_SPRAYCAN: {
-            return OBFUSCATE("/");
+            return "/";
         }
 
         case eWeaponSampId::WEAPON_FIREEXTINGUISHER: {
-            return OBFUSCATE(",");
+            return ",";
         }
 
         case eWeaponSampId::WEAPON_PARACHUTE: {
-            return OBFUSCATE(":");
+            return ":";
         }
 
         case eWeaponSampId::WEAPON_VEHICLE: {
-            return OBFUSCATE("L");
+            return "L";
         }
 
         case eWeaponSampId::WEAPON_DROWN: {
-            return OBFUSCATE("J");
+            return "J";
         }
 
         case eWeaponSampId::WEAPON_HELIBLADES: {
-            return OBFUSCATE("R");
+            return "R";
         }
 
         case eWeaponSampId::WEAPON_EXPLOSION: {
-            return OBFUSCATE("Q");
+            return "Q";
         }
 
         case eWeaponSampId::WEAPON_COLLISION: {
-            return OBFUSCATE("K");
+            return "K";
         }
 
         case eWeaponSampId::WEAPON_SPECIAL_CONNECT: {
@@ -696,11 +696,11 @@ const char* CPlayerTags::GetWeaponSpriteId(uint8_t nWeapon)
         }
 
         case eWeaponSampId::WEAPON_SPECIAL_DISCONNECT: {
-            return OBFUSCATE("N");
+            return "N";
         }
 
         default: {
-            return OBFUSCATE("%");
+            return "%";
         }
     }
 }
