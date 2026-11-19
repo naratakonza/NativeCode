@@ -7,8 +7,6 @@
 #include "../../CMultiPlayer.h"
 #include "../../CNetGame.h"
 
-#include <cfloat>
-
 CGPSMarker::CGPSMarker()
 {
     CGPSMarker::m_bVisible = false;

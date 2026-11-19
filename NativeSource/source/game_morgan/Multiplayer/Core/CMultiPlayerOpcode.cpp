@@ -1534,10 +1534,8 @@ void SetRaceCheckpoint(RakNet::BitStream bsData)
 	CCheckPoint::ToggleRaceCheckpoints(true);
 }
 
-void DisableRaceCheckpoint(RakNet::BitStream bsData)
+void DisableRaceCheckpoint(RakNet::BitStream)
 {
-    (void)bsData;
-
 	CNecessary::Log(OBFUSCATE("RPC: DisableRaceCheckpoint"));
 
 	CCheckPoint::ToggleRaceCheckpoints(false);

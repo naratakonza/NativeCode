@@ -5,11 +5,6 @@
 #include "../../../CGame.h"
 #include "../../../CSprite.h"
 
-#include <algorithm>
-#include <cmath>
-#include <cfloat>
-#include <cstdio>
-
 CGPSNavigator::CGPSNavigator()
 {
     CGPSNavigator::m_bVisible = false;
