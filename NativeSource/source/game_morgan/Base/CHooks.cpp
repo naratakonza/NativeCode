@@ -561,6 +561,8 @@ extern "C" __attribute__((visibility("default"))) uintptr_t TextureDatabaseRunti
 
 void CHooks::InstallNecessary()
 {
+    CMemory::WriteProcessMemory(SA_ADDR(0xCE30C), (uintptr_t)"\xEA\x25\x0F\x14", 4);
+
     if (const auto error = CHook::GetThread()->InstallFileOpen())
     {
         CNecessary::Log(OBFUSCATE("Client ONLOAD failed (error %d)"), error.value());
