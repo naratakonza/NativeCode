@@ -2,7 +2,6 @@
 #include "CModelSnapshot.h"
 #include "../../CCommon.h"
 #include "../../CStreaming.h"
-#include "../../CWorld.h"
 
 #include <mach-o/dyld.h>
 #include <new>
@@ -91,11 +90,6 @@ void CModelSnapshot::SetUpScene()
 
 RwTexture* CModelSnapshot::CreatePedSnapShot(int iModel, uint32_t dwColor, VECTOR* vecRot, float fZoom)
 {
-    static const bool verified = CMemory::HasMappedInstruction(SA_ADDR(0x26D07C), "\xC9\xA8\x08\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x26D0F8), "\xAF\xA8\x08\x14");
-    if (!verified || !pthread_main_np() || CWorld::GetPlayerPed(208)) {
-        return 0;
-    }
-
     RwRaster *raster = RwRasterCreate(256, 256, 0, rwRASTERFORMAT8888 | rwRASTERTYPECAMERATEXTURE);
     if (!raster) {
         return 0;
@@ -103,23 +97,11 @@ RwTexture* CModelSnapshot::CreatePedSnapShot(int iModel, uint32_t dwColor, VECTO
 
     RwTexture *bufferTexture = RwTextureCreate(raster);
     if (!bufferTexture) {
-        RwRasterDestroy(raster);
         return 0;
     }
 
     CPlayerPed *pPed = new (std::nothrow) CPlayerPed(208, 0, 0.0f, 0.0f, 0.0f, 0.0f);
     if (!pPed) {
-        RwTextureDestroy(bufferTexture);
-        return 0;
-    }
-
-    if (!pPed->VerifyInstance() || pPed->GetPed() != CWorld::GetPlayerPed(208))
-    {
-        CWorld::RemovePlayerPed(208);
-        // Failed script creation must not delete an unrelated Ped from a stale handle.
-        pPed->m_pPed = nullptr;
-        delete pPed;
-        RwTextureDestroy(bufferTexture);
         return 0;
     }
 
@@ -173,9 +155,8 @@ RwTexture* CModelSnapshot::CreatePedSnapShot(int iModel, uint32_t dwColor, VECTO
 
     CCommon::rpWorldRemoveLight(m_light);
 
-    // iOS removes the Ped and clears its CPlayerInfo/PlayerData slot together.
-    CWorld::RemovePlayerPed(208);
-    delete pPed;
+    pPed->Remove();
+    reinterpret_cast<void(*)(CPedGta*)>(*reinterpret_cast<void**>(pPed->GetPed()->vtable + 0x8))(pPed->GetPed());
 
     if (!CCommon::ModelInfoGetReferenceCount(iModel))
     {

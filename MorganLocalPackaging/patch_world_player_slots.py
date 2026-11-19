@@ -41,6 +41,144 @@ def add_immediate(register, source, value):
     return 0x91000000 | value << 10 | source << 5 | register
 
 
+def patch_world_player_slot_reuse(binary):
+    """Release an occupied remote record before CREATE_PLAYER registers its replacement."""
+    expected_engine = {
+        0x18E63C: bytes.fromhex("F44FBEA9FD7B01A9FD430091"),
+        0x19234C: bytes.fromhex("F44FBEA9FD7B01A9FD430091"),
+        0x26D080: bytes.fromhex("FD7B01A9FD430091684100F0"),
+        0x26CBA4: bytes.fromhex("0021009160A202F9BE95FC97"),
+    }
+    if any(binary[at:at + len(data)] != data for at, data in expected_engine.items()):
+        raise ValueError("Unexpected iOS player-pool ownership or cleanup instructions")
+    image = bytearray(binary)
+    entry = 0xDDA0C
+    word = unpack_from("<I", binary, entry)[0]
+    if word >> 26 != 5:
+        raise ValueError("Player-slot reuse requires the installed iOS CWorld patch")
+    displacement = word & 0x3FFFFFF
+    gate = entry + (displacement - (0x4000000 if displacement & 0x2000000 else 0)) * 4
+    expected = (0x71034A9F, 0x54000202, 0x71000A9F, 0x54000163)
+    if unpack_from("<4I", binary, gate) != expected:
+        raise ValueError("Unexpected CREATE_PLAYER slot validation")
+    section = 0x740
+    if binary[section:section + 16].rstrip(b"\0") != b"__mg_gameproc":
+        raise ValueError("Missing iOS engine trampoline section")
+    text_size, text_offset = unpack_from("<QI", binary, section + 40)
+    end = text_offset + text_size
+    old_branch = branch_cond(gate + 36, gate + 68, 0xB5000008)
+    installed = unpack_from("<I", binary, gate + 36)[0]
+    if installed == old_branch:
+        start = end
+    else:
+        displacement = (installed >> 5) & 0x7FFFF
+        start = gate + 36 + (displacement - (0x80000 if displacement & 0x40000 else 0)) * 4
+        if installed & 0xFF00001F != 0xB5000008 or not text_offset <= start < end:
+            raise ValueError("Unexpected occupied-slot branch")
+
+    words = []
+    labels = {}
+    fixups = []
+
+    def emit(*instructions):
+        words.extend(instructions)
+
+    def mark(name):
+        labels[name] = start + 4 * len(words)
+
+    def jump(name, opcode):
+        fixups.append((len(words), name, opcode))
+        emit(0)
+
+    def addr(register, target):
+        emit(*address(register, start + 4 * len(words), target))
+
+    def call(target):
+        emit(branch(start + 4 * len(words), target, 0x94000000))
+
+    emit(0xA9BF7BF7, 0x2A1403E0)  # preserve x23/LR, pass the remote slot
+    call(REMOVE_PED)
+    addr(8, PLAYERS)
+    emit(0x52803B09, 0x9B292288, 0xF9400108)
+    jump("create_failed", 0xB5000008)
+    emit(0xA8C17BF7, branch(start + 4 * (len(words) + 1), gate + 40))
+    mark("create_failed")
+    emit(0xA8C17BF7, branch(start + 4 * (len(words) + 1), gate + 68))
+
+    # Validate removals too: reset/shutdown may encounter a directly destroyed Ped.
+    mark("remove")
+    emit(0x7100001F | PLAYER_PED_SLOTS << 10)
+    jump("return", 0x54000002)
+    emit(0x7100081F)
+    jump("stock", 0x54000003)
+    emit(0xA9BE5FF4, 0xF9000BFE, 0x2A0003F4)  # save x20/x23/LR, slot in w20
+    addr(23, PLAYERS)
+    emit(0x52803B09, 0x9B295E97, 0xF94002E8)
+    jump("done", 0xB4000008)
+    addr(9, 0x734FD8)
+    emit(0xF9400129)
+    jump("done", 0xB4000009)
+    emit(0xF940012A, 0xF940052B, 0xB940112C)
+    jump("done", 0xB400000A)
+    jump("done", 0xB400000B)
+    emit(0xCB0A010D, 0x5281390E)
+    emit(0x9ACE09AF, 0x9B0EB5ED)
+    jump("stale", 0xB500000D)
+    emit(0xEB0C01FF)
+    jump("stale", 0x54000002)
+    emit(0x8B0F016B, 0x3940016B, 0x1219016B)
+    jump("stale", 0x3500000B)
+    addr(10, 0x4A8378)
+    emit(0xF9400109, 0xEB0A013F)
+    jump("stale", 0x54000001)
+    emit(0xF942A109, add_immediate(10, 23, 8), 0xEB0A013F)
+    jump("stale", 0x54000001)
+    emit(0x2A1403E0, 0xF9400BFE, 0xA8C25FF4)
+    jump("stock", 0x14000000)
+
+    mark("stale")
+    emit(0xF90002FF)
+    addr(8, PLAYER_IN_FOCUS)
+    emit(0x39400109, 0x6B14013F)
+    jump("clear", 0x54000001)
+    emit(0x3900011F)
+    mark("clear")
+    emit(0xAA1703E0)
+    call(CLEAR_PLAYER)
+    emit(add_immediate(0, 23, 8))
+    call(RELEASE_PLAYER_DATA)
+    mark("done")
+    emit(0xF9400BFE, 0xA8C25FF4)
+    mark("return")
+    emit(RET)
+    mark("stock")
+    emit(0xA9BE4FF4, branch(start + 4 * (len(words) + 1), REMOVE_PED + 4))
+
+    for index, name, opcode in fixups:
+        pc = start + index * 4
+        words[index] = branch(pc, labels[name]) if opcode == 0x14000000 else branch_cond(pc, labels[name], opcode)
+    payload = b"".join(instruction.to_bytes(4, "little") for instruction in words)
+    remove_branch = unpack_from("<I", binary, REMOVE_PED)[0]
+    displacement = remove_branch & 0x3FFFFFF
+    remove_gate = REMOVE_PED + (displacement - (0x4000000 if displacement & 0x2000000 else 0)) * 4
+    if remove_branch >> 26 != 5 or not text_offset <= remove_gate < start:
+        raise ValueError("Unexpected iOS player-removal gate")
+    removal_redirect = branch(remove_gate, labels["remove"])
+    if installed != old_branch:
+        if unpack_from("<I", binary, remove_gate)[0] != removal_redirect or start + len(payload) != end or binary[start:end] != payload:
+            raise ValueError("Unexpected existing slot-reuse trampoline")
+        return binary
+    if start + len(payload) > 0x498000 or any(binary[start:start + len(payload)]):
+        raise ValueError("Insufficient verified iOS trampoline space")
+    if unpack_from("<I", binary, remove_gate)[0] != 0x7103481F:
+        raise ValueError("Unexpected original remote-slot removal limit")
+    image[start:start + len(payload)] = payload
+    pack_into("<I", image, remove_gate, removal_redirect)
+    pack_into("<I", image, gate + 36, branch_cond(gate + 36, start, 0xB5000008))
+    pack_into("<Q", image, section + 40, text_size + len(payload))
+    return bytes(image)
+
+
 def address(register, pc, target):
     return adrp(register, pc, target), add_immediate(register, register, target & 0xFFF)
 

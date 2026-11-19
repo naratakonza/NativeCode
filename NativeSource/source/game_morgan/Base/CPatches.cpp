@@ -260,10 +260,10 @@ void CPatches::InstallGraphicsOptimizationPatches()
     CMemory::makeRET(SA_ADDR(0x173A6C)); // CRopes::Render
     CMemory::makeRET(SA_ADDR(0x2F9A88)); // CSkidmarks::Render
     CMemory::makeRET(SA_ADDR(0x2F99CC)); // CSkidmarks::Update
-    CMemory::makeRET(SA_ADDR(0x2F3EE0)); // CGlass::Render
+    // CMemory::makeRET(SA_ADDR(0x2F3EE0)); // CGlass::Render
     CMemory::makeRET(SA_ADDR(0x2FBDA4)); // CMotionBlurStreaks::Update
     CMemory::makeRET(SA_ADDR(0x13A628)); // CCamera::RenderMotionBlur
-    CMemory::makeRET(SA_ADDR(0x144308)); // CEntity::PreRenderForGlassWindow
+    // CMemory::makeRET(SA_ADDR(0x144308)); // CEntity::PreRenderForGlassWindow
 }
 
 void CPatches::InstallPadPatches()

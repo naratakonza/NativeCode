@@ -141,8 +141,7 @@ void ImGui_ImplRenderWare_RenderDrawData(const ImDrawData* drawData)
             dst.rhw = recipNearClip;
             dst.u = src.uv.x;
             dst.v = src.uv.y;
-            RwIm2DVertexSetIntRGBA(&dst, (src.col >> IM_COL32_R_SHIFT) & 0xFF, (src.col >> IM_COL32_G_SHIFT) & 0xFF,
-                                 (src.col >> IM_COL32_B_SHIFT) & 0xFF, (src.col >> IM_COL32_A_SHIFT) & 0xFF);
+            dst.emissiveColor = src.col;
         }
 
         auto* indices = list.IdxBuffer.Data;
