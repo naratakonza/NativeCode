@@ -40,6 +40,7 @@ void CCommand::Initialise()
     CCommand::Add(OBFUSCATE("/hudalpha"), CCommand::SetHudAlpha);
     CCommand::Add(OBFUSCATE("/ntstyle"), CCommand::SetNameTagStyle);
     CCommand::Add(OBFUSCATE("/wptag"), CCommand::SetWeaponTag);
+    CCommand::Add(OBFUSCATE("/testdw"), CCommand::TestDeathWindow);
     CCommand::Add(OBFUSCATE("/shs"), CCommand::SetShadowStyle);
     CCommand::Add(OBFUSCATE("/audiomsg"), CCommand::SetAudioMessages);
     CCommand::Add(OBFUSCATE("/chip"), CCommand::SetConnect);
@@ -676,4 +677,22 @@ void CCommand::Reconnect(const std::vector<std::string>&)
 void CCommand::QuitGame(const std::vector<std::string>&)
 {
     ExitGame();
+}
+
+void CCommand::TestDeathWindow(const std::vector<std::string>& /*args*/)
+{
+    if (!CGui::GetDeathWindow()) {
+        return;
+    }
+
+    uint32_t fontcolor = 0xFFFFFFFF;
+
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("Pooper333")), -1, std::string(OBFUSCATE("Pooper")), -1, 1, fontcolor);
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("Pooper")), -1, std::string(OBFUSCATE("Pooper")), -1, 5, fontcolor);
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("Pooper")), -1, std::string(OBFUSCATE("Pooper")), -1, 15, fontcolor);
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("Pooper")), -1, std::string(OBFUSCATE("Pooper")), -1, 14, fontcolor);
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("Pooper")), -1, std::string(OBFUSCATE("Pooper")), -1, 2, fontcolor);
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE(" ")), -1, std::string(OBFUSCATE("PooperPooperPooper0001")), -1, 5, fontcolor);
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE(" ")), -1, std::string(OBFUSCATE("Pooper")), -1, static_cast<uint8_t>(-1), fontcolor);
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("PooperPooperPooper0001")), -1, std::string(OBFUSCATE("Pooper")), -1, 0, fontcolor);
 }

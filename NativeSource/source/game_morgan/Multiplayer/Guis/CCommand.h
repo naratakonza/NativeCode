@@ -38,6 +38,7 @@ private:
     static void SetNameTagStyle(const std::vector<std::string>& args);
     static void SetWeaponTag(const std::vector<std::string>& args);
     static void SetHudAlpha(const std::vector<std::string>& args);
+    static void TestDeathWindow(const std::vector<std::string>& args);
     static void SetShadowStyle(const std::vector<std::string>& args);
 
     static std::vector<ChatCommand> commandList;

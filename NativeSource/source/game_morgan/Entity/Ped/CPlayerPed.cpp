@@ -341,6 +341,25 @@ void CPlayerPed::ProcessAnimGroups(bool bUseCJWalk)
     *reinterpret_cast<std::uint8_t*>(SA_ADDR(0xB0FCF8) + _dyld_get_image_vmaddr_slide(0)) = static_cast<std::uint8_t>(!bUseCJWalk);
 }
 
+void CPlayerPed::SetFightingStyle(int iStyle)
+{
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
+
+	GetPed()->m_nExtraMeleeCombo = iStyle;
+	GetPed()->m_nExtraMeleeComboFlags = 6;
+}
+
+int CPlayerPed::GetFightingStyle()
+{
+	if (!CPlayerPed::VerifyInstance()) {
+		return 4;
+	}
+
+	return GetPed()->m_nExtraMeleeCombo;
+}
+
 void CPlayerPed::SetImmunities(int BP, int FP, int EP, int CP, int MP)
 {
 	if (!CPlayerPed::VerifyInstance()) {

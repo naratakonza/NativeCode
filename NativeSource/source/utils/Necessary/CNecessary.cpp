@@ -239,3 +239,20 @@ float CNecessary::EaseOutQuad(float t)
 {
     return 1.0f - (1.0f - t) * (1.0f - t);
 }
+
+bool CNecessary::IsValidName(const char* name)
+{
+    if (!name || name[0] == '\0') {
+        return false;
+    }
+
+    for (int i = 0; name[i] != '\0'; ++i)
+    {
+        if (name[i] != ' ')
+        {
+            return true;
+        }
+    }
+
+    return false;
+}

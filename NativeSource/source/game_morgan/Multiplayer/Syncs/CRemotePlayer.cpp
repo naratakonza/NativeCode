@@ -192,10 +192,10 @@ bool CRemotePlayer::SpawnGamePlayer(uint8_t byteTeam, unsigned int iSkin, CVecto
 				pGamePlayer->SetImmunities(0, 1, 1, 0, 0);
 			}
 
-			// if (byteFightingStyle != eFightingStyle::STYLE_STANDARD)
-			// {
-			// 	pGamePlayer->SetFightingStyle(static_cast<int>(byteFightingStyle));
-			// }
+			if (byteFightingStyle != eFightingStyle::STYLE_STANDARD)
+			{
+				pGamePlayer->SetFightingStyle(static_cast<int>(byteFightingStyle));
+			}
 
 			if (CRemotePlayer::GetNetworkPlayerState() != eNetworkPlayerState::PLAYER_STATE_SPAWNED)
 			{

@@ -167,6 +167,11 @@ void CFontRender::Render()
         // }
     }
 
+    if (CGui::GetDeathWindow())
+    {
+        CGui::GetDeathWindow()->Render();
+    }
+
     ImGui::EndFrame();
     ImGui::Render();
     ImGui_ImplRenderWare_RenderDrawData(ImGui::GetDrawData());
@@ -587,4 +592,30 @@ bool CFontRender::ProcessInlineHexColor(const char* start, const char* end, ImVe
     }
 
     return false;
+}
+
+void CFontRender::RenderTextDeathMessage(ImVec2& posCur, ImU32 col, bool bOutline, const char* text_begin, const char* text_end, float font_size, ImFont *font, bool bOutlineUseTextColor)
+{
+    int iOffset = bOutlineUseTextColor ? 1 : CSetting::GetConfig()->GetIntValue(OBFUSCATE("FontOutline"));
+    if(bOutline)
+    {
+        // left
+        posCur.x -= iOffset;
+        ImGui::GetBackgroundDrawList()->AddText(font == nullptr ? GetFont() : font, font_size == 0.0f ? GetFontSize() : font_size, posCur, bOutlineUseTextColor ? ImColor(col) : ImColor(IM_COL32_BLACK), text_begin, text_end);
+        posCur.x += iOffset;
+        // right
+        posCur.x += iOffset;
+        ImGui::GetBackgroundDrawList()->AddText(font == nullptr ? GetFont() : font, font_size == 0.0f ? GetFontSize() : font_size, posCur, bOutlineUseTextColor ? ImColor(col) : ImColor(IM_COL32_BLACK), text_begin, text_end);
+        posCur.x -= iOffset;
+        // above
+        posCur.y -= iOffset;
+        ImGui::GetBackgroundDrawList()->AddText(font == nullptr ? GetFont() : font, font_size == 0.0f ? GetFontSize() : font_size, posCur, bOutlineUseTextColor ? ImColor(col) : ImColor(IM_COL32_BLACK), text_begin, text_end);
+        posCur.y += iOffset;
+        // below
+        posCur.y += iOffset;
+        ImGui::GetBackgroundDrawList()->AddText(font == nullptr ? GetFont() : font, font_size == 0.0f ? GetFontSize() : font_size, posCur, bOutlineUseTextColor ? ImColor(col) : ImColor(IM_COL32_BLACK), text_begin, text_end);
+        posCur.y -= iOffset;
+    }
+
+    ImGui::GetBackgroundDrawList()->AddText(font == nullptr ? GetFont() : font, font_size == 0.0f ? GetFontSize() : font_size, posCur, col, text_begin, text_end);
 }

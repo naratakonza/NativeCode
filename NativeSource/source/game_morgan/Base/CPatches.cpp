@@ -182,9 +182,9 @@ void CPatches::InstallMainPatches()
     CMemory::makeRET(SA_ADDR(0x0B6BD4)); // CEntryExit::GenerateAmbientPeds
 
     // ปิดไว้ก่อน เอาไว้ทดสอบระบบ ( หากจะปล่อย Release ต้องเปิด )
-    // CMemory::makeRET(SA_ADDR(0x42674C)); // CTheCarGenerators::Process
-    // CMemory::makeRET(SA_ADDR(0x0970C0)); // CCarCtrl::GenerateRandomCars
-    // CMemory::makeRET(SA_ADDR(0x4042C0)); // CPlane::DoPlaneGenerationAndRemoval
+    CMemory::makeRET(SA_ADDR(0x42674C)); // CTheCarGenerators::Process
+    CMemory::makeRET(SA_ADDR(0x0970C0)); // CCarCtrl::GenerateRandomCars
+    CMemory::makeRET(SA_ADDR(0x4042C0)); // CPlane::DoPlaneGenerationAndRemoval
 
     CMemory::WriteProcessMemory(SA_ADDR(0x2466A4), (uintptr_t)"\x00\x00\x80\xD2", 4); // คืน nullptr ให้ CPed::GiveObjectToPedToHold
     CMemory::makeRET(SA_ADDR(0x2466A8)); // CPed::GiveObjectToPedToHold (ยกเลิกการเกิดใหม่พร้อมกับซิการ์และขวด)

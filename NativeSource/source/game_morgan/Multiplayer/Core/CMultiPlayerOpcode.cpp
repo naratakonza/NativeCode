@@ -1313,6 +1313,36 @@ void ClearActorAnimation(RakNet::BitStream bsData)
 	}
 }
 
+void SetPlayerFightingStyle(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetPlayerFightingStyle"));
+
+	uint16_t playerId;
+	uint8_t byteFightingStyle = static_cast<uint8_t>(eFightingStyle::STYLE_STANDARD);
+
+	bsData.Read(playerId);
+	bsData.Read(byteFightingStyle);
+
+	CPlayerPed* pPlayerPed = nullptr;
+
+	if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+	{
+		pPlayerPed = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed();
+	}
+	else
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId))
+		{
+			pPlayerPed = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetGamePlayer();
+		}
+	}
+
+	if (pPlayerPed)
+	{
+		pPlayerPed->SetFightingStyle(byteFightingStyle);
+	}
+}
+
 void SetPlayerSkin(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: SetPlayerSkin"));
@@ -2114,6 +2144,102 @@ void GangZoneStopFlash(RakNet::BitStream bsData)
 	}
 }
 
+void SendDeathMessage(RakNet::BitStream bsData)
+{
+    CNecessary::Log(OBFUSCATE("RPC: SendDeathMessage"));
+
+    int bitsTotal =
+        bytesToBits(sizeof(uint16_t) * 2) +
+        bytesToBits(sizeof(uint8_t));
+
+    if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+        CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SendDeathMessage"));
+        return;
+    }
+
+    uint16_t killerId, playerId;
+    uint8_t reason;
+
+    bsData.Read(killerId);
+    bsData.Read(playerId);
+    bsData.Read(reason);
+
+    std::string killerName, playerName;
+    uint32_t killerColor = 0xFFFFFFFF, playerColor = 0xFFFFFFFF;
+    killerName.clear();
+    playerName.clear();
+
+    uint32_t fontcolor = 0xFFFFFFFF;
+
+    if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+    {
+        if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+        {
+            playerName = CMultiPlayer::GetActiveNetwork()->GetNetworkData().PlayerName;
+            playerColor = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerColorAsARGB();
+        }
+        else
+        {
+            if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(playerId))
+            {
+                playerName = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetRemoteName();
+                playerColor = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetPlayerColorAsARGB();
+            }
+            else
+            {
+                playerName = OBFUSCATE("  ");
+
+                if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID() != killerId && !CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(killerId))
+                {
+                    killerName = OBFUSCATE("  ");
+                    reason = 255;
+                }
+            }
+        }
+
+        if (killerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+        {
+            killerName = CMultiPlayer::GetActiveNetwork()->GetNetworkData().PlayerName;
+            killerColor = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerColorAsARGB();
+        }
+        else
+        {
+            if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(killerId))
+            {
+                killerName = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(killerId)->GetRemoteName();
+                killerColor = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(killerId)->GetPlayerColorAsARGB();
+            }
+            else
+            {
+                killerName = OBFUSCATE("  ");
+            }
+        }
+
+        if (killerId == eInvalidId::INVALID_PLAYER_ID)
+        {
+            if (reason == 200 || reason == 201)
+            {
+                fontcolor = (reason == 200) ? 0xFFFF0000 : 0xFF0000FF;
+            }
+
+            playerName = OBFUSCATE("  ");
+
+            if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+            {
+                killerName = CMultiPlayer::GetActiveNetwork()->GetNetworkData().PlayerName;
+                killerColor = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerColorAsARGB();
+            }
+            else if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(playerId))
+            {
+                killerName = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetRemoteName();
+                killerColor = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetPlayerColorAsARGB();
+            }
+        }
+    }
+
+    CGui::GetDeathWindow()->AddEntry(playerName.c_str(), playerColor, killerName.c_str(), killerColor, reason, fontcolor);
+}
+
 bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 {
     if (rpcid >= 255) {
@@ -2506,10 +2632,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_DeathMessage: {
-		//     SendDeathMessage(*bsData);
-		//     break;
-		// }
+		case RPC_DeathMessage: {
+		    SendDeathMessage(*bsData);
+		    break;
+		}
 
 		// case RPC_SetVehicleNumberPlate: {
 		//     SetVehicleNumberPlate(*bsData);
@@ -2526,10 +2652,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_SetPlayerFightingStyle: {
-		//     SetPlayerFightingStyle(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerFightingStyle: {
+		    SetPlayerFightingStyle(*bsData);
+		    break;
+		}
 
 		case RPC_SetPlayerSkin: {
 		    SetPlayerSkin(*bsData);
