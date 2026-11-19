@@ -417,3 +417,33 @@ float CUtil::FloatOffset(float f1, float f2)
         return (f2 - f1);
     }
 }
+
+void CUtil::FilterColors(char* szStr)
+{
+    if (!szStr)
+    {
+        return;
+    }
+
+    char szNonColored[2048 + 1];
+    int iNonColoredMsgLen = 0;
+
+    for (std::size_t pos = 0; pos < CNecessary::MPSTRLEN(szStr) && szStr[pos] != '\0'; pos++)
+    {
+        if (pos+7 < CNecessary::MPSTRLEN(szStr))
+        {
+            if (szStr[pos] == '{' && szStr[pos+7] == '}')
+            {
+                pos += 7;
+                continue;
+            }
+        }
+
+        szNonColored[iNonColoredMsgLen] = szStr[pos];
+        iNonColoredMsgLen++;
+    }
+
+    szNonColored[iNonColoredMsgLen] = 0;
+    strcpy(szStr, szNonColored);
+}
+

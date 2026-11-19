@@ -433,6 +433,37 @@ void CEntity::DeleteRWObject()
     deleteRWObject(m_pEntity);
 }
 
+float CEntity::GetDistanceFromLocalPlayerPed()
+{
+    if (!CGame::GetPlayer()) {
+        return 10000.0f;
+    }
+
+    if (!m_pEntity) {
+        return 10000.0f;
+    }
+
+    CMatrix matFromPlayer;
+
+    if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer() && (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsSpectating() /*|| CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsInRCMode()*/))
+    {
+        CGame::GetCamera()->GetMatrix(&matFromPlayer);
+    }
+    else
+    {
+        CGame::GetPlayer()->GetMatrix(&matFromPlayer);
+    }
+
+    CMatrix matThis;
+    GetMatrix(&matThis);
+
+    const float deltaX = matThis.pos.x - matFromPlayer.pos.x;
+    const float deltaY = matThis.pos.y - matFromPlayer.pos.y;
+    const float deltaZ = matThis.pos.z - matFromPlayer.pos.z;
+
+    return sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ);
+}
+
 float CEntity::GetDistanceFromPoint(CVector vec)
 {
 	if (!m_pEntity) {

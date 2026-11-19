@@ -986,6 +986,47 @@ void WorldPlayerRemove(RakNet::BitStream bsData)
 	}
 }
 
+void SetPlayerTeam(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetPlayerTeam"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint8_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerTeam"));
+        return;
+    }
+
+	uint16_t playerId;
+	uint8_t byteTeamId;
+
+	bsData.Read(playerId);
+	bsData.Read(byteTeamId);
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+		{
+			if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+			{
+				if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
+				{
+					CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->SetLocalTeam(byteTeamId);
+				}
+			}
+			else
+			{
+				if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId))
+				{
+					CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->SetRemoteTeam(byteTeamId);
+				}
+			}
+		}
+	}
+}
+
 void ShowActor(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: ShowActor"));
@@ -1525,6 +1566,30 @@ void ResetPlayerWeapons(RakNet::BitStream)
 	}
 }
 
+void UpdateScoresPingsIPs(RakNet::BitStream bsData)
+{
+	// CNecessary::Log(OBFUSCATE("RPC: UpdateScoresPingsIPs"));
+
+	uint16_t bytePlayerId;
+	int iPlayerScore;
+	uint32_t dwPlayerPing;
+
+	int iBitLength = bsData.GetNumberOfBitsUsed();
+
+	for (uint16_t i = 0; i <(iBitLength / 8) / 9; i++)
+	{ 
+		bsData.Read(bytePlayerId);
+		bsData.Read(iPlayerScore);
+		bsData.Read(dwPlayerPing);
+
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->UpdateScore(bytePlayerId, iPlayerScore);
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->UpdatePing(bytePlayerId, dwPlayerPing);
+		}
+	}
+}
+
 void ShowTextDraw(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: ShowTextDraw"));
@@ -1598,6 +1663,70 @@ void TextDrawSetString(RakNet::BitStream bsData)
 				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetTextDraw(wTextId)->SetText(cText);
 			}		
 		}
+	}
+}
+
+void Create3DTextLabel(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: Create3DTextLabel"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint32_t)) +
+		bytesToBits(sizeof(CVector)) +
+		bytesToBits(sizeof(float)) +
+		bytesToBits(sizeof(uint8_t)) +
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint16_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for Create3DTextLabel"));
+        return;
+    }
+
+	uint16_t wLabelId;
+	uint32_t dwColor;
+	CVector vecPos;
+	float fDrawDistance;
+	uint8_t byteTestLOS;
+	uint16_t playerId;
+	uint16_t vehicleId;
+	char szBuff[4096 + 1] = { '\0' };
+
+	bsData.Read(wLabelId);
+	bsData.Read(dwColor);
+	bsData.Read((char*)&vecPos, sizeof(CVector));
+	bsData.Read(fDrawDistance);
+	bsData.Read(byteTestLOS);
+	bsData.Read(playerId);
+	bsData.Read(vehicleId);
+	stringCompressor->DecodeString(szBuff, sizeof(szBuff), &bsData);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool()) 
+	{
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool()->Add(wLabelId, szBuff, dwColor, vecPos, fDrawDistance, byteTestLOS, playerId, vehicleId);
+	}
+}
+
+void Destroy3DTextLabel(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: Destroy3DTextLabel"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for Destroy3DTextLabel"));
+        return;
+    }
+
+	uint16_t wLabelId;
+
+	bsData.Read(wLabelId);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool()) 
+	{
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool()->Delete(wLabelId);
 	}
 }
 
@@ -2069,10 +2198,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_SetPlayerTeam: {
-		//     SetPlayerTeam(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerTeam: {
+		    SetPlayerTeam(*bsData);
+		    break;
+		}
 
 		case RPC_ShowActor: {
 		    ShowActor(*bsData);
@@ -2419,10 +2548,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_UpdateScoresPingsIps: {
-		//     UpdateScoresPingsIPs(*bsData);
-		//     break;
-		// }
+		case RPC_UpdateScoresPingsIps: {
+		    UpdateScoresPingsIPs(*bsData);
+		    break;
+		}
 
 		// case RPC_RemoveBuildingForPlayer: {
 		//     RemoveBuilding(*bsData);
@@ -2449,15 +2578,15 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 			break;
 		}
 
-		// case RPC_Create3DTextLabel: {
-		//     Create3DTextLabel(*bsData);
-		//     break;
-		// }
+		case RPC_Create3DTextLabel: {
+		    Create3DTextLabel(*bsData);
+		    break;
+		}
 
-		// case RPC_Update3DTextLabel: {
-		//     Destroy3DTextLabel(*bsData);
-		//     break;
-		// }
+		case RPC_Update3DTextLabel: {
+		    Destroy3DTextLabel(*bsData);
+		    break;
+		}
 
 		// case RPC_SetPlayerSpecialAction: {
 		//     SetPlayerSpecialAction(*bsData);

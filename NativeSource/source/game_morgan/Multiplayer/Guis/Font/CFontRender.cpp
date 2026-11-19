@@ -127,6 +127,11 @@ void CFontRender::Render()
         CGui::GetGPSNavigator()->Render();
     }
 
+    if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool())
+    {
+        CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool()->Draw();
+    }
+
 	if (CGui::GetPlayerTag())
     {
         CGui::GetPlayerTag()->Render();
