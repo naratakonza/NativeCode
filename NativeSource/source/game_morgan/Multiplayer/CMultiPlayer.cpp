@@ -132,7 +132,7 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 		if (CGame::GetPlayer())
 		{
 			CGame::GetPlayer()->SetInterior(0, true);
-			// CGame::GetPlayer()->SetDead(); เดียวมาทำต่อภายหลัง
+			CGame::GetPlayer()->SetDead();
 			CGame::GetPlayer()->SetArmour(0.0f);
 		}
 

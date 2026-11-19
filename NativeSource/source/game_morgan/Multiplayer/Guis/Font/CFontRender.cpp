@@ -274,6 +274,7 @@ ImFont* CFontRender::LoadFont(const char* font, float fontsize, const ImWchar* r
         CNecessary::Log(OBFUSCATE("CFontRender | Font open failed: %s (error %d)"), path, result.error.value());
         return nullptr;
     }
+    
     if (std::fseek(result.file.get(), 0, SEEK_END) != 0) {
         return nullptr;
     }

@@ -14,6 +14,7 @@
 #include "../../Enums/eSpecialVehicle.h"
 #include "../../Enums/eWeaponSampid.h"
 #include "../../Scripts/CScripting.h"
+#include "../../Tasks/TaskTypes/CTaskSimpleJetPack.h"
 #include "../../Multiplayer/CMultiPlayer.h"
 #include "../../../utils/Necessary/CNecessary.h"
 
@@ -867,6 +868,40 @@ uint16_t CPlayerPed::GetKeys(uint16_t* lrAnalog, uint16_t* udAnalog, bool clear)
 	return wRet;
 }
 
+void CPlayerPed::StartJetpack()
+{
+    if (!CPlayerPed::VerifyInstance())
+    {
+        return;
+    }
+
+    CWorld::PlayerInFocus = CPlayerPed::m_bytePlayerNumber;
+    TeleportTo(GetPed()->mat->pos.x, GetPed()->mat->pos.y, GetPed()->mat->pos.z);
+    CScripting::ScriptCommand(&actor_task_jetpack, m_dwGTAId);
+    CWorld::PlayerInFocus = 0;
+}
+
+void CPlayerPed::StopJetpack()
+{
+    if (!CPlayerPed::VerifyInstance() || !GetPed()->pPedIntelligence)
+    {
+        return;
+    }
+
+    CTask* taskMgr = GetPed()->pPedIntelligence->m_taskManager.m_tasks[ePrimaryTasks::TASK_PRIMARY_PRIMARY];
+    if (!taskMgr)
+    {
+        return;
+    }
+
+    uintptr_t taskVtbl = *reinterpret_cast<uintptr_t*>(taskMgr);
+    if (taskVtbl == SA_ADDR(0x4B17B8) + _dyld_get_image_vmaddr_slide(0))
+    {
+        CTaskSimpleJetPack::Destructor(reinterpret_cast<uintptr_t>(taskMgr));
+        GetPed()->pPedIntelligence->m_taskManager.m_tasks[ePrimaryTasks::TASK_PRIMARY_PRIMARY] = nullptr;
+    }
+}
+
 bool CPlayerPed::IsInJetpack()
 {
     if (!CPlayerPed::VerifyInstance() || !GetPed()->pPedIntelligence)
@@ -909,4 +944,92 @@ void CPlayerPed::GetBonePosition(int iBoneID, CVector* vecOut)
     }
 
     CPed::GetBonePosition(GetPed(), vecOut, iBoneID, 0);
+}
+
+CEntityGta* CPlayerPed::GetTargetEntity()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return nullptr;
+    }
+
+    if (CCommon::IsGameEntityArePlaceable(m_pEntity) || !m_pEntity->m_pRwObject) {
+        return nullptr;
+    }
+
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x26F460), "\xE8\x03\x00\xAA\x00\xC4\x44\xF9", 8, "__text");
+    if (!verified) {
+        return nullptr;
+    }
+
+    // CPlayerPed::m_p3rdPersonMouseTarget อยู่ถัดจาก CPed บน iOS
+    return *reinterpret_cast<CEntityGta**>(reinterpret_cast<uintptr_t>(GetPed()) + 0x988);
+}
+
+void CPlayerPed::ResetPlayerTimeLastEaten()
+{
+    static const bool verified = CMemory::HasMappedInstruction(SA_ADDR(0x18E6E4), "\x1F\x01\x03\x79");
+    if (!verified || !CWorld::Players) {
+        return;
+    }
+
+    *reinterpret_cast<uint32_t*>(reinterpret_cast<uintptr_t>(CWorld::Players) + 0x180) = 0; // CWorld::Players->TimeLastEaten
+}
+
+void CPlayerPed::SetDead()
+{
+    if (m_dwGTAId && CCommon::IsValidGamePed(m_pPed))
+    {
+        if (CPlayerPed::IsInJetpack())
+        {
+            CPlayerPed::StopJetpack();
+        }
+
+        try
+        {
+            CPlayerPed::ExtinguishFire();
+        }
+        catch (...)
+        {
+
+        }
+
+        CMatrix mat;
+        GetMatrix(&mat);
+        TeleportTo(mat.pos.x, mat.pos.y, mat.pos.z);
+
+        CPlayerPed::SetHealth(0.0f);
+        CWorld::PlayerInFocus = CPlayerPed::m_bytePlayerNumber;
+        CScripting::ScriptCommand(&kill_actor, m_dwGTAId);
+        CWorld::PlayerInFocus = 0;
+    }
+}
+
+void CPlayerPed::ExtinguishFire()
+{
+    if (!CCommon::IsValidGamePed(m_pPed)) {
+        return;
+    }
+
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x14E934), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9", 8, "__text");
+    if (!verified) {
+        return;
+    }
+
+    uintptr_t pFireObject = reinterpret_cast<uintptr_t>(GetPed()->m_pFire);
+    if (pFireObject != 0)
+    {
+        // CFire::Extinguish
+        reinterpret_cast<void (*)(uintptr_t)>(SA_ADDR(0x14E934) + _dyld_get_image_vmaddr_slide(0))(pFireObject);
+    }
+
+    if (CPlayerPed::IsInVehicle())
+    {
+        CVehicleGta* pVeh = GetPed()->pVehicle;
+        pFireObject = reinterpret_cast<uintptr_t>(pVeh->m_pFire);
+        if (pFireObject)
+        {
+            // CFire::Extinguish
+            reinterpret_cast<void (*)(uintptr_t)>(SA_ADDR(0x14E934) + _dyld_get_image_vmaddr_slide(0))(pFireObject);
+        }
+    }
 }

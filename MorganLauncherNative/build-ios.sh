@@ -75,7 +75,7 @@ for source in \
     "$native/source/game_morgan/CdStreamInfo.cpp" \
     "$native/source/game_morgan/CCommon.cpp" "$native/source/game_morgan/Entity/CEntity.cpp" "$native/source/game_morgan/Entity/CPhysical.cpp" "$native/source/game_morgan/CStats.cpp" "$native/source/game_morgan/CWeapon.cpp" \
     "$native/source/game_morgan/FrontEnd/CWidgetPlayerInfo.cpp" "$native/source/game_morgan/CSprite2d.cpp" "$native/source/game_morgan/CRGBA.cpp" "$native/source/game_morgan/CHud.cpp" \
-    "$native/source/game_morgan/CPedIntelligence.cpp" "$native/source/game_morgan/Tasks/CTaskManager.cpp" "$native/source/game_morgan/Tasks/CTask.cpp" \
+    "$native/source/game_morgan/CPedIntelligence.cpp" "$native/source/game_morgan/Tasks/CTaskManager.cpp" "$native/source/game_morgan/Tasks/CTask.cpp" "$native/source/game_morgan/Tasks/TaskTypes/CTaskSimpleJetPack.cpp" \
     "$native/source/game_morgan/Animation/CAnimManager.cpp" "$native/source/game_morgan/Entity/Actor/CActor.cpp" "$multiplayer/Pools/Process/CActorPool.cpp" "$multiplayer/Guis/CTextDraw.cpp" "$multiplayer/Pools/Process/CTextDrawPool.cpp" \
     "$native/source/game_morgan/CRadar.cpp" "$native/source/game_morgan/CGangZone.cpp" "$multiplayer/Pools/Process/CGangZonePool.cpp" \
     "$native/source/game_morgan/CPickup.cpp" "$multiplayer/Pools/Process/CPickupPool.cpp" \
@@ -149,7 +149,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CdStreamInfo.o" \
     "$out/fileio-objects/CCommon.o" "$out/fileio-objects/CEntity.o" "$out/fileio-objects/CPhysical.o" "$out/fileio-objects/CStats.o" "$out/fileio-objects/CWeapon.o" \
     "$out/fileio-objects/CWidgetPlayerInfo.o" "$out/fileio-objects/CSprite2d.o" "$out/fileio-objects/CRGBA.o" "$out/fileio-objects/CHud.o" \
-    "$out/fileio-objects/CPedIntelligence.o" "$out/fileio-objects/CTaskManager.o" "$out/fileio-objects/CTask.o" \
+    "$out/fileio-objects/CPedIntelligence.o" "$out/fileio-objects/CTaskManager.o" "$out/fileio-objects/CTask.o" "$out/fileio-objects/CTaskSimpleJetPack.o" \
     "$out/fileio-objects/CAnimManager.o" "$out/fileio-objects/CActor.o" "$out/fileio-objects/CActorPool.o" "$out/fileio-objects/CTextDraw.o" "$out/fileio-objects/CTextDrawPool.o" \
     "$out/fileio-objects/CRadar.o" "$out/fileio-objects/CGangZone.o" "$out/fileio-objects/CGangZonePool.o" \
     "$out/fileio-objects/CPickup.o" "$out/fileio-objects/CPickupPool.o" \

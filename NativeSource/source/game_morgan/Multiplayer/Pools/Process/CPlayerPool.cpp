@@ -6,6 +6,8 @@
 #include "../../../CGame.h"
 #include "../../../CUtil.h"
 
+#include <vector>
+
 CPlayerPool::CPlayerPool()
 {
     CNecessary::Log(OBFUSCATE("CPlayerPool Initialise"));
@@ -44,8 +46,11 @@ void CPlayerPool::Process()
         }
     }
 
+    std::vector<CRemotePlayer*> playersToRemove;
+
     for (const auto& playerPair : CPlayerPool::m_pPlayers)
     {
+        [[maybe_unused]] uint16_t playerId = playerPair.first;
         CRemotePlayer* pPlayer = playerPair.second;
 
         if (pPlayer)
@@ -54,15 +59,17 @@ void CPlayerPool::Process()
             {
                 pPlayer->Process();
             }
-            catch (const std::exception& error)
-            {
-                CExceptions::Print(OBFUSCATE("s001"), error.what());
-            }
             catch (...)
             {
-                CExceptions::Print(OBFUSCATE("s001"), OBFUSCATE("unknown C++ exception"));
+                CExceptions::Print(OBFUSCATE("s001"), OBFUSCATE("s001"));
+                playersToRemove.push_back(pPlayer);
             }
         }
+    }
+
+    for (CRemotePlayer* pPlayer : playersToRemove)
+    {
+        pPlayer->RemoveGamePlayer(4);
     }
 }
 

@@ -58,6 +58,10 @@ void CPatches::InstallLevelZPatches()
     CMemory::WriteProcessMemory(SA_ADDR(0x3BF784), (uintptr_t)"\x1F\x00\x00\x71", 4); // CTaskSimplePlayerOnFoot::ProcessPlayerWeapon
     CMemory::WriteProcessMemory(SA_ADDR(0x2733D8), (uintptr_t)"\x1F\x00\x00\x71", 4); // CPlayerPed::Compute3rdPersonMouseTarget
 
+    // แก้ไขปืน Country Rifle ให้เป็นมุมมองบุคคลที่ 3
+    CMemory::makeNOP(SA_ADDR(0x3BEE50), 2);
+    CMemory::WriteProcessMemory(SA_ADDR(0x3BF3D0), (uintptr_t)"\x7F\xFF\x03\x71", 4);
+
     // CPlayerPed::CPlayerPed เปลี่ยน TBNZ เป็น TBZ ก่อนขั้นตั้งค่า player group
     CMemory::WriteProcessMemory(SA_ADDR(0x26CBF4), (uintptr_t)"\x54\x05\x00\x36", 4);
 

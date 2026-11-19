@@ -2144,6 +2144,31 @@ void GangZoneStopFlash(RakNet::BitStream bsData)
 	}
 }
 
+void DeathBroadcast(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: DeathBroadcast"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for DeathBroadcast"));
+        return;
+    }
+
+	uint16_t playerId;
+
+	bsData.Read(playerId);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)) 
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->HandleWasted();
+		}
+	}
+}
+
 void SendDeathMessage(RakNet::BitStream bsData)
 {
     CNecessary::Log(OBFUSCATE("RPC: SendDeathMessage"));
@@ -2627,10 +2652,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_WorldPlayerDeath: {
-		//     DeathBroadcast(*bsData);
-		//     break;
-		// }
+		case RPC_WorldPlayerDeath: {
+		    DeathBroadcast(*bsData);
+		    break;
+		}
 
 		case RPC_DeathMessage: {
 		    SendDeathMessage(*bsData);

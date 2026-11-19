@@ -733,6 +733,27 @@ void CRemotePlayer::RemoveGamePlayerFromVehicle()
 	}
 }
 
+void CRemotePlayer::HandleWasted()
+{
+	if (CPlayerPed* pGamePlayer = CRemotePlayer::GetGamePlayer())
+	{
+		if (!CRemotePlayer::IsGamePlayerValid(CRemotePlayer::GetRemotePlayerID(), pGamePlayer)) {
+			CNecessary::Log(OBFUSCATE("HandleWasted: pGamePlayer is no longer valid."));
+			return;
+		}
+
+		pGamePlayer->SetKeys(0, 0, 0);
+		pGamePlayer->SetDead();
+	}
+
+	if (CRemotePlayer::GetNetworkPlayerState() != eNetworkPlayerState::PLAYER_STATE_WASTED)
+	{
+		CRemotePlayer::SetNetworkPlayerState(eNetworkPlayerState::PLAYER_STATE_WASTED);
+	}
+
+	CRemotePlayer::ResetData();
+}
+
 void CRemotePlayer::CreateGlobalMarker(short sX, short sY, short sZ)
 {
 	CRemotePlayer::DestroyGlobalMarker();

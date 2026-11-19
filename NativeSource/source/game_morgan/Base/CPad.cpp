@@ -171,8 +171,7 @@ void CPad::RemoteProcessControl(uintptr_t thiz, void (*CPed_ProcessControl)(uint
 	CWorld::PlayerInFocus = CPad::m_byteCurPlayer;
 
 	CPad::m_bEnableUpdatePosition = false;
-	// CPad::RemoveInvalidRemotePlayer(thiz); // เดียวมาทำภายหลัง
-	CPed_ProcessControl(thiz);
+    CPad::RemoveInvalidRemotePlayer(thiz, CPed_ProcessControl);
 	CPad::m_bEnableUpdatePosition = true;
 
 	CCameraAim::GameSetLocalPlayerSkills();
@@ -186,6 +185,42 @@ void CPad::RemoteProcessControl(uintptr_t thiz, void (*CPed_ProcessControl)(uint
 
 	CPad::SwitchOnFootContextToLocalPlayer();
 	CCameraAim::GameSetLocalPlayerAim();
+}
+
+void CPad::RemoveInvalidRemotePlayer(uintptr_t thiz, void (*CPed_ProcessControl)(uintptr_t))
+{
+    if (!CMultiPlayer::GetActiveNetwork()) {
+        return;
+    }
+
+    CPlayerPool* pPlayerPool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool();
+    if (!pPlayerPool) {
+        return;
+    }
+
+    uint16_t playerId = pPlayerPool->FindRemotePlayerIDFromGtaPtr(reinterpret_cast<CPedGta*>(thiz));
+
+    try
+    {
+        CPed_ProcessControl(thiz);
+    }
+    catch (...)
+    {
+        if (playerId != eInvalidId::INVALID_PLAYER_ID)
+        {
+            CRemotePlayer* pPlayer = pPlayerPool->GetRemotePlayer(playerId);
+            if (pPlayer)
+            {
+                pPlayer->RemoveGamePlayer(4);
+            }
+
+            if (CGui::GetChat())
+            {
+                CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Removed player %u due to error."), playerId);
+                CNecessary::Log(OBFUSCATE("Removed player %u due to error."), playerId);
+            }
+        }
+    }
 }
 
 extern "C" __attribute__((visibility("default"))) void CPed_UpdatePosition_hook(uintptr_t thiz, void (*CPed_UpdatePosition)(uintptr_t))
