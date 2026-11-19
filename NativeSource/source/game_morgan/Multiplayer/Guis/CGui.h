@@ -4,6 +4,7 @@
 #include "../Texts/CDeathWindow.h"
 #include "../Texts/CPlayerTags.h"
 #include "CChat.h"
+#include "CScoreBoard.h"
 #include "CButton.h"
 #include "CDialog.h"
 #include "CXSing.h"
@@ -18,6 +19,11 @@ public:
     static void Initialise();
     static void InitialiseFont();
     static void Uninitialise();
+
+    static CScoreBoard* GetScoreBoard()
+    {
+        return CGui::pScoreBoard;
+    }
 
     static CDeathWindow* GetDeathWindow()
     {
@@ -73,6 +79,7 @@ public:
     }
 
 private:
+    static CScoreBoard* pScoreBoard;
     static CDeathWindow* pDeathWindow;
     static CPlayerTags* pPlayerTag;
     static CChat* pChat;

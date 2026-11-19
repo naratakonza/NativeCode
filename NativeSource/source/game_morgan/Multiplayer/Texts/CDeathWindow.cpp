@@ -51,9 +51,9 @@ void CDeathWindow::Render()
         return;
     }
 
-    // if (CGui::GetScoreBoard()->GetActiveScore() || CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() || (CGui::GetVoiceMenu()->GetActiveVoiceMenu() && !CVoiceMenu::m_bCustomizeMode) /*|| CGui::GetClientMenu()->GetActiveClientMenu() || CGui::GetChatMenu()->GetActiveChatMenu()*/) {
-    //     return;
-    // }
+    if (CGui::GetScoreBoard()->GetActiveScore() /*|| CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() || (CGui::GetVoiceMenu()->GetActiveVoiceMenu() && !CVoiceMenu::m_bCustomizeMode) || CGui::GetClientMenu()->GetActiveClientMenu() || CGui::GetChatMenu()->GetActiveChatMenu()*/) {
+        return;
+    }
 
     ImGuiIO &io = ImGui::GetIO();
     float deathWindowX = io.DisplaySize.x / 2.0f + SCALE_X(io, 580.0f);

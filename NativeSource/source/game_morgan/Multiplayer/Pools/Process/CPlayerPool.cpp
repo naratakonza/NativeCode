@@ -6,8 +6,6 @@
 #include "../../../CGame.h"
 #include "../../../CUtil.h"
 
-#include <vector>
-
 CPlayerPool::CPlayerPool()
 {
     CNecessary::Log(OBFUSCATE("CPlayerPool Initialise"));
@@ -30,6 +28,13 @@ CPlayerPool::~CPlayerPool()
 
 void CPlayerPool::Process()
 {
+    static uint32_t dwLastTabUpdate = CNecessary::GetTickCount();
+
+    if (CGui::GetScoreBoard())
+    {
+        CGui::GetScoreBoard()->ProcessPendingActions();
+    }
+
     if (CPlayerPool::GetLocalPlayer())
     {
         try
@@ -50,7 +55,7 @@ void CPlayerPool::Process()
 
     for (const auto& playerPair : CPlayerPool::m_pPlayers)
     {
-        [[maybe_unused]] uint16_t playerId = playerPair.first;
+        uint16_t playerId = playerPair.first;
         CRemotePlayer* pPlayer = playerPair.second;
 
         if (pPlayer)
@@ -58,6 +63,15 @@ void CPlayerPool::Process()
             try
             {
                 pPlayer->Process();
+
+                if (CGui::GetScoreBoard() && CNecessary::GetTickCount() - dwLastTabUpdate > 1500)
+                {
+                    uint32_t color = static_cast<uint32_t>(pPlayer->GetPlayerColorAsARGB());
+                    if (color != 0 && pPlayer->GetRemoteName() != nullptr && !pPlayer->IsRemoteNPC())
+                    {
+                        CGui::GetScoreBoard()->SetTabStat(playerId, pPlayer->GetRemoteName(), pPlayer->GetRemoteScore(), pPlayer->GetRemotePing(), color);
+                    }
+                }
             }
             catch (...)
             {
@@ -70,6 +84,26 @@ void CPlayerPool::Process()
     for (CRemotePlayer* pPlayer : playersToRemove)
     {
         pPlayer->RemoveGamePlayer(4);
+    }
+
+    if (CMultiPlayer::GetActiveNetwork()->GetNetworkState() == eNetworkState::GAMESTATE_CONNECTED)
+    {
+        if (CPlayerPool::GetLocalPlayer())
+        {
+            if (CGui::GetScoreBoard() && CNecessary::GetTickCount() - dwLastTabUpdate > 1500)
+            {
+                uint32_t color = CPlayerPool::GetLocalPlayer()->GetPlayerColorAsARGB();
+                if (color != 0)
+                {
+                    CGui::GetScoreBoard()->TabInFo(CMultiPlayer::GetActiveNetwork()->GetNetworkData().HostName, CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetPlayersCount() + 1);
+                    CGui::GetScoreBoard()->SetLocalPlayerID(CPlayerPool::GetLocalPlayer()->GetLocalID());
+                    CGui::GetScoreBoard()->SetTabStat(CPlayerPool::GetLocalPlayer()->GetLocalID(), CMultiPlayer::GetActiveNetwork()->GetNetworkData().PlayerName, CPlayerPool::GetLocalPlayer()->GetLocalScore(), CPlayerPool::GetLocalPlayer()->GetLocalPing(), color);
+                    dwLastTabUpdate = CNecessary::GetTickCount();
+                }
+            }
+        }
+
+        CMultiPlayerPacket::UpdatePlayerScoresAndPings();
     }
 }
 

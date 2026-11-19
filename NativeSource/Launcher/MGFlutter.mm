@@ -44,13 +44,14 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 @property(nonatomic) CGRect spawnArea;
 @property(nonatomic) CGRect keysArea;
 @property(nonatomic) BOOL dialogPresented;
+@property(nonatomic) BOOL scoreBoardPresented;
 @end
 
 @implementation MGFlutterOverlayView
 - (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent*)event
 {
     return [super pointInside:point withEvent:event] &&
-        (self.dialogPresented || (self.chatInteractive && CGRectContainsPoint(self.chatArea, point)) || CGRectContainsPoint(self.spawnArea, point) || CGRectContainsPoint(self.keysArea, point));
+        (self.dialogPresented || self.scoreBoardPresented || (self.chatInteractive && CGRectContainsPoint(self.chatArea, point)) || CGRectContainsPoint(self.spawnArea, point) || CGRectContainsPoint(self.keysArea, point));
 }
 @end
 
@@ -82,6 +83,12 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 @property(nonatomic) BOOL paused;
 @property(nonatomic) BOOL loadingFinished;
 @property(nonatomic, strong) NSDictionary* chatLayout;
+@property(nonatomic, strong) id<MGLoadingChannel> scoreBoardChannel;
+@property(nonatomic, strong) NSMutableDictionary<NSNumber*, NSArray*>* scoreBoardPlayers;
+@property(nonatomic, strong) NSArray* scoreBoardInfo;
+@property(nonatomic, strong) NSNumber* scoreBoardLocalPlayer;
+@property(nonatomic) BOOL scoreBoardReady;
+@property(nonatomic) BOOL scoreBoardFlushScheduled;
 - (BOOL)attachTo:(UIViewController*)parent;
 - (void)close;
 - (void)send:(NSString*)method value:(id)value;
@@ -90,12 +97,15 @@ using MGLoadingHandler = void (^)(id<MGLoadingCall>, MGLoadingResult);
 - (void)updateKeysVisibility;
 - (void)updateDialogVisibility;
 - (void)publishDialog;
+- (void)updateScoreBoardVisibility;
+- (void)scheduleScoreBoardFlush;
 - (BOOL)isChatInteractive;
 - (void)updateChatInteraction;
 @end
 
 static MGFlutter* flutter;
 static bool spawnVisible;
+static bool scoreBoardVisible;
 static NSDictionary* keysBarData;
 static std::atomic<bool> keysBridgeAvailable{false};
 static NSString* const flutterEngineRevision = @"55eae6864b296dd9f43b2cc7577ec256e5c32a8d";
@@ -206,10 +216,12 @@ static bool MGHandleSpawnAction(NSString* action)
     self.dialogChannel = [channelClass methodChannelWithName:@"flutter_dialog" binaryMessenger:[self.engine binaryMessenger]];
     self.keysChannel = [channelClass methodChannelWithName:@"flutter_keysbar" binaryMessenger:[self.engine binaryMessenger]];
     self.uiChannel = [channelClass methodChannelWithName:@"flutter/ui_control" binaryMessenger:[self.engine binaryMessenger]];
+    self.scoreBoardChannel = [channelClass methodChannelWithName:@"flutter_scoreboard" binaryMessenger:[self.engine binaryMessenger]];
+    self.scoreBoardPlayers = [NSMutableDictionary dictionary];
     self.keysData = keysBarData;
     self.pendingMessages = [NSMutableArray array];
     self.controller = [[(id)controllerClass alloc] initWithEngine:self.engine nibName:nil bundle:nil];
-    if (!self.channel || !self.chatChannel || !self.spawnChannel || !self.dialogChannel || !self.keysChannel || !self.uiChannel || !self.controller)
+    if (!self.channel || !self.chatChannel || !self.spawnChannel || !self.dialogChannel || !self.keysChannel || !self.uiChannel || !self.scoreBoardChannel || !self.controller)
     {
         return NO;
     }
@@ -361,6 +373,56 @@ static bool MGHandleSpawnAction(NSString* action)
         });
     }];
 
+    [self.scoreBoardChannel setMethodCallHandler:^(id<MGLoadingCall> call, MGLoadingResult result) {
+        MGRunLoadingOnMain(^{
+            MGFlutter* screen = weakSelf;
+            if (!screen || screen != flutter)
+            {
+                result(@NO);
+                return;
+            }
+
+            if ([call.method isEqualToString:@"ready"])
+            {
+                screen.scoreBoardReady = YES;
+                if (screen.scoreBoardInfo)
+                {
+                    [screen.scoreBoardChannel invokeMethod:@"serverinfo" arguments:screen.scoreBoardInfo];
+                }
+                if (screen.scoreBoardLocalPlayer)
+                {
+                    [screen.scoreBoardChannel invokeMethod:@"localplayerid" arguments:screen.scoreBoardLocalPlayer];
+                }
+                [screen scheduleScoreBoardFlush];
+                [screen updateOverlayVisibility];
+                result(@YES);
+                return;
+            }
+
+            if (!screen.overlay.scoreBoardPresented)
+            {
+                result(@NO);
+                return;
+            }
+            if ([call.method isEqualToString:@"TabClose"])
+            {
+                result(@(CScoreBoard::QueueAction(-1)));
+                return;
+            }
+            if ([call.method isEqualToString:@"onPlayerTab"] && [call.arguments isKindOfClass:NSDictionary.class])
+            {
+                NSNumber* playerId = call.arguments[@"playerid"];
+                if ([playerId isKindOfClass:NSNumber.class] && std::isfinite(playerId.doubleValue) &&
+                    playerId.doubleValue == playerId.longLongValue && playerId.longLongValue >= 0 && playerId.longLongValue < eMaxItem::MAX_PLAYERS)
+                {
+                    result(@(CScoreBoard::QueueAction(playerId.intValue)));
+                    return;
+                }
+            }
+            result(@NO);
+        });
+    }];
+
     [self.dialogChannel setMethodCallHandler:^(id<MGLoadingCall> call, MGLoadingResult result) {
         MGRunLoadingOnMain(^{
             MGFlutter* screen = weakSelf;
@@ -484,7 +546,7 @@ static bool MGHandleSpawnAction(NSString* action)
 
 - (BOOL)isChatInteractive
 {
-    return self.chatVisible && self.loadingFinished && !self.visible && !self.paused && !self.overlay.dialogPresented;
+    return self.chatVisible && self.loadingFinished && !self.visible && !self.paused && !self.overlay.dialogPresented && !self.overlay.scoreBoardPresented;
 }
 
 - (void)updateChatInteraction
@@ -500,6 +562,7 @@ static bool MGHandleSpawnAction(NSString* action)
 - (void)updateOverlayVisibility
 {
     [self updateDialogVisibility];
+    [self updateScoreBoardVisibility];
     [self updateChatInteraction];
     [self updateSpawnVisibility];
     [self updateKeysVisibility];
@@ -512,7 +575,7 @@ static bool MGHandleSpawnAction(NSString* action)
 - (void)updateSpawnVisibility
 {
     const BOOL show = self.spawnReady && spawnVisible && self.loadingFinished && !self.visible && !self.paused;
-    self.controller.viewIfLoaded.accessibilityElementsHidden = ![self isChatInteractive] && !show && !self.overlay.dialogPresented && CGRectIsEmpty(self.overlay.keysArea);
+    self.controller.viewIfLoaded.accessibilityElementsHidden = ![self isChatInteractive] && !show && !self.overlay.dialogPresented && CGRectIsEmpty(self.overlay.keysArea) && !self.overlay.scoreBoardPresented;
     if (self.spawnPresented != show)
     {
         self.spawnPresented = show;
@@ -526,7 +589,7 @@ static bool MGHandleSpawnAction(NSString* action)
     if (!self.keysReady) return;
     NSMutableDictionary* data = [self.keysData mutableCopy];
     if (!data) data = [NSMutableDictionary dictionary];
-    const BOOL show = [data[@"visible"] boolValue] && self.loadingFinished && !self.visible && !self.paused && !self.overlay.dialogPresented;
+    const BOOL show = [data[@"visible"] boolValue] && self.loadingFinished && !self.visible && !self.paused && !self.overlay.dialogPresented && !self.overlay.scoreBoardPresented;
     data[@"visible"] = @(show);
     if (!show) self.overlay.keysArea = CGRectZero;
     [self.uiChannel invokeMethod:@"UpdateKeysBar" arguments:data];
@@ -554,12 +617,57 @@ static bool MGHandleSpawnAction(NSString* action)
         [self.dialogChannel invokeMethod:@"showDialog" arguments:self.dialogData];
     }
     [self updateDialogVisibility];
+    [self updateScoreBoardVisibility];
     [self updateSpawnVisibility];
     [self updateKeysVisibility];
 }
 
+- (void)updateScoreBoardVisibility
+{
+    const BOOL show = self.scoreBoardReady && scoreBoardVisible && self.loadingFinished && !self.visible && !self.paused && !self.overlay.dialogPresented;
+    if (self.overlay.scoreBoardPresented != show)
+    {
+        self.overlay.scoreBoardPresented = show;
+        if (show)
+        {
+            [self.chatChannel invokeMethod:@"HideInputChat" arguments:nil];
+        }
+        [self.scoreBoardChannel invokeMethod:@"setScoreBoardVisible" arguments:@(show)];
+    }
+}
+
+- (void)scheduleScoreBoardFlush
+{
+    if (!self.scoreBoardReady || self.scoreBoardFlushScheduled || self.scoreBoardPlayers.count == 0)
+    {
+        return;
+    }
+
+    self.scoreBoardFlushScheduled = YES;
+    __weak MGFlutter* weakSelf = self;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 500 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{
+        MGFlutter* screen = weakSelf;
+        if (!screen || screen != flutter)
+        {
+            return;
+        }
+        screen.scoreBoardFlushScheduled = NO;
+        NSArray* rows = screen.scoreBoardPlayers.allValues;
+        [screen.scoreBoardPlayers removeAllObjects];
+        if (rows.count != 0)
+        {
+            [screen.scoreBoardChannel invokeMethod:@"updateplayer" arguments:rows];
+        }
+    });
+}
+
 - (void)close
 {
+    scoreBoardVisible = false;
+    [self.scoreBoardChannel setMethodCallHandler:nil];
+    self.scoreBoardChannel = nil;
+    self.scoreBoardReady = NO;
+    [self.scoreBoardPlayers removeAllObjects];
     keysBridgeAvailable.store(false);
     [self.outsideChatTap.view removeGestureRecognizer:self.outsideChatTap];
     self.outsideChatTap = nil;
@@ -801,4 +909,46 @@ bool MGUpdateFlutterKeysBar(bool visible, bool inVehicle, bool menuActive, bool 
         }
     });
     return true;
+}
+
+void MGSetFlutterScoreBoardVisible(bool visible)
+{
+    MGRunLoadingOnMain(^{
+        scoreBoardVisible = visible;
+        [flutter updateOverlayVisibility];
+    });
+}
+
+void MGSetFlutterScoreBoardInfo(const char* serverName, int online)
+{
+    NSString* name = serverName ? [NSString stringWithUTF8String:serverName] : @"";
+    if (!name) return;
+    MGRunLoadingOnMain(^{
+        flutter.scoreBoardInfo = @[name, @(online)];
+        if (flutter.scoreBoardReady)
+        {
+            [flutter.scoreBoardChannel invokeMethod:@"serverinfo" arguments:flutter.scoreBoardInfo];
+        }
+    });
+}
+
+void MGSetFlutterScoreBoardLocalPlayer(int id)
+{
+    MGRunLoadingOnMain(^{
+        flutter.scoreBoardLocalPlayer = @(id);
+        if (flutter.scoreBoardReady)
+        {
+            [flutter.scoreBoardChannel invokeMethod:@"localplayerid" arguments:@(id)];
+        }
+    });
+}
+
+void MGUpdateFlutterScoreBoardPlayer(int id, const char* name, int score, int ping, uint32_t color)
+{
+    NSString* playerName = name ? [NSString stringWithUTF8String:name] : @"";
+    if (!playerName) return;
+    MGRunLoadingOnMain(^{
+        flutter.scoreBoardPlayers[@(id)] = @[@(id), playerName, @(score), @(ping), @(color)];
+        [flutter scheduleScoreBoardFlush];
+    });
 }

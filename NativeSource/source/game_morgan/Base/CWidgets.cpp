@@ -47,9 +47,9 @@ extern "C" __attribute__((visibility("default"))) void CWidgetButton_Draw_hook(u
 		return;
 	}
 
-	if (CGui::GetDialog() /*&& CGui::GetScoreBoard() && CGui::GetVoiceMenu() && CGui::GetMainMenuScreens()*/)
+	if (CGui::GetDialog() && CGui::GetScoreBoard() /*&& CGui::GetVoiceMenu() && CGui::GetMainMenuScreens()*/)
 	{
-		if (CGui::GetDialog()->GetActiveDialog() /*|| CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() || CGui::GetScoreBoard()->GetActiveScore() || (CGui::GetVoiceMenu()->GetActiveVoiceMenu() && !CVoiceMenu::m_bCustomizeMode)*/)
+		if (CGui::GetDialog()->GetActiveDialog() || CGui::GetScoreBoard()->GetActiveScore()/*|| CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() || (CGui::GetVoiceMenu()->GetActiveVoiceMenu() && !CVoiceMenu::m_bCustomizeMode)*/)
 		{
 			return;
 		}

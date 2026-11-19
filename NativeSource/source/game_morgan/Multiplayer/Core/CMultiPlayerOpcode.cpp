@@ -407,6 +407,27 @@ void SetPlayerFacingAngle(RakNet::BitStream bsData)
 	}
 }
 
+void SetPlayerVelocity(RakNet::BitStream bsData)
+{
+    CNecessary::Log(OBFUSCATE("RPC: SetPlayerVelocity"));
+
+    CVector vecMoveSpeed;
+
+    bsData.Read((char*)&vecMoveSpeed, sizeof(CVector));
+
+    CPlayerPed *pPlayer = CGame::GetPlayer();
+    if (pPlayer)
+    {
+        if (pPlayer->IsOnGround())
+        {
+            uint32_t dwStateFlags = pPlayer->GetStateFlags();
+            pPlayer->SetStateFlags(dwStateFlags ^ 3);
+        }
+
+        pPlayer->SetMoveSpeedVector(vecMoveSpeed);
+    }
+}
+
 void SetCameraPos(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: SetCameraPos"));
@@ -1573,6 +1594,119 @@ void ShowPlayerNameTag(RakNet::BitStream bsData)
 	}
 }
 
+void ApplyAnimation(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ApplyAnimation"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint8_t)) +
+		bytesToBits(sizeof(uint8_t)) +
+		bytesToBits(sizeof(float)) +
+		bytesToBits(sizeof(bool) * 4) +
+		bytesToBits(sizeof(uint32_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for ApplyAnimation"));
+        return;
+    }
+
+	uint16_t playerId;
+	uint8_t uiAnimLibLen;
+	char szAnimLib[64] = { '\0' };
+	uint8_t uiAnimNameLen;
+	char szAnimName[64] = { '\0' };
+	float fDelta;
+	bool bLoop;
+	bool bLockX;
+	bool bLockY;
+	bool bFreeze;
+	uint32_t uiTime;
+
+	bsData.Read(playerId);
+
+	bsData.Read(uiAnimLibLen);
+	if (uiAnimLibLen < 0 || uiAnimLibLen >= sizeof(szAnimLib)) {
+		return;
+	}
+
+	bsData.Read(szAnimLib, uiAnimLibLen);
+	szAnimLib[uiAnimLibLen] = '\0';
+
+	bsData.Read(uiAnimNameLen);
+	if (uiAnimNameLen < 0 || uiAnimNameLen >= sizeof(szAnimName)) {
+		return;
+	}
+
+	bsData.Read(szAnimName, uiAnimNameLen);
+	szAnimName[uiAnimNameLen] = '\0';
+
+	bsData.Read(fDelta);
+	bsData.Read(bLoop);
+	bsData.Read(bLockX);
+	bsData.Read(bLockY);
+	bsData.Read(bFreeze);
+	bsData.Read(uiTime);
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+		{
+			CPlayerPed *pPlayerPed = (CPlayerPed*)nullptr;
+			if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+			{
+				pPlayerPed = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed();
+			}
+			else if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(playerId))
+			{
+				pPlayerPed = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetGamePlayer();
+			}
+
+			if (pPlayerPed)
+			{
+				pPlayerPed->ApplyAnimation(szAnimName, szAnimLib, fDelta, (int)bLoop, (int)bLockX, (int)bLockY, (int)bFreeze, (int)uiTime);
+			}
+		}
+	}
+}
+
+void ClearAnimations(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ClearAnimations"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for ClearAnimations"));
+        return;
+    }
+
+	uint16_t playerId;
+	bsData.Read(playerId);
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+		{
+			CPlayerPed *pPlayerPed = (CPlayerPed*)nullptr;
+			if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+			{
+				pPlayerPed = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed();
+			}
+			else if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(playerId))
+			{
+				pPlayerPed = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetGamePlayer();
+			}
+
+			if (pPlayerPed) 
+			{
+				pPlayerPed->ClearAnimations();
+			}
+		}
+	}
+}
+
 void SetPlayerName(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: SetPlayerName"));
@@ -2377,10 +2511,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		// 	break;
 		// }
 
-		// case RPC_SetPlayerVelocity: {
-		// 	SetPlayerVelocity(*bsData);
-		// 	break;
-		// }
+        case RPC_SetPlayerVelocity: {
+            SetPlayerVelocity(*bsData);
+            break;
+        }
 
 		// case RPC_ShowMenu: {
 		// 	ShowMenu(*bsData);
@@ -2772,15 +2906,15 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_ApplyPlayerAnimation: {
-		//     ApplyAnimation(*bsData);
-		//     break;
-		// }
+		case RPC_ApplyPlayerAnimation: {
+		    ApplyAnimation(*bsData);
+		    break;
+		}
 
-		// case RPC_ClearPlayerAnimation: {
-		//     ClearAnimations(*bsData);
-		//     break;
-		// }
+		case RPC_ClearPlayerAnimation: {
+		    ClearAnimations(*bsData);
+		    break;
+		}
 
 		case RPC_SetPlayerName: {
 		    SetPlayerName(*bsData);

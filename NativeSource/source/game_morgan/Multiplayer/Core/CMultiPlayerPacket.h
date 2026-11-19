@@ -7,4 +7,5 @@ public:
     static void SendChatCommand(const char* szCommand);
     static void SendChatMessage(const char* szMsg);
     static void UpdatePlayerScoresAndPings();
+    static void SendTabClickPlayer(int id);
 };

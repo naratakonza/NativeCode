@@ -101,12 +101,11 @@ void CChat::Render()
         return;
     }
 
-    // if (CGui::GetScoreBoard()->GetActiveScore() || CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() ||
-    //     CGui::GetVoiceMenu()->GetActiveVoiceMenu() || CVoiceMenu::m_bCustomizeMode /*|| CGui::GetClientMenu()->GetActiveClientMenu()*/)
-    // {
-    //     MGSetFlutterChatVisible(false);
-    //     return;
-    // }
+    if (CGui::GetScoreBoard()->GetActiveScore() /*|| CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() || CGui::GetVoiceMenu()->GetActiveVoiceMenu() || CVoiceMenu::m_bCustomizeMode /*|| CGui::GetClientMenu()->GetActiveClientMenu()*/)
+    {
+        MGSetFlutterChatVisible(false);
+        return;
+    }
 
     const bool radarHidden = CGame::IsRadarActive();
     const float radarRight = radarHidden ? -1.0f : CTiltedRadar::GetWidgetRightFraction();

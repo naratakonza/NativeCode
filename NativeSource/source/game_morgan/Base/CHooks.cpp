@@ -27,6 +27,7 @@
 #include "../Multiplayer/Pools/CNetGamePool.h"
 #include "../Multiplayer/Audio/CAudio.h"
 #include "../Multiplayer/Guis/CGui.h"
+#include "../Multiplayer/Guis/CInterface.h"
 
 #include <algorithm>
 #include <cctype>
@@ -305,6 +306,12 @@ extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (
                 CGui::GetFontRender()->Render();
             }
 
+            CInterface::Control();
+
+            if (CGui::GetScoreBoard()->GetActiveScore() /*|| CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() || (CGui::GetVoiceMenu()->GetActiveVoiceMenu() && !CVoiceMenu::m_bCustomizeMode) || CGui::GetClientMenu()->GetActiveClientMenu() || CGui::GetChatMenu()->GetActiveChatMenu()*/) {
+				return;
+			}
+
             if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()) 
 			{
 				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->Draw();
@@ -561,7 +568,7 @@ extern "C" __attribute__((visibility("default"))) uintptr_t TextureDatabaseRunti
 
 void CHooks::InstallNecessary()
 {
-    CMemory::WriteProcessMemory(SA_ADDR(0xCE30C), (uintptr_t)"\xEA\x25\x0F\x14", 4);
+    CMemory::WriteProcessMemory(SA_ADDR(0xCE30C), (uintptr_t)"\xEA\x25\x0F\x14", 4); // กระโดดไป Pickup Update
 
     if (const auto error = CHook::GetThread()->InstallFileOpen())
     {

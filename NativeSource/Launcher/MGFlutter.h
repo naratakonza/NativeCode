@@ -21,3 +21,8 @@ void MGCloseFlutterChat();
 void MGAddFlutterChatMessage(int type, uint32_t color, uint32_t nickColor, const char* nick, const char* text);
 
 bool MGUpdateFlutterKeysBar(bool visible, bool inVehicle, bool menuActive, bool f4Enabled, int radarLeft, int radarBottom);
+
+void MGSetFlutterScoreBoardVisible(bool visible);
+void MGSetFlutterScoreBoardInfo(const char* serverName, int online);
+void MGSetFlutterScoreBoardLocalPlayer(int id);
+void MGUpdateFlutterScoreBoardPlayer(int id, const char* name, int score, int ping, uint32_t color);

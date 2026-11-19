@@ -73,3 +73,15 @@ void CMultiPlayerPacket::UpdatePlayerScoresAndPings()
 		CMultiPlayer::GetActiveNetwork()->GetRakClient()->RPC(&RPC_UpdateScoresPingsIPs, &bsParams, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, NULL);
 	}
 }
+
+void CMultiPlayerPacket::SendTabClickPlayer(int id)
+{
+    if (CMultiPlayer::GetActiveNetwork()->GetNetworkState() != eNetworkState::GAMESTATE_CONNECTED) {
+        return;
+    }
+
+    RakNet::BitStream bsParams;
+    bsParams.Write((uint16_t)id);
+    bsParams.Write(0);
+    CMultiPlayer::GetActiveNetwork()->GetRakClient()->RPC(&RPC_ClickPlayer, &bsParams, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, NULL);
+}

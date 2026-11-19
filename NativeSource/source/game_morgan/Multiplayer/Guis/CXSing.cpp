@@ -49,10 +49,10 @@ void CXSing::Render()
             return;
         }
 
-        // รอโยกระบบ ScoreBoard, MainMenuScreens และ VoiceMenu
-        // if (CGui::GetScoreBoard()->GetActiveScore() || CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() || (CGui::GetVoiceMenu()->GetActiveVoiceMenu() && !CVoiceMenu::m_bCustomizeMode) /*|| CGui::GetClientMenu()->GetActiveClientMenu() || CGui::GetChatMenu()->GetActiveChatMenu()*/) {
-        //     return;
-        // }
+        // รอโยกระบบ MainMenuScreens และ VoiceMenu
+        if (CGui::GetScoreBoard()->GetActiveScore() /*|| CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() || (CGui::GetVoiceMenu()->GetActiveVoiceMenu() && !CVoiceMenu::m_bCustomizeMode) || CGui::GetClientMenu()->GetActiveClientMenu() || CGui::GetChatMenu()->GetActiveChatMenu()*/) {
+            return;
+        }
 
         if (CXSing::m_bRenderStatus)
         {

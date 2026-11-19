@@ -23,11 +23,10 @@ void CDialog::Show()
 {
 	if (CMultiPlayer::GetActiveNetwork())
 	{
-        // ยังไม่ใช้ในตอนนี้
-		// if (CGui::GetScoreBoard() && CGui::GetScoreBoard()->GetActiveScore())
-		// {
-        //     CGui::GetScoreBoard()->Close();
-        // }
+		if (CGui::GetScoreBoard() && CGui::GetScoreBoard()->GetActiveScore())
+		{
+            CGui::GetScoreBoard()->Close();
+        }
 
         // ยังไม่ใช้ในตอนนี้
 		// if (CGui::GetMainMenuScreens()->GetActiveMainMenuScreens())

@@ -11,6 +11,7 @@
 #include "../../CStreaming.h"
 #include "../../CWeapon.h"
 #include "../../Base/CPad.h"
+#include "../../Animation/CAnimManager.h"
 #include "../../Enums/eSpecialVehicle.h"
 #include "../../Enums/eWeaponSampid.h"
 #include "../../Scripts/CScripting.h"
@@ -405,6 +406,36 @@ void CPlayerPed::RemoveFromVehicleAndPutAt(float fX, float fY, float fZ)
     {
         CScripting::ScriptCommand(&remove_actor_from_car_and_put_at, static_cast<int>(m_dwGTAId), fX, fY, fZ);
     }
+}
+
+void CPlayerPed::SetStateFlags(uint32_t dwState)
+{
+    if (!CPlayerPed::VerifyInstance())
+    {
+        return;
+    }
+
+    GetPed()->m_nPedFlags = dwState;
+}
+
+uint32_t CPlayerPed::GetStateFlags()
+{
+    if (!CPlayerPed::VerifyInstance())
+    {
+        return 0;
+    }
+
+    return GetPed()->m_nPedFlags;
+}
+
+bool CPlayerPed::IsOnGround()
+{
+    if (!CPlayerPed::VerifyInstance())
+    {
+        return false;
+    }
+
+    return (CPlayerPed::GetStateFlags() & 3) != 0;
 }
 
 void CPlayerPed::SetHealth(float hp)
@@ -1032,4 +1063,59 @@ void CPlayerPed::ExtinguishFire()
             reinterpret_cast<void (*)(uintptr_t)>(SA_ADDR(0x14E934) + _dyld_get_image_vmaddr_slide(0))(pFireObject);
         }
     }
+}
+
+void CPlayerPed::ApplyAnimation(char *szAnimName, char *szAnimFile, float fT, int opt1, int opt2, int opt3, int opt4, int iUnk)
+{
+    // CNecessary::Log(OBFUSCATE("ApplyAnimation: %s %s %.2f %d %d %d %d %d"), szAnimName, szAnimFile, fT, opt1, opt2, opt3, opt4, iUnk);
+
+	if (!szAnimName || !szAnimFile) {
+		return;
+	}
+
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
+
+    if (!strcasecmp(szAnimFile, OBFUSCATE("SEX"))) {
+		return;
+	}
+
+	if (!CAnimManager::GetAnimationBlock(szAnimFile)) {
+		CExceptions::Print(OBFUSCATE("opcode"), OBFUSCATE("0x4EE"));
+		return;
+	}
+
+	int iWaitAnimLoad = 0;
+
+	if (!CGame::IsAnimationLoaded(szAnimFile))
+	{
+		CGame::RequestAnimation(szAnimFile);
+		while (!CGame::IsAnimationLoaded(szAnimFile))
+		{
+			usleep(1000);
+			iWaitAnimLoad++;
+			if (iWaitAnimLoad > 15) 
+			{
+				return;
+			}
+		}
+	}
+
+	CScripting::ScriptCommand(&apply_animation, m_dwGTAId, szAnimName, szAnimFile, fT, opt1, opt2, opt3, opt4, iUnk);
+}
+
+void CPlayerPed::ClearAnimations()
+{
+    CNecessary::Log(OBFUSCATE("CPlayerPed ClearAnimations"));
+
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
+
+	// CMatrix mat;
+	// GetMatrix(&mat);
+	// TeleportTo(mat.pos.x, mat.pos.y, mat.pos.z);
+
+	CScripting::ScriptCommand(&disembark_instantly_actor, m_dwGTAId);
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'ui/dialog.dart';
+import 'ui/tab.dart';
 import 'ui/game_loading_screen.dart';
 import 'ui/samp_chat.dart';
 import 'ui/spawn.dart';
@@ -11,6 +12,7 @@ void main() {
   SpawnBridge.init();
   DialogBridge.init();
   KeysBarBridge.init();
+  ScoreBoardBridge.init();
   runApp(const SAGameApp());
 }
 
@@ -35,6 +37,7 @@ class SAGameApp extends StatelessWidget {
           SampChat(),
           SampSpawnMenu(),
           SampKeysBarOverlay(),
+          SampScoreBoardOverlay(),
           SampDialogOverlay(),
           IgnorePointer(child: GameLoadingScreen(isVisible: false)),
         ],

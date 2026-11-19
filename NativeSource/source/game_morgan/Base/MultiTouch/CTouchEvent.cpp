@@ -159,11 +159,11 @@ void CTouchEvent::IOS_TouchEvent_hook(id view, SEL selector, id touches, id even
             return;
         }
 
-        // if (CGui::GetScoreBoard()->GetActiveScore() || CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() || CGui::GetVoiceMenu()->GetActiveVoiceMenu() /*|| CGui::GetClientMenu()->GetActiveClientMenu() || CGui::GetChatMenu()->GetActiveChatMenu()*/)
-        // {
-        //     CTouchEvent::CancelActiveTouches(view, event, active);
-        //     return;
-        // }
+        if (CGui::GetScoreBoard()->GetActiveScore() /*|| CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() || CGui::GetVoiceMenu()->GetActiveVoiceMenu() || CGui::GetClientMenu()->GetActiveClientMenu() || CGui::GetChatMenu()->GetActiveChatMenu()*/)
+        {
+            CTouchEvent::CancelActiveTouches(view, event, active);
+            return;
+        }
 
         if (auto* pools = network->GetNetGamePools())
         {

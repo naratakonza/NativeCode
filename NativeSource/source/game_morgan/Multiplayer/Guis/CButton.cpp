@@ -78,7 +78,7 @@ void CButton::Render()
             bool bDialogActive = CGui::GetDialog() && CGui::GetDialog()->GetActiveDialog();
 
             // เดียวมาทำต่อภายหลัง
-            // bool bScoreActive = CGui::GetScoreBoard() && CGui::GetScoreBoard()->GetActiveScore();
+            bool bScoreActive = CGui::GetScoreBoard() && CGui::GetScoreBoard()->GetActiveScore();
             // bool bVoiceActive = CGui::GetVoiceMenu() && CGui::GetVoiceMenu()->GetActiveVoiceMenu();
             // bool bMainMenuActive = CGui::GetMainMenuScreens() && CGui::GetMainMenuScreens()->GetActiveMainMenuScreens();
 
@@ -88,7 +88,7 @@ void CButton::Render()
                 bTextDrawActive = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetState();
             }
 
-            if (!bDialogActive /*&& !bScoreActive && !bMainMenuActive && !bVoiceActive*/ && !bTextDrawActive && CButton::m_bRenderStatus)
+            if (!bDialogActive && !bScoreActive /*&& !bMainMenuActive && !bVoiceActive*/ && !bTextDrawActive && CButton::m_bRenderStatus)
             {
                 bShouldShow = true;
             }
@@ -162,11 +162,10 @@ void CButton::SendKeyInput(int keyId)
     switch (static_cast<eKeysBarKey>(keyId))
     {
         case eKeysBarKey::KEY_TAB: {
-            // เดียวมาทำต่อภายหลัง
-            // if (CGui::GetScoreBoard())
-            // {
-            //     CGui::GetScoreBoard()->Draw();
-            // }
+            if (CGui::GetScoreBoard())
+            {
+                CGui::GetScoreBoard()->Draw();
+            }
 
             break;
         }
