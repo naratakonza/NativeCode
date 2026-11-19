@@ -10,6 +10,7 @@
 #include "../CWorld.h"
 #include "../Entity/Ped/CPedPointerRecorder.h"
 #include "../Multiplayer/CMultiPlayer.h"
+#include "../Multiplayer/Guis/CGui.h"
 
 #include <mach-o/dyld.h>
 
