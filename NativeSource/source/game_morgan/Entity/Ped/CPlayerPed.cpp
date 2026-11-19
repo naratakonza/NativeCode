@@ -35,154 +35,154 @@ CPlayerPed::CPlayerPed()
     m_pEntity = nullptr;
 
     m_pPed = CUtil::GamePool_FindPlayerPed();
-    m_pEntity = reinterpret_cast<CPhysicalGta*>(CUtil::GamePool_FindPlayerPed());
+	m_pEntity = reinterpret_cast<CPhysicalGta*>(CUtil::GamePool_FindPlayerPed());
 
-    CPlayerPed::m_bytePlayerNumber = 0;
-    CPlayerPed::m_dwArrow = 0;
-    CPlayerPed::m_bLockControl = false;
-    CPlayerPed::m_bPissingState = false;
-    CPlayerPed::m_iCellPhoneEnabled = 0;
-    CPlayerPed::m_bCuffedState = false;
-    CPlayerPed::m_bCarryState = false;
-    CPlayerPed::m_bDanceState = false;
-    CPlayerPed::m_iDanceStyle = -1;
-    CPlayerPed::m_iAlpha = 255;
-    CPlayerPed::m_dwParachuteObject = 0;
+	CPlayerPed::m_bytePlayerNumber = 0;
+	CPlayerPed::m_dwArrow = 0;
+	CPlayerPed::m_bLockControl = false;
+	CPlayerPed::m_bPissingState = false;
+	CPlayerPed::m_iCellPhoneEnabled = 0;
+	CPlayerPed::m_bCuffedState = false;
+	CPlayerPed::m_bCarryState = false;
+	CPlayerPed::m_bDanceState = false;
+	CPlayerPed::m_iDanceStyle = -1;
+	CPlayerPed::m_iAlpha = 255;
+	CPlayerPed::m_dwParachuteObject = 0;
 
-    CPedPointerRecorder::Record(CPlayerPed::m_bytePlayerNumber, reinterpret_cast<uintptr_t>(m_pPed));
-    CPlayerPedSlot::Set(CPlayerPed::m_bytePlayerNumber, 1);
+	CPedPointerRecorder::Record(CPlayerPed::m_bytePlayerNumber, reinterpret_cast<uintptr_t>(m_pPed));
+	CPlayerPedSlot::Set(CPlayerPed::m_bytePlayerNumber, 1);
+    
+	CScripting::ScriptCommand(&set_actor_weapon_droppable, m_dwGTAId, 1);
+	CScripting::ScriptCommand(&set_actor_can_be_decapitated, m_dwGTAId, 0);
 
-    CScripting::ScriptCommand(&set_actor_weapon_droppable, m_dwGTAId, 1);
-    CScripting::ScriptCommand(&set_actor_can_be_decapitated, m_dwGTAId, 0);
-
-    CPlayerPed::m_stuffData.dwDrunkLevel = 0;
-    CPlayerPed::m_stuffData.dwObject = 0;
-    CPlayerPed::m_stuffData.type = eStuffType::STUFF_TYPE_NONE;
-    CPlayerPed::m_stuffData.dwLastUpdateTick = 0;
-    CPlayerPed::m_bJumpControl = false;
-    CPlayerPed::m_bCrouchControl = false;
-    CPlayerPed::m_bSprintControl = false;
+	CPlayerPed::m_stuffData.dwDrunkLevel = 0;
+	CPlayerPed::m_stuffData.dwObject = 0;
+	CPlayerPed::m_stuffData.type = eStuffType::STUFF_TYPE_NONE;
+	CPlayerPed::m_stuffData.dwLastUpdateTick = 0;
+	CPlayerPed::m_bJumpControl = false;
+	CPlayerPed::m_bCrouchControl = false;
+	CPlayerPed::m_bSprintControl = false;
 
     // เดียวมาทำต่อภายหลัง
-    // CPlayerPed::DeleteAllAccessories();
+	// CPlayerPed::DeleteAllAccessories();
 
     CPlayerPed::m_bHaveBulletData = false;
-    memset(&m_bulletData, 0, sizeof(BULLET_DATA));
+	memset(&m_bulletData, 0, sizeof(BULLET_DATA));
 }
 
 CPlayerPed::CPlayerPed(uint8_t bytePlayerNumber, int iSkin, float fX, float fY, float fZ, float fRotation)
 {
-    // CNecessary::Log(OBFUSCATE("CPlayerPed (Line: %d): bytePlayerNumber: %d, iSkin: %d, XYZ: %.2f %.2f %.2f, fRotation: %.2f"), __LINE__, bytePlayerNumber, iSkin, fX, fY, fZ, fRotation);
+    // CNecessary::Log(OBFUSCATE("CPlayerPed (Line: %d): bytePlayerNumber: %d, iSkin: %d, XYZ: %.2f %.2f %.2f, fRotation: %.2f"), __LINE__, bytePlayerNumber, iSkin, fX, fY, fZ, fRotation);    
 
     uint32_t dwPlayerActorID = 0;
     int iPlayerNum = bytePlayerNumber;
     m_pPed = nullptr;
-    m_pEntity = nullptr;
-
+	m_pEntity = nullptr;
+    
     m_dwGTAId = 0;
-    CPlayerPed::m_dwArrow = 0;
+	CPlayerPed::m_dwArrow = 0;
     CPlayerPed::m_bLockControl = false;
-    CPlayerPed::m_bPissingState = false;
-    CPlayerPed::m_iCellPhoneEnabled = 0;
-    CPlayerPed::m_bCuffedState = false;
-    CPlayerPed::m_bCarryState = false;
-    CPlayerPed::m_bDanceState = false;
-    CPlayerPed::m_iDanceStyle = -1;
-    CPlayerPed::m_iAlpha = 255;
-    CPlayerPed::m_dwParachuteObject = 0;
+	CPlayerPed::m_bPissingState = false;
+	CPlayerPed::m_iCellPhoneEnabled = 0;
+	CPlayerPed::m_bCuffedState = false;
+	CPlayerPed::m_bCarryState = false;
+	CPlayerPed::m_bDanceState = false;
+	CPlayerPed::m_iDanceStyle = -1;
+	CPlayerPed::m_iAlpha = 255;
+	CPlayerPed::m_dwParachuteObject = 0;
 
-    CScripting::ScriptCommand(&create_player, &iPlayerNum, fX, fY, fZ, &dwPlayerActorID);
-    CScripting::ScriptCommand(&create_actor_from_player, &iPlayerNum, &dwPlayerActorID);
-
+	CScripting::ScriptCommand(&create_player, &iPlayerNum, fX, fY, fZ, &dwPlayerActorID);
+	CScripting::ScriptCommand(&create_actor_from_player, &iPlayerNum, &dwPlayerActorID);
+    
     m_dwGTAId = dwPlayerActorID;
     m_pPed = CUtil::GamePool_Ped_GetAt(m_dwGTAId);
     m_pEntity = reinterpret_cast<CPhysicalGta*>(CUtil::GamePool_Ped_GetAt(m_dwGTAId));
     CPlayerPed::m_bytePlayerNumber = bytePlayerNumber;
 
-    CPedPointerRecorder::Record(CPlayerPed::m_bytePlayerNumber, reinterpret_cast<uintptr_t>(m_pPed));
+	CPedPointerRecorder::Record(CPlayerPed::m_bytePlayerNumber, reinterpret_cast<uintptr_t>(m_pPed));
 
-    CScripting::ScriptCommand(&set_actor_weapon_droppable, m_dwGTAId, 1);
-    CScripting::ScriptCommand(&set_actor_immunities, m_dwGTAId, 0, 0, 1, 0, 0);
-    CScripting::ScriptCommand(&set_actor_can_be_decapitated, m_dwGTAId, 0);
+	CScripting::ScriptCommand(&set_actor_weapon_droppable, m_dwGTAId, 1);
+	CScripting::ScriptCommand(&set_actor_immunities, m_dwGTAId, 0, 0, 1, 0, 0);
+	CScripting::ScriptCommand(&set_actor_can_be_decapitated, m_dwGTAId, 0);
 
-    if (CMultiPlayer::GetActiveNetwork())
+	if (CMultiPlayer::GetActiveNetwork()) 
     {
        CPlayerPed::SetMoney(CMultiPlayer::GetActiveNetwork()->m_iDeathDropMoney);
     }
 
-    CPlayerPed::SetModelIndex(iSkin);
+	CPlayerPed::SetModelIndex(iSkin);
 
     if (m_pPed && CUtil::GamePool_Ped_GetAt(m_dwGTAId))
     {
-        CPlayerPedSlot::Set(CPlayerPed::m_bytePlayerNumber, 1);
+		CPlayerPedSlot::Set(CPlayerPed::m_bytePlayerNumber, 1);
 
-        CPlayerPed::ForceTargetRotation(fRotation);
+    	CPlayerPed::ForceTargetRotation(fRotation);
     }
 
-    CMatrix mat;
+	CMatrix mat;
     GetMatrix(&mat);
     mat.pos.x = fX;
     mat.pos.y = fY;
     mat.pos.z = fZ + 0.15f;
     SetMatrix(mat);
 
-    CPlayerPed::m_stuffData.dwDrunkLevel = 0;
-    CPlayerPed::m_stuffData.dwObject = 0;
-    CPlayerPed::m_stuffData.type = eStuffType::STUFF_TYPE_NONE;
-    CPlayerPed::m_stuffData.dwLastUpdateTick = 0;
-    CPlayerPed::m_bJumpControl = false;
-    CPlayerPed::m_bCrouchControl = false;
-    CPlayerPed::m_bSprintControl = false;
+	CPlayerPed::m_stuffData.dwDrunkLevel = 0;
+	CPlayerPed::m_stuffData.dwObject = 0;
+	CPlayerPed::m_stuffData.type = eStuffType::STUFF_TYPE_NONE;
+	CPlayerPed::m_stuffData.dwLastUpdateTick = 0;
+	CPlayerPed::m_bJumpControl = false;
+	CPlayerPed::m_bCrouchControl = false;
+	CPlayerPed::m_bSprintControl = false;
 
     // เดียวมาทำต่อภายหลัง
-    // CPlayerPed::DeleteAllAccessories();
+	// CPlayerPed::DeleteAllAccessories();
 
-    CPlayerPed::m_bHaveBulletData = false;
-    memset(&m_bulletData, 0, sizeof(BULLET_DATA));
+	CPlayerPed::m_bHaveBulletData = false;
+	memset(&m_bulletData, 0, sizeof(BULLET_DATA));
 }
 
 CPlayerPed::~CPlayerPed()
 {
     CNecessary::Log(OBFUSCATE("CPlayerPed Uninitialise"));
 
-    CPedPointerRecorder::Record(CPlayerPed::m_bytePlayerNumber, 0);
-    CPlayerPedSlot::Set(CPlayerPed::m_bytePlayerNumber, 0);
+	CPedPointerRecorder::Record(CPlayerPed::m_bytePlayerNumber, 0);
+	CPlayerPedSlot::Set(CPlayerPed::m_bytePlayerNumber, 0);
 
-    CPlayerPed::m_bHaveBulletData = false;
-    memset(&m_bulletData, 0, sizeof(BULLET_DATA));
+	CPlayerPed::m_bHaveBulletData = false;
+	memset(&m_bulletData, 0, sizeof(BULLET_DATA));
 
     if (!m_pPed || !CCommon::IsValidGamePed(m_pPed) || !CUtil::GamePool_Ped_GetAt(m_dwGTAId) || CCommon::IsGameEntityArePlaceable(m_pEntity))
     {
         m_pPed = nullptr;
         m_pEntity = nullptr;
         m_dwGTAId = 0;
-
+        
         return;
     }
 
     // เดียวมาทำต่อภายหลัง
-    // CPlayerPed::DestroyParachute();
+	// CPlayerPed::DestroyParachute();
 
-    // if (CPlayerPed::HasAccessory())
-    // {
-    //  CPlayerPed::DeleteAllAccessories(true);
-    // }
+	// if (CPlayerPed::HasAccessory())
+	// {
+	// 	CPlayerPed::DeleteAllAccessories(true);
+	// }
 
-    // if (CPlayerPed::GetStuff())
-    // {
-    //  CPlayerPed::DropStuff();
-    // }
+	// if (CPlayerPed::GetStuff())
+	// {
+	// 	CPlayerPed::DropStuff();
+	// }
 
     if (CPlayerPed::IsInVehicle())
-    {
-        CPlayerPed::RemoveFromVehicleAndPutAt(100.0f, 100.0f, 20.0f);
-    }
+	{
+		CPlayerPed::RemoveFromVehicleAndPutAt(100.0f, 100.0f, 20.0f);
+	}
 
-    // แก้ไขปัญหาการลบตัวละครผู้เล่น
-    uintptr_t dwPedPtr = reinterpret_cast<uintptr_t>(m_pPed);
-    *reinterpret_cast<uint32_t*>(*reinterpret_cast<uintptr_t*>(dwPedPtr + 1344) + 76) = 0; // m_pPed->m_pPlayerData->m_nPlayerGroup
+	// แก้ไขปัญหาการลบตัวละครผู้เล่น
+	uintptr_t dwPedPtr = reinterpret_cast<uintptr_t>(m_pPed);
+	*reinterpret_cast<uint32_t*>(*reinterpret_cast<uintptr_t*>(dwPedPtr + 1344) + 76) = 0; // m_pPed->m_pPlayerData->m_nPlayerGroup
 
-    // CPlayerPed::Destructor
+	// CPlayerPed::Destructor
     reinterpret_cast<void(*)(CPedGta*)>(*reinterpret_cast<void**>(GetPed()->vtable + 0x8))(m_pPed);
 
     m_pPed = nullptr;
@@ -277,26 +277,26 @@ void CPlayerPed::SetMoney(int iAmount)
 void CPlayerPed::SetInterior(uint8_t byteID, bool refresh)
 {
     if (!CPlayerPed::VerifyInstance()) {
-        return;
+	    return;
     }
 
-    if (GetPed() && CPlayerPed::m_bytePlayerNumber != 0)
+    if (GetPed() && CPlayerPed::m_bytePlayerNumber != 0) 
     {
-        CScripting::ScriptCommand(&link_actor_to_interior, m_dwGTAId, byteID);
-    }
-    else
-    {
-        CScripting::ScriptCommand(&select_interior, byteID);
-        CScripting::ScriptCommand(&link_actor_to_interior, m_dwGTAId, byteID);
+		CScripting::ScriptCommand(&link_actor_to_interior, m_dwGTAId, byteID);
+	}
+	else
+	{
+		CScripting::ScriptCommand(&select_interior, byteID);
+		CScripting::ScriptCommand(&link_actor_to_interior, m_dwGTAId, byteID);
 
-        if (refresh)
-        {
-            CPlayerPed::RefreshStreamingByPos();
-        }
-    }
+		if (refresh)
+		{
+			CPlayerPed::RefreshStreamingByPos();
+		}
+	}
 }
 
-void CPlayerPed::RefreshStreamingByPos()
+void CPlayerPed::RefreshStreamingByPos() 
 {
     CMatrix mat;
     GetMatrix(&mat);
@@ -319,16 +319,16 @@ bool CPlayerPed::IsInWater()
 
 bool CPlayerPed::IsAPassenger()
 {
-    if (CPlayerPed::IsInVehicle() && GetPed()->pVehicle)
-    {
-        CVehicleGta *pVehicle = GetPed()->pVehicle;
+	if (CPlayerPed::IsInVehicle() && GetPed()->pVehicle)
+	{
+		CVehicleGta *pVehicle = GetPed()->pVehicle;
 
         if (pVehicle->pDriver != GetPed() || pVehicle->nModelIndex == eSpecialVehicle::TRAIN_PASSENGER || pVehicle->nModelIndex == eSpecialVehicle::TRAIN_FREIGHT) {
             return true;
         }
-    }
+	}
 
-    return false;
+	return false;
 }
 
 void CPlayerPed::ProcessAnimGroups(bool bUseCJWalk)
@@ -343,40 +343,40 @@ void CPlayerPed::ProcessAnimGroups(bool bUseCJWalk)
 
 void CPlayerPed::SetImmunities(int BP, int FP, int EP, int CP, int MP)
 {
-    if (!CPlayerPed::VerifyInstance()) {
-        return;
-    }
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
 
-    if (CUtil::GamePool_Ped_GetAt(m_dwGTAId))
-    {
-        CScripting::ScriptCommand(&set_actor_immunities, m_dwGTAId, BP, FP, EP, CP, MP);
-    }
+	if (CUtil::GamePool_Ped_GetAt(m_dwGTAId))
+	{
+		CScripting::ScriptCommand(&set_actor_immunities, m_dwGTAId, BP, FP, EP, CP, MP);
+	}
 }
 
 void CPlayerPed::ShowMarker(uint32_t iMarkerColorID)
 {
-    if (!CPlayerPed::VerifyInstance()) {
-        return;
-    }
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
 
-    if (m_dwArrow)
-    {
-        CPlayerPed::HideMarker();
-    }
+	if (m_dwArrow)
+	{
+		CPlayerPed::HideMarker();
+	}
 
-    CScripting::ScriptCommand(&create_arrow_above_actor, m_dwGTAId, &m_dwArrow);
-    CScripting::ScriptCommand(&set_marker_color, m_dwArrow, iMarkerColorID);
-    CScripting::ScriptCommand(&show_on_radar2, m_dwArrow, 2);
+	CScripting::ScriptCommand(&create_arrow_above_actor, m_dwGTAId, &m_dwArrow);
+	CScripting::ScriptCommand(&set_marker_color, m_dwArrow, iMarkerColorID);
+	CScripting::ScriptCommand(&show_on_radar2, m_dwArrow, 2);
 }
 
 void CPlayerPed::HideMarker()
 {
-    if (m_dwArrow)
-    {
-        CScripting::ScriptCommand(&disable_marker, m_dwArrow);
-    }
+	if (m_dwArrow)
+	{
+		CScripting::ScriptCommand(&disable_marker, m_dwArrow);
+	}
 
-    m_dwArrow = 0;
+	m_dwArrow = 0;
 }
 
 void CPlayerPed::RemoveFromVehicleAndPutAt(float fX, float fY, float fZ)
@@ -389,212 +389,212 @@ void CPlayerPed::RemoveFromVehicleAndPutAt(float fX, float fY, float fZ)
 
 void CPlayerPed::SetHealth(float hp)
 {
-    if (!CPlayerPed::VerifyInstance()) {
-        return;
-    }
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
 
     GetPed()->fHealth = hp;
 }
 
 float CPlayerPed::GetHealth()
 {
-    if (!GetPed()) {
-        return 0.0f;
-    }
+	if (!GetPed()) {
+		return 0.0f;
+	}
 
     return GetPed()->fHealth;
 }
 
 void CPlayerPed::SetArmour(float fArmour)
 {
-    if (!CPlayerPed::VerifyInstance()) {
-        return;
-    }
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
 
-    GetPed()->fArmour = fArmour;
+	GetPed()->fArmour = fArmour;
 }
 
 float CPlayerPed::GetArmour()
 {
-    if (!GetPed()) {
-        return 0.0f;
-    }
+	if (!GetPed()) {
+		return 0.0f;
+	}
 
-    return GetPed()->fArmour;
+	return GetPed()->fArmour;
 }
 
 bool CPlayerPed::IsDead()
 {
-    if (!CPlayerPed::VerifyInstance()) {
-        return false;
-    }
+	if (!CPlayerPed::VerifyInstance()) {
+		return false;
+	}
 
-    if (GetPed()->fHealth > 0.0f) {
-        return false;
-    }
+	if (GetPed()->fHealth > 0.0f) {
+		return false;
+	}
 
-    return true;
+	return true;
 }
 
 void CPlayerPed::SetActionTrigger(uint8_t action)
 {
-    if (!CPlayerPed::VerifyInstance()) {
-        return;
-    }
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
 
-    GetPed()->m_nPedState = static_cast<ePedState>(action);
+	GetPed()->m_nPedState = static_cast<ePedState>(action);
 }
 
 uint8_t CPlayerPed::GetActionTrigger()
 {
-    return GetPed()->m_nPedState;
+	return GetPed()->m_nPedState;
 }
 
 void CPlayerPed::RestartIfWastedAt(CVector *vecRestart, float fRotation)
 {
-    CScripting::ScriptCommand(&restart_if_wasted_at, vecRestart->x, vecRestart->y, vecRestart->z, fRotation, 0);
+	CScripting::ScriptCommand(&restart_if_wasted_at, vecRestart->x, vecRestart->y, vecRestart->z, fRotation, 0);
 }
 
 void CPlayerPed::SetInitialState()
 {
-    if (!CPlayerPed::VerifyInstance()) {
-        return;
-    }
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
 
-    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x26CD04), "\xF8\x5F\xBC\xA9\xF6\x57\x01\xA9\xF4\x4F\x02\xA9\xFD\x7B\x03\xA9\xFD\xC3\x00\x91\xF4\x03\x01\xAA\xF3\x03\x00\xAA", 28, "__text");
-    if (!verified) {
-        return;
-    }
+	static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x26CD04), "\xF8\x5F\xBC\xA9\xF6\x57\x01\xA9\xF4\x4F\x02\xA9\xFD\x7B\x03\xA9\xFD\xC3\x00\x91\xF4\x03\x01\xAA\xF3\x03\x00\xAA", 28, "__text");
+	if (!verified) {
+		return;
+	}
 
-    reinterpret_cast<void (*)(CPedGta*, bool)>(SA_ADDR(0x26CD04) + _dyld_get_image_vmaddr_slide(0))(GetPed(), false);
+	reinterpret_cast<void (*)(CPedGta*, bool)>(SA_ADDR(0x26CD04) + _dyld_get_image_vmaddr_slide(0))(GetPed(), false);
 }
 
 void CPlayerPed::ResetDamageEntity()
 {
-    if (!CPlayerPed::VerifyInstance()) {
-        return;
-    }
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
 
     GetPed()->pLastDamageEntity = nullptr;
-    GetPed()->LastDamagedWeaponType = -1;
+	GetPed()->LastDamagedWeaponType = -1;
 }
 
 void CPlayerPed::LockControl(bool bLock)
 {
-    CPlayerPed::m_bLockControl = bLock;
+	CPlayerPed::m_bLockControl = bLock;
 }
 
 void CPlayerPed::ToggleControllable(bool bToggle)
 {
-    CNecessary::Log(OBFUSCATE("CPlayerPed ToggleControllable %d"), bToggle);
+	CNecessary::Log(OBFUSCATE("CPlayerPed ToggleControllable %d"), bToggle);
 
-    if (!CPlayerPed::VerifyInstance()) {
-        return;
-    }
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
 
-    CMatrix mat;
+	CMatrix mat;
 
-    if (!bToggle)
-    {
-        CScripting::ScriptCommand(&toggle_player_controllable, m_bytePlayerNumber, 0);
-        CScripting::ScriptCommand(&lock_actor, m_dwGTAId, 1);
-    }
-    else
-    {
-        if (!CPlayerPed::m_bLockControl)
-        {
-            CScripting::ScriptCommand(&toggle_player_controllable, m_bytePlayerNumber, 1);
-            CScripting::ScriptCommand(&lock_actor, m_dwGTAId, 0);
+	if (!bToggle)
+	{
+		CScripting::ScriptCommand(&toggle_player_controllable, m_bytePlayerNumber, 0);
+		CScripting::ScriptCommand(&lock_actor, m_dwGTAId, 1);
+	}
+	else
+	{
+		if (!CPlayerPed::m_bLockControl)
+		{
+			CScripting::ScriptCommand(&toggle_player_controllable, m_bytePlayerNumber, 1);
+			CScripting::ScriptCommand(&lock_actor, m_dwGTAId, 0);
 
-            if (!CPlayerPed::IsInVehicle())
+			if (!CPlayerPed::IsInVehicle()) 
             {
                 GetMatrix(&mat);
                 TeleportTo(mat.pos.x, mat.pos.y, mat.pos.z);
-            }
-        }
-    }
+		    }
+		}
+	}
 }
 
 void CPlayerPed::GiveWeapon(int iWeaponID, int iAmmo)
 {
-    if (!CPlayerPed::VerifyInstance()) {
-        return;
-    }
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
 
-    if (!CUtil::GamePool_FindPlayerPed()) {
-        return;
-    }
+	if (!CUtil::GamePool_FindPlayerPed()) {
+		return;
+	}
 
-    int iModelID = 0;
-    iModelID = CWeapon::GameGetWeaponModelIDFromWeaponID(iWeaponID);
+	int iModelID = 0;
+	iModelID = CWeapon::GameGetWeaponModelIDFromWeaponID(iWeaponID);
 
-    if (iModelID == -1) {
-        return;
-    }
+	if (iModelID == -1) {
+		return;
+	}
 
-    if (!CStreaming::IsModelLoaded(iModelID))
-    {
-        CStreaming::RequestModel(iModelID);
-        CStreaming::LoadAllRequestedModels();
-        while (!CStreaming::IsModelLoaded(iModelID)) usleep(1000);
-    }
+	if (!CStreaming::IsModelLoaded(iModelID))
+	{
+		CStreaming::RequestModel(iModelID);
+		CStreaming::LoadAllRequestedModels();
+		while (!CStreaming::IsModelLoaded(iModelID)) usleep(1000);
+	}
+	
+	CWorld::PlayerInFocus = CPlayerPed::m_bytePlayerNumber;
 
-    CWorld::PlayerInFocus = CPlayerPed::m_bytePlayerNumber;
-
-    CCameraAim::GameStoreLocalPlayerSkills();
+	CCameraAim::GameStoreLocalPlayerSkills();
     CCameraAim::GameSetRemotePlayerSkills(CPlayerPed::m_bytePlayerNumber);
+	
+	CPed::GiveWeapon(GetPed(), iWeaponID, iAmmo, true);
 
-    CPed::GiveWeapon(GetPed(), iWeaponID, iAmmo, true);
+	CCameraAim::GameSetLocalPlayerSkills();
 
-    CCameraAim::GameSetLocalPlayerSkills();
+	CPlayerPed::SetArmedWeapon(iWeaponID);
 
-    CPlayerPed::SetArmedWeapon(iWeaponID);
-
-    CWorld::PlayerInFocus = 0;
+	CWorld::PlayerInFocus = 0;
 }
 
 void CPlayerPed::SetArmedWeapon(int iWeaponID, bool unk)
 {
-    if (!CPlayerPed::VerifyInstance()) {
-        return;
-    }
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
 
-    if (!CUtil::GamePool_FindPlayerPed()) {
-        return;
-    }
+	if (!CUtil::GamePool_FindPlayerPed()) {
+		return;
+	}
 
-    CWorld::PlayerInFocus = CPlayerPed::m_bytePlayerNumber;
-
-    CCameraAim::GameStoreLocalPlayerSkills();
+	CWorld::PlayerInFocus = CPlayerPed::m_bytePlayerNumber;
+	
+	CCameraAim::GameStoreLocalPlayerSkills();
     CCameraAim::GameSetRemotePlayerSkills(CPlayerPed::m_bytePlayerNumber);
 
-    if (unk)
-    {
-        CPed::SetCurrentWeapon(GetPed(), iWeaponID);
-    }
-    else
-    {
-        CScripting::ScriptCommand(&set_actor_armed_weapon, m_dwGTAId, iWeaponID);
-    }
+	if (unk)
+	{
+		CPed::SetCurrentWeapon(GetPed(), iWeaponID);
+	}
+	else
+	{
+		CScripting::ScriptCommand(&set_actor_armed_weapon, m_dwGTAId, iWeaponID);
+	}
 
-    CCameraAim::GameSetLocalPlayerSkills();
-    CWorld::PlayerInFocus = 0;
+	CCameraAim::GameSetLocalPlayerSkills();
+	CWorld::PlayerInFocus = 0;
 }
 
 void CPlayerPed::SetWeaponSkill(uint32_t iWeaponType, uint16_t byteSkill)
 {
-    if (!CPlayerPed::VerifyInstance()) {
-        return;
-    }
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
 
-    if (CPlayerPed::m_bytePlayerNumber == 0)
-    {
-        CCameraAim::GameUpdateLocalPlayerSkill(iWeaponType, byteSkill);
-    }
-    else
-    {
-        CCameraAim::GameStoreRemotePlayerSkills(CPlayerPed::m_bytePlayerNumber, iWeaponType, byteSkill);
-    }
+	if (CPlayerPed::m_bytePlayerNumber == 0)
+	{
+		CCameraAim::GameUpdateLocalPlayerSkill(iWeaponType, byteSkill);
+	}
+	else
+	{
+		CCameraAim::GameStoreRemotePlayerSkills(CPlayerPed::m_bytePlayerNumber, iWeaponType, byteSkill);
+	}
 }
 
 void CPlayerPed::SetAmmo(uint8_t bWeaponID, uint16_t wAmmo)
@@ -629,21 +629,21 @@ WEAPON_SLOT_TYPE* CPlayerPed::FindWeaponSlot(uint32_t dwWeapon)
 
 WEAPON_SLOT_TYPE* CPlayerPed::GetCurrentWeaponSlot()
 {
-    if (GetPed())
-    {
-        return &GetPed()->WeaponSlots[GetPed()->byteCurWeaponSlot];
-    }
+	if (GetPed())
+	{
+		return &GetPed()->WeaponSlots[GetPed()->byteCurWeaponSlot];
+	}
 
-    return (WEAPON_SLOT_TYPE*)NULL;
+	return (WEAPON_SLOT_TYPE*)NULL;
 }
 
 uint8_t CPlayerPed::GetCurrentWeapon()
 {
-    if (!CPlayerPed::VerifyInstance()) {
-        return 0;
-    }
+	if (!CPlayerPed::VerifyInstance()) {
+		return 0;
+	}
 
-    return GetPed()->WeaponSlots[GetPed()->byteCurWeaponSlot].dwType;
+	return GetPed()->WeaponSlots[GetPed()->byteCurWeaponSlot].dwType;
 }
 
 bool CPlayerPed::CurrentWeaponHasAmmo()
@@ -668,8 +668,8 @@ bool CPlayerPed::CurrentWeaponHasAmmo()
 void CPlayerPed::GetAllWeapons(uint8_t* pOutWeapons)
 {
     if (!CPlayerPed::VerifyInstance() || !pOutWeapons) {
-        return;
-    }
+		return;
+	}
 
     for (int i = 0; i < 13; ++i)
     {
@@ -679,13 +679,13 @@ void CPlayerPed::GetAllWeapons(uint8_t* pOutWeapons)
 
 void CPlayerPed::ClearAllWeapons()
 {
-    if (!CPlayerPed::VerifyInstance()) {
-        return;
-    }
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
 
-    CWorld::PlayerInFocus = CPlayerPed::m_bytePlayerNumber;
-    CPed::ClearWeapons(GetPed());
-    CWorld::PlayerInFocus = 0;
+	CWorld::PlayerInFocus = CPlayerPed::m_bytePlayerNumber;
+	CPed::ClearWeapons(GetPed());
+	CWorld::PlayerInFocus = 0;
 }
 
 void CPlayerPed::ForceTargetRotation(float fRotation)
@@ -702,7 +702,7 @@ void CPlayerPed::ForceTargetRotation(float fRotation)
 
 void CPlayerPed::SetRotation(float fRotation)
 {
-    if (!CPlayerPed::VerifyInstance()) {
+	if (!CPlayerPed::VerifyInstance()) {
         return;
     }
 
@@ -712,80 +712,80 @@ void CPlayerPed::SetRotation(float fRotation)
 
 uint8_t CPlayerPed::GetExtendedKeys()
 {
-    uint8_t result = 0;
-    if (CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_YES])
-    {
-        CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_YES] = false;
-        result = 1;
-    }
+	uint8_t result = 0;
+	if (CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_YES])
+	{
+		CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_YES] = false;
+		result = 1;
+	}
 
-    if (CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_NO])
-    {
-        CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_NO] = false;
-        result = 2;
-    }
+	if (CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_NO])
+	{
+		CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_NO] = false;
+		result = 2;
+	}
 
-    if (CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_CTRL_BACK])
-    {
-        CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_CTRL_BACK] = false;
-        result = 3;
-    }
+	if (CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_CTRL_BACK])
+	{
+		CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_CTRL_BACK] = false;
+		result = 3;
+	}
 
-    return result;
+	return result;
 }
 
 void CPlayerPed::ShuffleKeyLogic(int key)
 {
-    if (key == ePadKeys::KEY_FIRE)
-    {
-        if (CNecessary::GetTickCount() < m_dwDiveTickCounter)
-        {
-            CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = true;
-        }
-    }
+	if (key == ePadKeys::KEY_FIRE)
+	{
+		if (CNecessary::GetTickCount() < m_dwDiveTickCounter)
+		{
+			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = true;
+		}
+	}
 
-    if (key == ePadKeys::KEY_JUMP)
-    {
-        if (CNecessary::GetTickCount() < m_dwJumpTickCounter)
-        {
-            CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] = true;
-        }
-    }
+	if (key == ePadKeys::KEY_JUMP)
+	{
+		if (CNecessary::GetTickCount() < m_dwJumpTickCounter)
+		{
+			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] = true;
+		}
+	}
 
-    if (key == ePadKeys::KEY_HANDBRAKE)
-    {
-        // KEY_HANDBRAKE ของฟังชั่นนี้ ทำให้ส่งผลภาพไม่ตรงในระบบ หมัด F และบล็อค มันถูก Reset
-        if (CPad::m_iSaveBlockPunch) {
-            CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = true;
-            return;
-        }
+	if (key == ePadKeys::KEY_HANDBRAKE)
+	{
+		// KEY_HANDBRAKE ของฟังชั่นนี้ ทำให้ส่งผลภาพไม่ตรงในระบบ หมัด F และบล็อค มันถูก Reset
+		if (CPad::m_iSaveBlockPunch) {
+			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = true;
+			return;
+		}
 
-        if (CNecessary::GetTickCount() < m_dwMeleeAttackTickCounter) {
-            CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = true;
-            return;
-        }
+		if (CNecessary::GetTickCount() < m_dwMeleeAttackTickCounter) {
+			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = true;
+			return;
+		}
 
-        if (CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] && CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK]) {
-            return;
-        }
+		if (CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] && CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK]) {
+			return;
+		}
 
-        if (CPad::m_iSaveTargetingActive || CCameraController::IsCameraAllAiming(false, false))
-        {
-            CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = true;
-        }
-        else
-        {
-            CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = false;
-        }
-    }
+		if (CPad::m_iSaveTargetingActive || CCameraController::IsCameraAllAiming(false, false))
+		{
+			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = true;
+		}
+		else
+		{
+			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = false;
+		}
+	}
 
-    if (key == ePadKeys::KEY_SECONDARY_ATTACK)
-    {
-        if (CNecessary::GetTickCount() < m_dwMeleeAttackTickCounter || CNecessary::GetTickCount() < m_dwAbortClimbTickCounter)
-        {
-            CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK] = true;
-        }
-    }
+	if (key == ePadKeys::KEY_SECONDARY_ATTACK)
+	{
+		if (CNecessary::GetTickCount() < m_dwMeleeAttackTickCounter || CNecessary::GetTickCount() < m_dwAbortClimbTickCounter)
+		{
+			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK] = true;
+		}
+	}
 }
 
 void CPlayerPed::SetKeys(uint16_t wKeys, uint16_t lrAnalog, uint16_t udAnalog)
@@ -804,48 +804,48 @@ void CPlayerPed::SetKeys(uint16_t wKeys, uint16_t lrAnalog, uint16_t udAnalog)
     pad->wKeyUD = udAnalog;
 
     for (int i = 0; i < ePadKeys::SIZE; i++)
-    {
+	{
         pad->bKeys[i] = (wKeys & 1);
         if (i == ePadKeys::KEY_JUMP)
-        {
-            if (!pad->bKeys[ePadKeys::KEY_JUMP])
-            {
-                pad->bIgnoreJump = false;
-            }
-        }
-
+		{
+			if (!pad->bKeys[ePadKeys::KEY_JUMP])
+			{
+				pad->bIgnoreJump = false;
+			}
+		}
+		
         wKeys >>= 1;
     }
 }
 
 uint16_t CPlayerPed::GetKeys(uint16_t* lrAnalog, uint16_t* udAnalog, bool clear)
 {
-    *lrAnalog = CPad::LocalPlayerKeys.wKeyLR;
-    *udAnalog = CPad::LocalPlayerKeys.wKeyUD;
+	*lrAnalog = CPad::LocalPlayerKeys.wKeyLR;
+	*udAnalog = CPad::LocalPlayerKeys.wKeyUD;
 
-    uint16_t wRet = 0;
-    uint16_t keyMask = 1;
+	uint16_t wRet = 0;
+	uint16_t keyMask = 1;
 
-    for (int i = 0; i < ePadKeys::SIZE; i++)
-    {
-        CPlayerPed::ShuffleKeyLogic(i);
+	for (int i = 0; i < ePadKeys::SIZE; i++)
+	{
+		CPlayerPed::ShuffleKeyLogic(i);
 
-        if (CPad::LocalPlayerKeys.bKeys[i])
-        {
-            wRet |= keyMask;
-        }
+	    if (CPad::LocalPlayerKeys.bKeys[i])
+		{
+	        wRet |= keyMask;
+	    }
 
-        keyMask <<= 1;
-    }
+	    keyMask <<= 1;
+	}
 
-    if (clear)
-    {
-        memset(CPad::LocalPlayerKeys.bKeys, 0, ePadKeys::SIZE);
-        CPad::LocalPlayerKeys.wKeyLR = 0;
-        CPad::LocalPlayerKeys.wKeyUD = 0;
-    }
+	if (clear)
+	{
+		memset(CPad::LocalPlayerKeys.bKeys, 0, ePadKeys::SIZE);
+		CPad::LocalPlayerKeys.wKeyLR = 0;
+		CPad::LocalPlayerKeys.wKeyUD = 0;
+	}
 
-    return wRet;
+	return wRet;
 }
 
 bool CPlayerPed::IsInJetpack()
@@ -878,6 +878,7 @@ bool CPlayerPed::IsExitingVehicle()
 
     return false;
 }
+
 void CPlayerPed::GetBonePosition(int iBoneID, CVector* vecOut)
 {
     if (!CPlayerPed::VerifyInstance()) {

@@ -35,10 +35,10 @@ void CPlayerTags::Render()
         return;
     }
 
-        CVehiclePool* pVehiclePool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetVehiclePool();
-        if (!pVehiclePool) {
-            return;
-        }
+    //     CVehiclePool* pVehiclePool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetVehiclePool();
+    //     if (!pVehiclePool) {
+    //         return;
+    //     }
 
     if (CMultiPlayer::GetActiveNetwork()->m_bShowPlayerTags)
     {
@@ -75,25 +75,25 @@ void CPlayerTags::Render()
             if (inDrawDistance)
             {
                 CVector tagPos{};
-                    CMatrix matPlayer;
-//
-                    if (isRCVehicle)
-                    {
-                        pGameVehicle->GetMatrix(&matPlayer);
-                        tagPos.x = matPlayer.pos.x;
-                        tagPos.y = matPlayer.pos.y;
-                        tagPos.z = matPlayer.pos.z;
-                    }
-                    else
-                    {
-                    if (pGamePlayer->IsAdded())
-                    {
-                        pGamePlayer->GetBonePosition(8, &tagPos);
-                    }
-                    else
-                    {
-                        continue;
-                    }
+                // CMatrix matPlayer;
+                //
+                // if (isRCVehicle)
+                // {
+                //     pGameVehicle->GetMatrix(&matPlayer);
+                //     tagPos.x = matPlayer.pos.x;
+                //     tagPos.y = matPlayer.pos.y;
+                //     tagPos.z = matPlayer.pos.z;
+                // }
+                // else
+                // {
+                if (pGamePlayer->IsAdded())
+                {
+                    pGamePlayer->GetBonePosition(8, &tagPos);
+                }
+                else
+                {
+                    continue;
+                }
                 // }
 
                 tagPos.z += 0.45f + (pGamePlayer->GetDistanceFromCamera() * 0.0475f);
