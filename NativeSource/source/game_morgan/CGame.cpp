@@ -1,4 +1,5 @@
 #include "../../Main.h"
+#include "Multiplayer/Syncs/Core/CCheckPoint.h"
 #include "CGame.h"
 #include "CWorld.h"
 #include "CTimer.h"
@@ -16,6 +17,8 @@ CModelSnapshot* CGame::m_pModelSnapshot = nullptr;
 void CGame::Initialize()
 {
 	CNecessary::Log(OBFUSCATE("CGame Initialize"));
+
+    CCheckPoint::Initialise();
 }
 
 void CGame::Uninitialise()
@@ -70,6 +73,16 @@ uint8_t CGame::IsMenuActive()
     return CTimer::IsUserPause() == 1;
 }
 
+bool CGame::IsStarted()
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x47F4C), "\x49\x3A\x00\x90\x29\xA1\x07\x91\x29\xE5\x42\x39", 12, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x43AC60), "\xA8\x1A\x00\xB0\x08\xA1\x07\x91\x1F\xE5\x02\x39", 12, "__text");
+    if (!verified) {
+        return false;
+    }
+
+    return *reinterpret_cast<const std::uint8_t*>(SA_ADDR(0x78F2A1) + _dyld_get_image_vmaddr_slide(0)) == 0;
+}
+
 bool CGame::IsRadarActive()
 {
     static const bool verified = CMemory::HasMappedInstruction(SA_ADDR(0x109F40), "\x2A\x35\x00\xB0") && CMemory::HasMappedInstruction(SA_ADDR(0x109F44), "\x4A\xB1\x0B\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x109F48), "\x49\x01\x00\x39");
@@ -113,6 +126,44 @@ void CGame::DisplayHUD(bool bDisp)
 
     *reinterpret_cast<std::uint8_t*>(SA_ADDR(0x726368) + _dyld_get_image_vmaddr_slide(0)) = bDisp;
     CGame::ToggleRadar(bDisp);
+}
+
+uint8_t CGame::FindFirstFreePlayerPedSlot()
+{
+    uint8_t x = 2;
+	while (x != eMaxItem::PLAYER_PED_SLOTS)
+	{
+		if (!CPlayerPedSlot::IsActive(x)) {
+			return x;
+		}
+
+		x++;
+	}
+
+    return 0;
+}
+
+CPlayerPed* CGame::NewPlayer(int iSkin, float fX, float fY, float fZ, float fRotation, [[maybe_unused]] uint8_t byteCreateMarker)
+{
+	// CNecessary::Log(OBFUSCATE("NewPlayer: %d %.2f %.2f %.2f %.2f %d"), iSkin, fX, fY, fZ, fRotation, byteCreateMarker);
+
+	uint8_t bytePlayerNum = CGame::FindFirstFreePlayerPedSlot();
+	if (!bytePlayerNum) {
+		return nullptr;
+	}
+
+	CPlayerPed* pPlayerNew = new CPlayerPed(bytePlayerNum, iSkin, fX, fY, fZ, fRotation);
+
+	return pPlayerNew;
+}
+
+void CGame::RemovePlayer(CPlayerPed* pPlayer)
+{
+	if (pPlayer)
+	{
+		CPlayerPedSlot::Set(pPlayer->m_bytePlayerNumber, 0);
+		SAFE_DELETE(pPlayer);
+	}
 }
 
 std::uint8_t CGame::GetActiveInterior()

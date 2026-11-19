@@ -6,6 +6,7 @@
 #import <dispatch/dispatch.h>
 
 #include <charconv>
+#include <cmath>
 #include <ctime>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -778,6 +779,40 @@ __attribute__((visibility("default")))
 @end
 
 static MGLauncherPresentationCoordinator *MGCoordinator;
+
+CRect CGame::GetScreenSafeArea()
+{
+    int screenWidth = 0;
+    int screenHeight = 0;
+    CGame::GetScreenWidthAndHeight(&screenWidth, &screenHeight);
+    CRect area(0.0f, 0.0f, static_cast<float>(screenWidth), static_cast<float>(screenHeight));
+    if (!NSThread.isMainThread || screenWidth <= 0 || screenHeight <= 0) {
+        return area;
+    }
+
+    UIView* view = MGCoordinator.gameWindow.rootViewController.viewIfLoaded;
+    if (!view || !view.window) {
+        return area;
+    }
+
+    const CGRect bounds = view.bounds;
+    const UIEdgeInsets insets = view.safeAreaInsets;
+    if (!std::isfinite(bounds.size.width) || !std::isfinite(bounds.size.height) || bounds.size.width <= 0.0 || bounds.size.height <= 0.0 ||
+        !std::isfinite(insets.left) || !std::isfinite(insets.right) || !std::isfinite(insets.top) || !std::isfinite(insets.bottom) ||
+        insets.left < 0.0 || insets.right < 0.0 || insets.top < 0.0 || insets.bottom < 0.0 ||
+        insets.left + insets.right >= bounds.size.width || insets.top + insets.bottom >= bounds.size.height)
+    {
+        return area;
+    }
+
+    const CGFloat scaleX = screenWidth / bounds.size.width;
+    const CGFloat scaleY = screenHeight / bounds.size.height;
+    area.X1 = static_cast<float>(insets.left * scaleX);
+    area.Y1 = static_cast<float>(insets.top * scaleY);
+    area.X2 = static_cast<float>(screenWidth - insets.right * scaleX);
+    area.Y2 = static_cast<float>(screenHeight - insets.bottom * scaleY);
+    return area;
+}
 
 void ExitGame()
 {

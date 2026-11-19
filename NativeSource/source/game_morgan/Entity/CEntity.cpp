@@ -112,6 +112,21 @@ void CEntity::SetCollisionChecking(bool bCheck)
     }
 }
 
+bool CEntity::GetCollisionChecking()
+{
+    if (!m_pEntity)
+    {
+        return true;
+    }
+
+    if (CCommon::IsGameEntityArePlaceable(m_pEntity))
+    {
+        return true;
+    }
+
+    return m_pEntity->nEntityFlags.m_bCollisionProcessed;
+}
+
 bool CEntity::IsAdded()
 {
     return m_pEntity && !CCommon::IsGameEntityArePlaceable(m_pEntity) && m_pEntity->dwUnkModelRel != 0;

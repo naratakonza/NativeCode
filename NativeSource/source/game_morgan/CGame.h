@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CCamera.h"
+#include "CRect.h"
 #include "Entity/Ped/CPlayerPed.h"
 #include "Multiplayer/Snapshot/CModelSnapshot.h"
 
@@ -17,11 +18,16 @@ public:
     static void SetFramerate(std::uint8_t fps);
     static void ToggleRadar(bool iToggle);
     static uint8_t IsMenuActive();
+    static bool IsStarted();
     static bool IsRadarActive();
     static void DisplayHUD(bool bDisp);
     static void GetScreenWidthAndHeight(int* w, int* h);
+    static CRect GetScreenSafeArea();
     static bool IsAnimationLoaded(const char* animation);
     static void RequestAnimation(const char* animation);
+    static uint8_t FindFirstFreePlayerPedSlot();
+    static CPlayerPed* NewPlayer(int iSkin, float fX, float fY, float fZ, float fRotation, uint8_t byteCreateMarker = 0);
+	static void RemovePlayer(CPlayerPed* pPlayer);
     static void LoadAnimationsAndModels();
     static std::uint8_t GetActiveInterior();
     static bool IsDrawingBigMap();

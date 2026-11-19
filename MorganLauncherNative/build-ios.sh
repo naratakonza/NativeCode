@@ -69,6 +69,7 @@ plutil -lint "$framework/Info.plist"
 xcodebuild -version
 xcrun --sdk iphoneos clang++ --version
 mkdir "$out/fileio-objects"
+compile_failed=0
 for source in \
     "$native/source/game_morgan/CCameraAim.cpp" "$native/source/game_morgan/CAspectRatio.cpp" "$native/source/game_morgan/CCameraController.cpp" "$native/source/game_morgan/CDraw.cpp" "$native/source/game_morgan/CSensitivity.cpp" "$native/source/game_morgan/CGyro.cpp" \
     "$native/source/game_morgan/CdStreamInfo.cpp" \
@@ -90,13 +91,13 @@ for source in \
     "$fileio/FileIO.cpp" "$storage/PosixFileIO.cpp" "$storage/CStorageZip.cpp" "$storage/CStorageDisk.cpp" \
     "$fileio/HookAdapter.cpp" "$hooks/CHooks.cpp" "$fileio/FileOpenDiagnostics.cpp" "$memory/CHook.cpp" \
     "$multiplayer/Texts/CDebugInfo.cpp" "$multiplayer/Texts/CGameText.cpp" "$native/source/game_morgan/CFont.cpp" "$multiplayer/Guis/CGui.cpp" "$multiplayer/Guis/Font/CFontRender.cpp" \
-    "$multiplayer/Guis/CSpawnScreen.cpp" "$multiplayer/Guis/CDialog.cpp" "$multiplayer/Guis/CButton.cpp" \
+    "$multiplayer/Guis/CSpawnScreen.cpp" "$multiplayer/Guis/CDialog.cpp" "$multiplayer/Guis/CButton.cpp" "$multiplayer/Guis/CXSing.cpp" \
     "$hooks/MultiTouch/CTouchEvent.cpp" "$hooks/CWidgets.cpp" "$hooks/CCrashFix.cpp" \
     "$multiplayer/Guis/CChat.cpp" "$multiplayer/Guis/CCommand.cpp" "$multiplayer/Core/CMultiPlayerPacket.cpp" "$native/source/game_morgan/CUtil.cpp" "$native/source/game_morgan/TextureDatabaseRuntime.cpp" "$native/source/game_morgan/CTxdStore.cpp" "$native/source/game_morgan/CTxdManager.cpp" "$native/source/game_morgan/CWorld.cpp" \
     "$multiplayer/Core/CMultiPlayerNetwork.cpp" "$multiplayer/Core/CMultiPlayerOpcode.cpp" "$native/source/game_morgan/CEntryExitManager.cpp" \
-    "$multiplayer/Pools/CNetGamePool.cpp" "$multiplayer/Pools/Process/CPlayerPool.cpp" \
-    "$multiplayer/Syncs/Core/CMarkerIcon.cpp" "$multiplayer/Pools/Process/CMapIconPool.cpp" \
-    "$multiplayer/Guis/Gps/CGPSMarker.cpp" "$native/source/game_morgan/CSprite.cpp" \
+    "$multiplayer/Pools/CNetGamePool.cpp" "$multiplayer/Pools/Process/CPlayerPool.cpp" "$multiplayer/Syncs/CRemotePlayer.cpp" \
+    "$multiplayer/Syncs/Core/CMarkerIcon.cpp" "$multiplayer/Syncs/Core/CCheckPoint.cpp" "$multiplayer/Pools/Process/CMapIconPool.cpp" \
+    "$multiplayer/Guis/Gps/CGPSMarker.cpp" "$multiplayer/Guis/Gps/CGPSNavigator.cpp" "$native/source/game_morgan/CSprite.cpp" \
     "$multiplayer/Snapshot/CModelSnapshot.cpp" \
     "$multiplayer/Syncs/CLocalPlayer.cpp" \
     "$multiplayer/Audio/CAudio.cpp" \
@@ -105,11 +106,17 @@ for source in \
     "$native/source/game_morgan/Audio/CBass.cpp" \
     "$imgui/imgui_impl_renderware.cpp"; do
     object="${source##*/}"
-    xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
-        -std=c++17 "${fileio_flags[@]}" -isystem "$native/source/vendor" -Wall -Wextra -Werror -fstack-protector-strong \
+    if ! xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
+        -std=c++17 "${fileio_flags[@]}" -isystem "$native/source/vendor" -Wall -Wextra -Werror -ferror-limit=0 -fstack-protector-strong \
         -fvisibility=hidden -fvisibility-inlines-hidden \
-        -c "$source" -o "$out/fileio-objects/${object%.cpp}.o"
+        -c "$source" -o "$out/fileio-objects/${object%.cpp}.o"; then
+        compile_failed=1
+    fi
 done
+if [[ "$compile_failed" -ne 0 ]]; then
+    echo "Native C++ compilation failed; see all diagnostics above." >&2
+    exit 1
+fi
 for unit in imgui imgui_draw; do
     xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" \
         -std=c++17 "${fileio_flags[@]}" -fvisibility=hidden -fvisibility-inlines-hidden \
@@ -154,13 +161,13 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CQuaternion.o" \
     "$out/fileio-objects/CTiltedRadar.o" "$out/fileio-objects/CTiltedCameraController.o" "$out/fileio-objects/CTiltedRadarGeometry.o" "$out/fileio-objects/CTiltedRadarMath.o" \
     "$out/fileio-objects/CDebugInfo.o" "$out/fileio-objects/CGameText.o" "$out/fileio-objects/CFont.o" "$out/fileio-objects/CGui.o" "$out/fileio-objects/CFontRender.o" \
-    "$out/fileio-objects/CSpawnScreen.o" "$out/fileio-objects/CDialog.o" "$out/fileio-objects/CButton.o" \
+    "$out/fileio-objects/CSpawnScreen.o" "$out/fileio-objects/CDialog.o" "$out/fileio-objects/CButton.o" "$out/fileio-objects/CXSing.o" \
     "$out/fileio-objects/CTouchEvent.o" "$out/fileio-objects/CWidgets.o" "$out/fileio-objects/CCrashFix.o" \
     "$out/fileio-objects/CChat.o" "$out/fileio-objects/CCommand.o" "$out/fileio-objects/CMultiPlayerPacket.o" "$out/fileio-objects/CUtil.o" "$out/fileio-objects/TextureDatabaseRuntime.o" "$out/fileio-objects/CTxdStore.o" "$out/fileio-objects/CTxdManager.o" "$out/fileio-objects/CWorld.o" \
     "$out/fileio-objects/CMultiPlayerNetwork.o" "$out/fileio-objects/CMultiPlayerOpcode.o" "$out/fileio-objects/CEntryExitManager.o" \
-    "$out/fileio-objects/CNetGamePool.o" "$out/fileio-objects/CPlayerPool.o" \
-    "$out/fileio-objects/CMarkerIcon.o" "$out/fileio-objects/CMapIconPool.o" \
-    "$out/fileio-objects/CGPSMarker.o" "$out/fileio-objects/CSprite.o" \
+    "$out/fileio-objects/CNetGamePool.o" "$out/fileio-objects/CPlayerPool.o" "$out/fileio-objects/CRemotePlayer.o" \
+    "$out/fileio-objects/CMarkerIcon.o" "$out/fileio-objects/CCheckPoint.o" "$out/fileio-objects/CMapIconPool.o" \
+    "$out/fileio-objects/CGPSMarker.o" "$out/fileio-objects/CGPSNavigator.o" "$out/fileio-objects/CSprite.o" \
     "$out/fileio-objects/CModelSnapshot.o" \
     "$out/fileio-objects/CLocalPlayer.o" \
     "$out/fileio-objects/CAudio.o" \

@@ -234,3 +234,8 @@ void CNecessary::ConvertLocalizedEncodingToUTF8(char* utf8Output, const char* cp
 
     *utf8Output = '\0';
 }
+
+float CNecessary::EaseOutQuad(float t)
+{
+    return 1.0f - (1.0f - t) * (1.0f - t);
+}

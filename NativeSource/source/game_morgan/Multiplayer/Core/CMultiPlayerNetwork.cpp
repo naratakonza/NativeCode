@@ -124,6 +124,176 @@ void CMultiPlayerNetwork::Packet_ConnectionSucceeded(Packet* pkt)
 	CMultiPlayer::GetActiveNetwork()->GetRakClient()->RPC(&RPC_ClientJoin, &bsSend, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, NULL);
 }
 
+void CMultiPlayerNetwork::Packet_PlayerSync(Packet* pkt)
+{
+    // CNecessary::Log(OBFUSCATE("Packet_PlayerSync"));
+
+	RakNet::BitStream bsPlayerSync((unsigned char *)pkt->data, pkt->length, false);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetworkState() != eNetworkState::GAMESTATE_CONNECTED) {
+		return;
+	}
+
+	if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) {
+		return;
+	}
+
+	uint8_t bytePacketID = 0;
+	uint32_t dwTime = 0;
+	uint16_t playerId;
+	bool bHasLR, bHasUD;
+	bool bHasVehicleSurfingInfo, bHasAnimationInfo;
+
+	ONFOOT_SYNC_DATA ofSync;
+	memset(&ofSync, 0, sizeof(ONFOOT_SYNC_DATA));
+
+	if (pkt->data[0] == PacketEnumeration::ID_TIMESTAMP)
+	{
+        bsPlayerSync.Read(bytePacketID);
+        bsPlayerSync.Read(dwTime);
+    }
+
+	bsPlayerSync.Read(bytePacketID);
+	bsPlayerSync.Read(playerId);
+
+	// LEFT/RIGHT KEYS
+	bsPlayerSync.Read(bHasLR);
+	if(bHasLR) bsPlayerSync.Read(ofSync.lrAnalog);
+
+	// UP/DOWN KEYS
+	bsPlayerSync.Read(bHasUD);
+	if(bHasUD) bsPlayerSync.Read(ofSync.udAnalog);
+
+	// GENERAL KEYS
+	bsPlayerSync.Read(ofSync.wKeys);
+
+	// CVector POS
+	bsPlayerSync.Read((char*)&ofSync.vecPos,sizeof(VECTOR));
+
+	// QUATERNION
+	float tw, tx, ty, tz;
+	bsPlayerSync.ReadNormQuat(tw, tx, ty, tz);
+	ofSync.quat.w = tw;
+	ofSync.quat.x = tx;
+	ofSync.quat.y = ty;
+	ofSync.quat.z = tz;
+
+	// HEALTH/ARMOUR (COMPRESSED INTO 1 BYTE)
+	uint8_t byteHealthArmour;
+	uint8_t byteArmTemp = 0, byteHealTemp = 0;
+
+	bsPlayerSync.Read(byteHealthArmour);
+	byteArmTemp = (byteHealthArmour & 0x0F);
+	byteHealTemp = (byteHealthArmour >> 4);
+
+	if(byteArmTemp == 0xF) ofSync.byteArmour = 100;
+	else if(byteArmTemp == 0) ofSync.byteArmour = 0;
+	else ofSync.byteArmour = byteArmTemp * 7;
+
+	if(byteHealTemp == 0xF) ofSync.byteHealth = 100;
+	else if(byteHealTemp == 0) ofSync.byteHealth = 0;
+	else ofSync.byteHealth = byteHealTemp * 7;
+
+	// CURRENT WEAPON
+    uint8_t byteTempWeapon;
+	bsPlayerSync.Read(byteTempWeapon);
+	ofSync.byteCurrentWeapon ^= (byteTempWeapon ^ ofSync.byteCurrentWeapon) & 0x3F;
+
+    // SPECIAL ACTION
+    bsPlayerSync.Read(ofSync.byteSpecialAction);
+
+    // READ MOVESPEED CVectorS
+    bsPlayerSync.ReadVector(tx, ty, tz);
+    ofSync.vecMoveSpeed.x = tx;
+    ofSync.vecMoveSpeed.y = ty;
+    ofSync.vecMoveSpeed.z = tz;
+
+    bsPlayerSync.Read(bHasVehicleSurfingInfo);
+    if (bHasVehicleSurfingInfo)
+    {
+        bsPlayerSync.Read(ofSync.wSurfInfo);
+        bsPlayerSync.Read(ofSync.vecSurfOffsets.x);
+        bsPlayerSync.Read(ofSync.vecSurfOffsets.y);
+        bsPlayerSync.Read(ofSync.vecSurfOffsets.z);
+    }
+    else 
+	{
+		ofSync.wSurfInfo = eInvalidId::INVALID_VEHICLE_ID;
+	}
+
+	bsPlayerSync.Read(bHasAnimationInfo);
+    if (bHasAnimationInfo)
+	{
+		bsPlayerSync.Read(ofSync.dwAnimation);
+	}
+	else
+	{
+		ofSync.dwAnimation = 0b10000000000000000000000000000000;
+	}
+
+	CRemotePlayer *pPlayer = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId);
+
+	if (pPlayer)
+	{
+		pPlayer->WritePlayerSyncData(&ofSync, dwTime);
+	}
+}
+
+void CMultiPlayerNetwork::Packet_MarkersSync(Packet *pkt)
+{
+	// CNecessary::Log(OBFUSCATE("Packet_MarkersSync"));
+
+	RakNet::BitStream bsMarkersSync((unsigned char *)pkt->data, pkt->length, false);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetworkState() != eNetworkState::GAMESTATE_CONNECTED) {
+		return;
+	}
+
+	if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) {
+		return;
+	}
+
+	int	iNumberOfPlayers = 0;
+	uint16_t playerId;
+	short sPosX, sPosY, sPosZ;
+	bool bIsPlayerActive;
+	uint8_t bytePacketId = 0;
+
+	bsMarkersSync.Read(bytePacketId);
+	bsMarkersSync.Read(iNumberOfPlayers);
+	if (iNumberOfPlayers)
+	{
+		for (int i = 0; i < iNumberOfPlayers; i++)
+		{
+			bsMarkersSync.Read(playerId);
+			bsMarkersSync.ReadCompressed(bIsPlayerActive);
+
+			if (bIsPlayerActive)
+			{
+				bsMarkersSync.Read(sPosX);
+				bsMarkersSync.Read(sPosY);
+				bsMarkersSync.Read(sPosZ);
+			}
+
+			if (playerId < eMaxItem::MAX_PLAYERS && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(playerId))
+			{
+				CRemotePlayer *pPlayer = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId);
+				if (pPlayer)
+				{
+					if (bIsPlayerActive)
+					{
+						pPlayer->CreateGlobalMarker(sPosX, sPosY, sPosZ);
+					}
+					else
+					{
+						pPlayer->DestroyGlobalMarker();
+					}
+				}
+			}
+		}
+	}
+}
+
 void CMultiPlayerNetwork::Update()
 {
     // CNecessary::Log(OBFUSCATE("CMultiPlayerNetwork Update"));
@@ -250,6 +420,16 @@ void CMultiPlayerNetwork::Update()
 
                 CMultiPlayer::GetActiveNetwork()->GetRakClient()->Disconnect(0);
 
+                break;
+            }
+
+			case PacketEnumeration::ID_PLAYER_SYNC: {
+                CMultiPlayerNetwork::Packet_PlayerSync(pkt);           
+                break;
+            }
+
+			case PacketEnumeration::ID_MARKERS_SYNC: {
+                CMultiPlayerNetwork::Packet_MarkersSync(pkt);           
                 break;
             }
         }

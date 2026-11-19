@@ -1,4 +1,5 @@
 #include "../../../../Main.h"
+#include "../Syncs/Core/CCheckPoint.h"
 #include "CMultiPlayerOpcode.h"
 #include "RPCData/eRPCID.h"
 #include "../../Enums/eConnectionRejectedType.h"
@@ -155,6 +156,70 @@ void InitGame(RakNet::BitStream bsInitGame)
 	}
 }
 
+void ServerJoin(RakNet::BitStream bsData)
+{
+	//CNecessary::Log(OBFUSCATE("RPC: ServerJoin"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint8_t)) +
+		bytesToBits(sizeof(uint8_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for ServerJoin"));
+        return;
+    }
+
+	char szPlayerName[eMaxItem::MAX_PLAYER_NAME + 1];
+	uint16_t playerId;
+	uint8_t byteNameLen = 0;
+	uint8_t bIsNPC = 0;
+	uint32_t color;
+
+	bsData.Read(playerId);
+	bsData.Read(color);
+	bsData.Read(bIsNPC);
+	bsData.Read(byteNameLen);
+
+	if (byteNameLen >= 24 + 1) {
+		CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for ServerJoin (2)"));
+		return;
+	}
+
+	bsData.Read(szPlayerName, byteNameLen);
+	szPlayerName[byteNameLen] = '\0';
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+	{
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->Add(playerId, szPlayerName, bIsNPC, color);
+	}
+}
+
+void ServerQuit(RakNet::BitStream bsData)
+{
+	//CNecessary::Log(OBFUSCATE("RPC: ServerQuit"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint8_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for ServerQuit"));
+        return;
+    }
+
+	uint16_t playerId;
+	uint8_t byteReason;
+
+	bsData.Read(playerId);
+    bsData.Read(byteReason);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+	{
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->Delete(playerId, byteReason);
+	}
+}
+
 void GameModeRestart()
 {
 	CNecessary::Log(OBFUSCATE("RPC: GameModeRestart"));
@@ -196,6 +261,44 @@ void ConnectionRejected(RakNet::BitStream bsData)
 			CMultiPlayer::GetActiveNetwork()->GetRakClient()->Disconnect(500);
 		}
 	}
+}
+
+void Chat(RakNet::BitStream bsChat)
+{
+	CNecessary::Log(OBFUSCATE("RPC: Chat"));
+
+    uint16_t playerId;
+    uint8_t byteTextLen;
+
+    bsChat.Read(playerId);
+    bsChat.Read(byteTextLen);
+
+    uint8_t szText[256];
+    memset(szText, 0, 256);
+    bsChat.Read((char*)szText, byteTextLen);
+    szText[byteTextLen] = '\0';
+
+    if (CMultiPlayer::GetActiveNetwork()->GetNetworkState() != eNetworkState::GAMESTATE_CONNECTED) {
+		return;
+	}
+
+    if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+	{
+        if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
+		{
+            if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID() == playerId)
+			{
+                CGui::GetChat()->AddChatMessage(CMultiPlayer::GetActiveNetwork()->GetNetworkData().PlayerName, CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerColor(), (char*)szText);
+            }
+			else
+			{
+                if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId))
+				{
+                    CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->Say((uint8_t*)szText);
+                }
+            }
+        }
+    }
 }
 
 void ShowDialog(RakNet::BitStream bsDialog)
@@ -473,6 +576,40 @@ void ClientMessage(RakNet::BitStream bsClientMessage)
 		if (CGui::GetChat()) 
 		{
 			CGui::GetChat()->AddClientMessage(dwColor, szMsg);
+		}
+	}
+}
+
+void SetPlayerColor(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetPlayerColor"));
+
+	if (bsData.GetNumberOfUnreadBits() < bytesToBits(sizeof(uint16_t)) + bytesToBits(sizeof(uint32_t))) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerColor"));
+        return;
+    }
+
+	uint16_t playerId;
+	uint32_t dwColor;
+
+	bsData.Read(playerId);
+	bsData.Read(dwColor);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
+		{
+			if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->SetPlayerColor(dwColor);
+			} 
+			else 
+			{
+				if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)) 
+				{
+					CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->UpdateColorOnRadar(dwColor);
+				}
+			}
 		}
 	}
 }
@@ -768,6 +905,87 @@ void SetSpawnInfo(RakNet::BitStream bsData)
 	}
 }
 
+void WorldPlayerAdd(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: WorldPlayerAdd"));
+
+	int bitsStandard =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint8_t)) +
+		bytesToBits(sizeof(uint32_t)) +
+		bytesToBits(sizeof(CVector)) +
+		bytesToBits(sizeof(float)) +
+		bytesToBits(sizeof(uint32_t)) +
+		bytesToBits(sizeof(uint8_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsStandard) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for WorldPlayerAdd"));
+        return;
+    }
+
+	uint16_t playerId;
+	uint8_t byteTeam;
+	uint32_t iSkin;
+	CVector vecPos;
+	float fRotation;
+	uint32_t dwColor;
+	uint8_t byteFightingStyle;
+	uint16_t weaponSkills[11] = { 0 };
+
+	bsData.Read(playerId);
+	bsData.Read(byteTeam);
+	bsData.Read(iSkin);
+	bsData.Read((char*)&vecPos, sizeof(CVector));
+	bsData.Read(fRotation);
+	bsData.Read(dwColor);
+	bsData.Read(byteFightingStyle);
+
+	int bitsSkills = bytesToBits(sizeof(uint16_t) * 11);
+	if (bsData.GetNumberOfUnreadBits() >= bitsSkills)
+	{
+		bsData.Read((char*)weaponSkills, sizeof(weaponSkills));
+	}
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId))
+		{
+			if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->SpawnGamePlayer(byteTeam, iSkin, &vecPos, fRotation, dwColor, static_cast<eFightingStyle>(byteFightingStyle), weaponSkills))
+			{
+				if (CGui::GetChat())
+				{
+					CGui::GetChat()->AddDebugMessage(1, OBFUSCATE("Warning: Couldn't spawn player(%u)"), playerId);
+				}
+			}
+		}
+	}
+}
+
+void WorldPlayerRemove(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: WorldPlayerRemove"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for WorldPlayerRemove"));
+        return;
+    }
+
+	uint16_t playerId;
+
+	bsData.Read(playerId);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)) 
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->RemoveGamePlayer(4);
+		}
+	}
+}
+
 void ShowActor(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: ShowActor"));
@@ -1047,10 +1265,10 @@ void SetPlayerSkin(RakNet::BitStream bsData)
 		} 
 		else
 		{
-			// if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(iPlayerID) && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(iPlayerID)->GetGamePlayer()) 
-			// {
-			// 	CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(iPlayerID)->GetGamePlayer()->SetModelIndex(uiSkin);
-			// }
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(iPlayerID) && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(iPlayerID)->GetGamePlayer()) 
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(iPlayerID)->GetGamePlayer()->SetModelIndex(uiSkin);
+			}
 		}
 	}
 }
@@ -1471,6 +1689,73 @@ void DestroyPickup(RakNet::BitStream bsData)
 	}
 }
 
+void SetCheckpoint(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetCheckpoint"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(VECTOR)) +
+		bytesToBits(sizeof(float));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetCheckpoint"));
+        return;
+    }
+
+	VECTOR vecPos, vecExtent;
+	float fSize;
+
+	bsData.Read((char*)&vecPos, sizeof(VECTOR));
+	bsData.Read(fSize);
+
+	vecExtent = {fSize, fSize, fSize};
+
+	CCheckPoint::Create((CVector*)&vecPos, (CVector*)&vecExtent);
+	CCheckPoint::ToggleCheckpoints(true);
+}
+
+void DisableCheckpoint(RakNet::BitStream)
+{
+	CNecessary::Log(OBFUSCATE("RPC: DisableCheckpoint"));
+
+	CCheckPoint::ToggleCheckpoints(false);
+}
+
+void SetRaceCheckpoint(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetRaceCheckpoint"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint8_t)) +
+		bytesToBits(sizeof(CVector)) +
+		bytesToBits(sizeof(CVector)) +
+		bytesToBits(sizeof(float));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetRaceCheckpoint"));
+        return;
+    }
+
+	uint8_t byteType;
+	CVector vecPos, vecNextPos;
+	float fSize;
+
+	bsData.Read(byteType);
+	bsData.Read((char*)&vecPos, sizeof(CVector));
+	bsData.Read((char*)&vecNextPos, sizeof(CVector));
+	bsData.Read(fSize);
+
+	CCheckPoint::CreateRace(byteType, &vecPos, &vecNextPos, fSize);
+	CCheckPoint::ToggleRaceCheckpoints(true);
+}
+
+void DisableRaceCheckpoint(RakNet::BitStream)
+{
+	CNecessary::Log(OBFUSCATE("RPC: DisableRaceCheckpoint"));
+
+	CCheckPoint::ToggleRaceCheckpoints(false);
+}
+
 void AddGangZone(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: AddGangZone"));
@@ -1604,15 +1889,15 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_ServerJoin: {
-		//     ServerJoin(*bsData);
-		//     break;
-		// }
+		case RPC_ServerJoin: {
+		    ServerJoin(*bsData);
+		    break;
+		}
 
-		// case RPC_ServerQuit: {
-		//     ServerQuit(*bsData);
-		//     break;
-		// }
+		case RPC_ServerQuit: {
+		    ServerQuit(*bsData);
+		    break;
+		}
 
 		case RPC_GameModeRestart: {
 			GameModeRestart();
@@ -1624,10 +1909,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 			break;
 		}
 
-		// case RPC_Chat: {
-		//     Chat(*bsData);
-		//     break;
-		// }
+		case RPC_Chat: {
+		    Chat(*bsData);
+		    break;
+		}
 
         case RPC_ShowDialog: {
 		    ShowDialog(*bsData);
@@ -1679,10 +1964,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_SetPlayerColor: {
-		//     SetPlayerColor(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerColor: {
+		    SetPlayerColor(*bsData);
+		    break;
+		}
 
 		case RPC_SendClientMessage: {
 		    ClientMessage(*bsData);
@@ -1864,15 +2149,15 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_WorldPlayerAdd: {
-		//     WorldPlayerAdd(*bsData);
-		//     break;
-		// }
+		case RPC_WorldPlayerAdd: {
+		    WorldPlayerAdd(*bsData);
+		    break;
+		}
 
-		// case RPC_WorldPlayerRemove: {
-		//     WorldPlayerRemove(*bsData);
-		//     break;
-		// }
+		case RPC_WorldPlayerRemove: {
+		    WorldPlayerRemove(*bsData);
+		    break;
+		}
 
 		// case RPC_WorldVehicleAdd: {
 		//     WorldVehicleAdd(*bsData);
@@ -2189,25 +2474,25 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_SetCheckpoint: {
-		//     SetCheckpoint(*bsData);
-		//     break;
-		// }
+		case RPC_SetCheckpoint: {
+		    SetCheckpoint(*bsData);
+		    break;
+		}
 
-		// case RPC_DisableCheckpoint: {
-		//     DisableCheckpoint(*bsData);
-		//     break;
-		// }
+		case RPC_DisableCheckpoint: {
+		    DisableCheckpoint(*bsData);
+		    break;
+		}
 
-		// case RPC_SetRaceCheckpoint: {
-		//     SetRaceCheckpoint(*bsData);
-		//     break;
-		// }
+		case RPC_SetRaceCheckpoint: {
+		    SetRaceCheckpoint(*bsData);
+		    break;
+		}
 
-		// case RPC_DisableRaceCheckpoint: {
-		//     DisableRaceCheckpoint(*bsData);
-		//     break;
-		// }
+		case RPC_DisableRaceCheckpoint: {
+		    DisableRaceCheckpoint(*bsData);
+		    break;
+		}
 
 		case RPC_AddGangZone: {
 		    AddGangZone(*bsData);

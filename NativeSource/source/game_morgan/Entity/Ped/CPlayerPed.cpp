@@ -341,6 +341,44 @@ void CPlayerPed::ProcessAnimGroups(bool bUseCJWalk)
     *reinterpret_cast<std::uint8_t*>(SA_ADDR(0xB0FCF8) + _dyld_get_image_vmaddr_slide(0)) = static_cast<std::uint8_t>(!bUseCJWalk);
 }
 
+void CPlayerPed::SetImmunities(int BP, int FP, int EP, int CP, int MP)
+{
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
+
+	if (CUtil::GamePool_Ped_GetAt(m_dwGTAId))
+	{
+		CScripting::ScriptCommand(&set_actor_immunities, m_dwGTAId, BP, FP, EP, CP, MP);
+	}
+}
+
+void CPlayerPed::ShowMarker(uint32_t iMarkerColorID)
+{
+	if (!CPlayerPed::VerifyInstance()) {
+		return;
+	}
+
+	if (m_dwArrow)
+	{
+		CPlayerPed::HideMarker();
+	}
+
+	CScripting::ScriptCommand(&create_arrow_above_actor, m_dwGTAId, &m_dwArrow);
+	CScripting::ScriptCommand(&set_marker_color, m_dwArrow, iMarkerColorID);
+	CScripting::ScriptCommand(&show_on_radar2, m_dwArrow, 2);
+}
+
+void CPlayerPed::HideMarker()
+{
+	if (m_dwArrow)
+	{
+		CScripting::ScriptCommand(&disable_marker, m_dwArrow);
+	}
+
+	m_dwArrow = 0;
+}
+
 void CPlayerPed::RemoveFromVehicleAndPutAt(float fX, float fY, float fZ)
 {
     if (CPlayerPed::IsInVehicle())
@@ -824,4 +862,19 @@ bool CPlayerPed::IsInJetpack()
     }
 
     return task->vtable == SA_ADDR(0x4B17B8) + _dyld_get_image_vmaddr_slide(0);
+}
+
+bool CPlayerPed::IsExitingVehicle()
+{
+    if (!CPlayerPed::VerifyInstance())
+    {
+        return false;
+    }
+
+    if (GetPed() && GetPed()->pPedIntelligence && GetPed()->pPedIntelligence->m_taskManager.m_tasks[ePrimaryTasks::TASK_PRIMARY_PRIMARY])
+    {
+        return CCommon::GetTaskTypeFromTask(reinterpret_cast<uintptr_t*>(GetPed()->pPedIntelligence->m_taskManager.m_tasks[ePrimaryTasks::TASK_PRIMARY_PRIMARY])) == 704;
+    }
+
+    return false;
 }
