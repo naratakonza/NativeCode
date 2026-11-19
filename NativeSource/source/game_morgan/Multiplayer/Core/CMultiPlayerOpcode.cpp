@@ -670,6 +670,45 @@ void SetGravity(RakNet::BitStream bsData)
 	CPhysical::SetGravity(gravity);
 }
 
+void ChatBubble(RakNet::BitStream bsData)
+{
+    CNecessary::Log(OBFUSCATE("RPC: ChatBubble"));
+
+    uint16_t playerId;
+
+    uint32_t color;
+    uint32_t expireTime;
+    uint8_t texLength;
+
+    float drawDistance;
+
+    bsData.Read(playerId);
+    bsData.Read(color);
+    bsData.Read(drawDistance);
+    bsData.Read(expireTime);
+    bsData.Read(texLength);
+
+    if (texLength >= 255) {
+        return;
+    }
+
+    char pText[256]{};
+    bsData.Read(pText, texLength);
+
+    pText[texLength] = 0;
+
+    if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+    {
+        return;
+    }
+
+    if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)) {
+        return;
+    }
+
+    CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->AddBubbleMessage(expireTime, pText, color, drawDistance);
+}
+
 void ToggleClock(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: ToggleClock"));
@@ -1476,6 +1515,80 @@ void SetGameWeather(RakNet::BitStream bsData)
 	}
 }
 
+void ShowPlayerNameTag(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ShowPlayerNameTag"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint8_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for ShowPlayerNameTag"));
+        return;
+    }
+
+	uint16_t playerId;
+	uint8_t show;
+
+	bsData.Read(playerId);
+	bsData.Read(show);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) 
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)) 
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->SetRemoteShowNameTag(show);
+		}
+	}
+}
+
+void SetPlayerName(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetPlayerName"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint8_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerName"));
+        return;
+    }
+
+	uint16_t playerId;
+	uint8_t byteNickLen = 0;
+	char szNewName[24 + 1] = { '\0' };
+	uint8_t byteSuccess;
+
+	bsData.Read(playerId);
+	bsData.Read(byteNickLen);
+	if (byteNickLen >= eMaxItem::MAX_PLAYER_NAME + 1) {
+		return;
+	}
+
+	bsData.Read(szNewName, byteNickLen);
+	bsData.Read(byteSuccess);
+	szNewName[byteNickLen] = '\0';
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+	{
+		CNecessary::Log(OBFUSCATE("RPC: SetPlayerName byteSuccess = %d"), byteSuccess);
+		if (byteSuccess == 1)
+		{
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId))
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->SetRemoteName(szNewName);
+			}
+		}
+
+		if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+		{
+			strcpy(CMultiPlayer::GetActiveNetwork()->GetNetworkData().PlayerName, szNewName);
+		}
+	}
+}
+
 void SendGameTimeUpdate(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: SendGameTimeUpdate"));
@@ -2163,10 +2276,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		// 	break;
 		// }
 
-		// case RPC_ChatBubble: {
-		// 	ChatBubble(*bsData);
-		// 	break;
-		// }
+		case RPC_ChatBubble: {
+			ChatBubble(*bsData);
+			break;
+		}
 
 		case RPC_ToggleClock: {
 			ToggleClock(*bsData);
@@ -2503,10 +2616,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_ShowPlayerNameTag: {
-		//     ShowPlayerNameTag(*bsData);
-		//     break;
-		// }
+		case RPC_ShowPlayerNameTag: {
+		    ShowPlayerNameTag(*bsData);
+		    break;
+		}
 
 		// case RPC_ApplyPlayerAnimation: {
 		//     ApplyAnimation(*bsData);
@@ -2518,10 +2631,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_SetPlayerName: {
-		//     SetPlayerName(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerName: {
+		    SetPlayerName(*bsData);
+		    break;
+		}
 
 		case RPC_PlayerUpdate: {
 		    SendGameTimeUpdate(*bsData);

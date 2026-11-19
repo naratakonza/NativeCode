@@ -123,7 +123,19 @@ void CRemotePlayer::UpdateAllFrames()
 		pGamePlayer->SetHealth(1000.0f);
 	}
 
-	// CRemotePlayer::DoChatBubbleMessages();
+	CRemotePlayer::DoChatBubbleMessages();
+}
+
+void CRemotePlayer::DoChatBubbleMessages()
+{
+    if (!CRemotePlayer::m_bChatBubbleIsActive) {
+        return;
+    }
+
+    if (CNecessary::GetTickCount() - CRemotePlayer::m_dwChatBubbleLastTick >= CRemotePlayer::m_dwChatBubbleCurDelay)
+    {
+        CRemotePlayer::m_bChatBubbleIsActive = false;
+    }
 }
 
 CPlayerPed* CRemotePlayer::CreateGamePlayer(unsigned int iSkin, CVector *vecPos, float fRotation)
@@ -954,6 +966,18 @@ void CRemotePlayer::Say(unsigned char* szText)
 	{
 		CGui::GetChat()->AddChatMessage(CRemotePlayer::GetRemoteName(), CRemotePlayer::GetRemoteColor(), reinterpret_cast<char*>(szText));
 	}
+}
+
+void CRemotePlayer::AddBubbleMessage(uint32_t expireTime, const char* pText, uint32_t color, float drawDistance)
+{
+    CRemotePlayer::m_dwChatBubbleColor = color;
+    CRemotePlayer::m_dwChatBubbleCurDelay = expireTime;
+
+    CRemotePlayer::m_fChatBubbleDrawDistance = drawDistance;
+    CNecessary::ConvertLocalizedEncodingToUTF8(CRemotePlayer::m_szChatBubbleMessage, pText, sizeof(CRemotePlayer::m_szChatBubbleMessage));
+
+    CRemotePlayer::m_dwChatBubbleLastTick = CNecessary::GetTickCount();
+    CRemotePlayer::m_bChatBubbleIsActive = true;
 }
 
 void CRemotePlayer::SetPlayingAnimIndex(int32_t Index)

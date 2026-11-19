@@ -2,6 +2,7 @@
 #include "CFontRender.h"
 #include "../CGui.h"
 #include "../../CMultiPlayer.h"
+#include "../../Texts/CChatBubble.h"
 #include "../../../CUtil.h"
 #include "../../../../utils/Storage/CStorage.h"
 #include "../../../../vendor/imgui/imgui_impl_renderware.h"
@@ -136,6 +137,8 @@ void CFontRender::Render()
     {
         CGui::GetPlayerTag()->Render();
     }
+
+    CChatBubble::Render();
 
     if (CGui::GetDebug())
     {
