@@ -108,7 +108,7 @@ bool CPlayerPool::Add(uint16_t playerID, char* playerName, bool isNPC, uint32_t 
     return true;
 }
 
-bool CPlayerPool::Delete(uint16_t playerID, uint8_t byteReason)
+bool CPlayerPool::Delete(uint16_t playerID, [[maybe_unused]] uint8_t byteReason)
 {
     if (playerID >= eMaxItem::MAX_PLAYERS) {
         return false;
@@ -215,7 +215,7 @@ uint16_t CPlayerPool::FindRemotePlayerIDFromGtaPtr(CPedGta* pActor)
     return eInvalidId::INVALID_PLAYER_ID;
 }
 
-uint16_t CPlayerPool::FindRemotePlayerIDFromCameraRay(float maxDistance, CVector* cameraPos, CVector* rayEnd, float radius)
+uint16_t CPlayerPool::FindRemotePlayerIDFromCameraRay(float maxDistance, CVector* cameraPos, CVector* rayEnd, [[maybe_unused]] float radius)
 {
     float closestOffset = 100000.0f;
     uint16_t closestPlayerId = eInvalidId::INVALID_PLAYER_ID;

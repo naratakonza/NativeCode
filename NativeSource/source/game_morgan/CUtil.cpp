@@ -405,3 +405,15 @@ bool CUtil::LIB_PointerGetCoordinates(int device, int* x, int* y, float* pressur
 {
     return reinterpret_cast<bool (*)(int, int*, int*, float*)>(SA_ADDR(0x0254AC) + _dyld_get_image_vmaddr_slide(0))(device, x, y, pressure);
 }
+
+float CUtil::FloatOffset(float f1, float f2)
+{
+    if (f1 >= f2)
+    {
+        return f1 - f2;
+    }
+    else
+    {
+        return (f2 - f1);
+    }
+}

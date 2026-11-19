@@ -141,7 +141,7 @@ CPlayerPed* CRemotePlayer::CreateGamePlayer(unsigned int iSkin, CVector *vecPos,
 	return nullptr;
 }
 
-bool CRemotePlayer::SpawnGamePlayer(uint8_t byteTeam, unsigned int iSkin, CVector *vecPos, float fRotation, uint32_t dwColor, eFightingStyle byteFightingStyle, const uint16_t weaponSkills[11])
+bool CRemotePlayer::SpawnGamePlayer(uint8_t byteTeam, unsigned int iSkin, CVector *vecPos, float fRotation, uint32_t dwColor, [[maybe_unused]] eFightingStyle byteFightingStyle, [[maybe_unused]] const uint16_t weaponSkills[11])
 {
 	bool IsStarted = CGame::IsStarted();
 	if (IsStarted)
@@ -167,18 +167,18 @@ bool CRemotePlayer::SpawnGamePlayer(uint8_t byteTeam, unsigned int iSkin, CVecto
 			// 	pGamePlayer->SetWeaponSkill(i, weaponSkills[i]);
 			// }
 
-			// if (byteTeam != NO_TEAM)
-			// {
-			// 	CRemotePlayer::SetRemoteTeam(byteTeam);
-			// }
+			if (byteTeam != NO_TEAM)
+			{
+				CRemotePlayer::SetRemoteTeam(byteTeam);
+			}
 
 			CRemotePlayer::SetReportedHealth(100.0f);
 			CRemotePlayer::SetReportedArmour(0.0f);
 
-			// if (CRemotePlayer::IsRemoteNPC())
-			// {
-			// 	pGamePlayer->SetImmunities(0, 1, 1, 0, 0);
-			// }
+			if (CRemotePlayer::IsRemoteNPC())
+			{
+				pGamePlayer->SetImmunities(0, 1, 1, 0, 0);
+			}
 
 			// if (byteFightingStyle != eFightingStyle::STYLE_STANDARD)
 			// {
@@ -628,27 +628,6 @@ void CRemotePlayer::RemoveGamePlayerFromVehicle()
 			// CRemotePlayer::SetGameVehicle(nullptr);
 		}
 	}
-}
-
-void CRemotePlayer::HandleWasted()
-{
-	if (CPlayerPed* pGamePlayer = CRemotePlayer::GetGamePlayer())
-	{
-		if (!CRemotePlayer::IsGamePlayerValid(CRemotePlayer::GetRemotePlayerID(), pGamePlayer)) {
-			CNecessary::Log(OBFUSCATE("HandleWasted: pGamePlayer is no longer valid."));
-			return;
-		}
-
-		pGamePlayer->SetKeys(0, 0, 0);
-		pGamePlayer->SetDead();
-	}
-
-	if (CRemotePlayer::GetNetworkPlayerState() != eNetworkPlayerState::PLAYER_STATE_WASTED)
-	{
-		CRemotePlayer::SetNetworkPlayerState(eNetworkPlayerState::PLAYER_STATE_WASTED);
-	}
-
-	CRemotePlayer::ResetData();
 }
 
 void CRemotePlayer::CreateGlobalMarker(short sX, short sY, short sZ)

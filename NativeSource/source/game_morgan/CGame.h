@@ -18,6 +18,7 @@ public:
     static void SetFramerate(std::uint8_t fps);
     static void ToggleRadar(bool iToggle);
     static uint8_t IsMenuActive();
+    static bool IsStarted();
     static bool IsRadarActive();
     static void DisplayHUD(bool bDisp);
     static void GetScreenWidthAndHeight(int* w, int* h);

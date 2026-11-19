@@ -73,6 +73,18 @@ uint8_t CGame::IsMenuActive()
     return CTimer::IsUserPause() == 1;
 }
 
+bool CGame::IsStarted()
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x47F4C), "\x49\x3A\x00\x90\x29\xA1\x07\x91\x29\xE5\x42\x39", 12, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x43AC60), "\xA8\x1A\x00\xB0\x08\xA1\x07\x91\x1F\xE5\x02\x39", 12, "__text");
+    if (!verified)
+    {
+        return false;
+    }
+
+    // FrontEndMenuManager->m_MainMenu บน iOS
+    return *reinterpret_cast<const std::uint8_t*>(SA_ADDR(0x78F2A1) + _dyld_get_image_vmaddr_slide(0)) == 0;
+}
+
 bool CGame::IsRadarActive()
 {
     static const bool verified = CMemory::HasMappedInstruction(SA_ADDR(0x109F40), "\x2A\x35\x00\xB0") && CMemory::HasMappedInstruction(SA_ADDR(0x109F44), "\x4A\xB1\x0B\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x109F48), "\x49\x01\x00\x39");
