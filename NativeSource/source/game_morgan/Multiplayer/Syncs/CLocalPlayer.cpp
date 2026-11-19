@@ -136,7 +136,7 @@ bool CLocalPlayer::Process()
         CLocalPlayer::DisplayZone(dwThisTick);
 
         // CLocalPlayer::GetPlayerPed()->ProcessDrunk();
-		// CLocalPlayer::GetPlayerPed()->ResetPlayerTimeLastEaten();
+		CLocalPlayer::GetPlayerPed()->ResetPlayerTimeLastEaten();
 
 		// CLocalPlayer::ProcessAnimation();
 
@@ -145,7 +145,7 @@ bool CLocalPlayer::Process()
 		CCheckPoint::Process();
 
         CLocalPlayer::HandleInteriorChanging();
-        // CLocalPlayer::UpdateWeapons();
+        CLocalPlayer::UpdateWeapons();
 		// CLocalPlayer::UpdateCameraTarget();
 		// CLocalPlayer::SendStats(dwThisTick);
 
@@ -338,6 +338,86 @@ void CLocalPlayer::DisplayZone(uint32_t dwThisTick)
 	{
 		CTheZones::EnableZoneNames(CMultiPlayer::GetActiveNetwork()->m_bZoneNames);
 	}
+}
+
+void CLocalPlayer::UpdateWeapons()
+{
+    if (!CLocalPlayer::GetPlayerPed()) {
+        return;
+    }
+
+    uint8_t byteCurWeapon = CLocalPlayer::GetPlayerPed()->GetCurrentWeapon();
+    uint16_t targetPlayerId = eInvalidId::INVALID_PLAYER_ID;
+    uint16_t targetActorID = eInvalidId::INVALID_ACTOR_ID;
+    bool bNeedUpdate = false;
+    RakNet::BitStream bsWeapons;
+
+    CPlayerPool* pPlayerPool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool();
+    CActorPool* pActorPool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool();
+
+    CEntityGta* targetEntity = CLocalPlayer::GetPlayerPed()->GetTargetEntity();
+    if (targetEntity)
+    {
+        if (pPlayerPool)
+        {
+            targetPlayerId = pPlayerPool->FindRemotePlayerIDFromGtaEntity(targetEntity);
+        }
+
+        if (pActorPool)
+        {
+            targetActorID = pActorPool->FindTargetEntityID(targetEntity);
+        }
+    }
+
+    if (targetPlayerId != CLocalPlayer::m_weaponsData.m_nAimedPlayer || targetActorID != CLocalPlayer::m_weaponsData.m_nAimedActor)
+    {
+        CLocalPlayer::m_weaponsData.m_nAimedPlayer = targetPlayerId;
+        CLocalPlayer::m_weaponsData.m_nAimedActor = targetActorID;
+        bNeedUpdate = true;
+    }
+    else
+    {
+        if (byteCurWeapon == CLocalPlayer::m_weaponsData.m_nCurrentWeapon)
+        {
+            if ((CNecessary::GetTickCount() - CLocalPlayer::m_dwLastWeaponsUpdateTick) < 100)
+            {
+                return;
+            }
+        }
+    }
+
+    if (byteCurWeapon != CLocalPlayer::m_weaponsData.m_nCurrentWeapon)
+    {
+        CLocalPlayer::m_weaponsData.m_nCurrentWeapon = byteCurWeapon;
+    }
+
+    bsWeapons.Write(static_cast<uint8_t>(ID_WEAPONS_UPDATE));
+    bsWeapons.Write(static_cast<uint16_t>(CLocalPlayer::m_weaponsData.m_nAimedPlayer));
+    bsWeapons.Write(static_cast<uint16_t>(CLocalPlayer::m_weaponsData.m_nAimedActor));
+
+    for (uint8_t slot = 0; slot < 13; ++slot)
+    {
+        uint32_t weaponType = CLocalPlayer::GetPlayerPed()->GetPed()->WeaponSlots[slot].dwType;
+        uint32_t weaponAmmo = CLocalPlayer::GetPlayerPed()->GetPed()->WeaponSlots[slot].dwAmmo;
+
+        if (CLocalPlayer::m_weaponsData.m_byteLastWeapon[slot] != weaponType || CLocalPlayer::m_weaponsData.m_dwLastAmmo[slot] != weaponAmmo)
+        {
+            CLocalPlayer::m_weaponsData.m_byteLastWeapon[slot] = weaponType;
+            CLocalPlayer::m_weaponsData.m_dwLastAmmo[slot] = weaponAmmo;
+
+            bsWeapons.Write(slot);
+            bsWeapons.Write(static_cast<uint8_t>(CLocalPlayer::m_weaponsData.m_byteLastWeapon[slot]));
+            bsWeapons.Write(static_cast<uint16_t>(CLocalPlayer::m_weaponsData.m_dwLastAmmo[slot]));
+
+            bNeedUpdate = true;
+        }
+    }
+
+    if (bNeedUpdate)
+    {
+        CLocalPlayer::m_dwLastWeaponsUpdateTick = CNecessary::GetTickCount();
+        CMultiPlayer::GetActiveNetwork()->GetRakClient()->Send(&bsWeapons, HIGH_PRIORITY, UNRELIABLE, 0);
+    }
 }
 
 void CLocalPlayer::HandleDead()

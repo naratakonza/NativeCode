@@ -2,6 +2,7 @@
 #include "CFontRender.h"
 #include "../CGui.h"
 #include "../../CMultiPlayer.h"
+#include "../../Texts/CChatBubble.h"
 #include "../../../CUtil.h"
 #include "../../../../utils/Storage/CStorage.h"
 #include "../../../../vendor/imgui/imgui_impl_renderware.h"
@@ -137,6 +138,8 @@ void CFontRender::Render()
         CGui::GetPlayerTag()->Render();
     }
 
+    CChatBubble::Render();
+
     if (CGui::GetDebug())
     {
         CGui::GetDebug()->RenderTitle();
@@ -162,6 +165,11 @@ void CFontRender::Render()
         // {
         //     CGui::GetGButton()->Render();
         // }
+    }
+
+    if (CGui::GetDeathWindow())
+    {
+        CGui::GetDeathWindow()->Render();
     }
 
     ImGui::EndFrame();
@@ -266,6 +274,7 @@ ImFont* CFontRender::LoadFont(const char* font, float fontsize, const ImWchar* r
         CNecessary::Log(OBFUSCATE("CFontRender | Font open failed: %s (error %d)"), path, result.error.value());
         return nullptr;
     }
+    
     if (std::fseek(result.file.get(), 0, SEEK_END) != 0) {
         return nullptr;
     }
@@ -281,15 +290,7 @@ ImFont* CFontRender::LoadFont(const char* font, float fontsize, const ImWchar* r
         const auto length = static_cast<std::size_t>(size);
         if (std::fread(data, 1, length, result.file.get()) == length && (std::memcmp(data, "\x00\x01\x00\x00", 4) == 0 || std::memcmp(data, "true", 4) == 0))
         {
-            CGDataProviderRef provider = CGDataProviderCreateWithData(nullptr, data, length, nullptr);
-            CGFontRef validated = provider ? CGFontCreateWithDataProvider(provider) : nullptr;
-            if (validated) CGFontRelease(validated);
-            if (provider) CGDataProviderRelease(provider);
-
-            if (validated)
-            {
-                return io.Fonts->AddFontFromMemoryTTF(data, static_cast<int>(size), fontsize, &fontCfg, ranges);
-            }
+            return io.Fonts->AddFontFromMemoryTTF(data, static_cast<int>(size), fontsize, &fontCfg, ranges);
         }
 
         ImGui::MemFree(data);
@@ -584,4 +585,30 @@ bool CFontRender::ProcessInlineHexColor(const char* start, const char* end, ImVe
     }
 
     return false;
+}
+
+void CFontRender::RenderTextDeathMessage(ImVec2& posCur, ImU32 col, bool bOutline, const char* text_begin, const char* text_end, float font_size, ImFont *font, bool bOutlineUseTextColor)
+{
+    int iOffset = bOutlineUseTextColor ? 1 : CSetting::GetConfig()->GetIntValue(OBFUSCATE("FontOutline"));
+    if(bOutline)
+    {
+        // left
+        posCur.x -= iOffset;
+        ImGui::GetBackgroundDrawList()->AddText(font == nullptr ? GetFont() : font, font_size == 0.0f ? GetFontSize() : font_size, posCur, bOutlineUseTextColor ? ImColor(col) : ImColor(IM_COL32_BLACK), text_begin, text_end);
+        posCur.x += iOffset;
+        // right
+        posCur.x += iOffset;
+        ImGui::GetBackgroundDrawList()->AddText(font == nullptr ? GetFont() : font, font_size == 0.0f ? GetFontSize() : font_size, posCur, bOutlineUseTextColor ? ImColor(col) : ImColor(IM_COL32_BLACK), text_begin, text_end);
+        posCur.x -= iOffset;
+        // above
+        posCur.y -= iOffset;
+        ImGui::GetBackgroundDrawList()->AddText(font == nullptr ? GetFont() : font, font_size == 0.0f ? GetFontSize() : font_size, posCur, bOutlineUseTextColor ? ImColor(col) : ImColor(IM_COL32_BLACK), text_begin, text_end);
+        posCur.y += iOffset;
+        // below
+        posCur.y += iOffset;
+        ImGui::GetBackgroundDrawList()->AddText(font == nullptr ? GetFont() : font, font_size == 0.0f ? GetFontSize() : font_size, posCur, bOutlineUseTextColor ? ImColor(col) : ImColor(IM_COL32_BLACK), text_begin, text_end);
+        posCur.y -= iOffset;
+    }
+
+    ImGui::GetBackgroundDrawList()->AddText(font == nullptr ? GetFont() : font, font_size == 0.0f ? GetFontSize() : font_size, posCur, col, text_begin, text_end);
 }

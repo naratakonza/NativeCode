@@ -21,6 +21,7 @@ public:
     static float GetDistanceBetween3DPoints(CVector* f, CVector* s);
     static float GetDistanceBetweenPointAndLine(CVector* p, CVector* a, CVector* b);
     static CVector Multiply3x3(const CMatrix *m, const CVector *v);
+    static void FilterColors(char* szStr);
     static std::string ReplaceKey(const std::string& input);
     static std::string ProcessTextDrawString(const std::string& input);
     static bool HasNewlineTag(const std::string& str);

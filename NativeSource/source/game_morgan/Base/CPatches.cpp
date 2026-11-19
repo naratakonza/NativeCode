@@ -58,6 +58,10 @@ void CPatches::InstallLevelZPatches()
     CMemory::WriteProcessMemory(SA_ADDR(0x3BF784), (uintptr_t)"\x1F\x00\x00\x71", 4); // CTaskSimplePlayerOnFoot::ProcessPlayerWeapon
     CMemory::WriteProcessMemory(SA_ADDR(0x2733D8), (uintptr_t)"\x1F\x00\x00\x71", 4); // CPlayerPed::Compute3rdPersonMouseTarget
 
+    // แก้ไขปืน Country Rifle ให้เป็นมุมมองบุคคลที่ 3
+    CMemory::makeNOP(SA_ADDR(0x3BEE50), 2);
+    CMemory::WriteProcessMemory(SA_ADDR(0x3BF3D0), (uintptr_t)"\x7F\xFF\x03\x71", 4);
+
     // CPlayerPed::CPlayerPed เปลี่ยน TBNZ เป็น TBZ ก่อนขั้นตั้งค่า player group
     CMemory::WriteProcessMemory(SA_ADDR(0x26CBF4), (uintptr_t)"\x54\x05\x00\x36", 4);
 
@@ -182,9 +186,9 @@ void CPatches::InstallMainPatches()
     CMemory::makeRET(SA_ADDR(0x0B6BD4)); // CEntryExit::GenerateAmbientPeds
 
     // ปิดไว้ก่อน เอาไว้ทดสอบระบบ ( หากจะปล่อย Release ต้องเปิด )
-    // CMemory::makeRET(SA_ADDR(0x42674C)); // CTheCarGenerators::Process
-    // CMemory::makeRET(SA_ADDR(0x0970C0)); // CCarCtrl::GenerateRandomCars
-    // CMemory::makeRET(SA_ADDR(0x4042C0)); // CPlane::DoPlaneGenerationAndRemoval
+    CMemory::makeRET(SA_ADDR(0x42674C)); // CTheCarGenerators::Process
+    CMemory::makeRET(SA_ADDR(0x0970C0)); // CCarCtrl::GenerateRandomCars
+    CMemory::makeRET(SA_ADDR(0x4042C0)); // CPlane::DoPlaneGenerationAndRemoval
 
     CMemory::WriteProcessMemory(SA_ADDR(0x2466A4), (uintptr_t)"\x00\x00\x80\xD2", 4); // คืน nullptr ให้ CPed::GiveObjectToPedToHold
     CMemory::makeRET(SA_ADDR(0x2466A8)); // CPed::GiveObjectToPedToHold (ยกเลิกการเกิดใหม่พร้อมกับซิการ์และขวด)
@@ -334,7 +338,16 @@ void CPatches::InstallRadarPatches()
     CMemory::WriteProcessMemory(SA_ADDR(0x1F42C0), (uintptr_t)"\xE1\x03\x14\x2A", 4); // mov w1, w20
     CMemory::WriteProcessMemory(SA_ADDR(0x1F42C4), (uintptr_t)"\x1F\x00\x00\x14", 4); // B 0x1F4340
 
-    // CRadar::DrawEntityBlip (PlayerColor)
+    // CRadar::DrawEntityBlip (PlayerColor): iOS แยกทางเลือกสีไว้หลายทาง
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F2470), (uintptr_t)"\xE1\x03\x16\x2A", 4); // mov w1, w22
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F2474), (uintptr_t)"\x0A\x01\x00\x14", 4); // B 0x1F289C
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F24A8), (uintptr_t)"\xE1\x03\x16\x2A", 4); // mov w1, w22
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F24AC), (uintptr_t)"\xFC\x00\x00\x14", 4); // B 0x1F289C
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F2790), (uintptr_t)"\xE1\x03\x16\x2A", 4); // mov w1, w22
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F2794), (uintptr_t)"\x42\x00\x00\x14", 4); // B 0x1F289C
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F27EC), (uintptr_t)"\xE1\x03\x16\x2A", 4); // mov w1, w22
+    CMemory::WriteProcessMemory(SA_ADDR(0x1F27F0), (uintptr_t)"\x2B\x00\x00\x14", 4); // B 0x1F289C
+
     CMemory::WriteProcessMemory(SA_ADDR(0x1F2810), (uintptr_t)"\xE1\x03\x16\x2A", 4); // mov w1, w22
     CMemory::WriteProcessMemory(SA_ADDR(0x1F2814), (uintptr_t)"\x22\x00\x00\x14", 4); // B 0x1F289C
 

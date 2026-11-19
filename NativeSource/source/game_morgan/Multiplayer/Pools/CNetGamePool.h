@@ -5,7 +5,7 @@
 #include "Process/CTextDrawPool.h"
 #include "Process/CActorPool.h"
 #include "Process/CGangZonePool.h"
-// #include "Process/CTextLabelPool.h"
+#include "Process/CTextLabelPool.h"
 #include "Process/CPickupPool.h"
 // #include "Process/CObjectPool.h"
 // #include "Process/CMenuPool.h"
@@ -17,7 +17,7 @@ class CNetGamePool
 	CTextDrawPool* m_pTextDrawPool;
 	CActorPool* m_pActorPool;
 	CGangZonePool* m_pGangZonePool;
-	// CTextLabelPool* m_pTextLabelPool;
+	CTextLabelPool* m_pTextLabelPool;
 	CPickupPool* m_pPickupPool;
 	// CObjectPool* m_pObjectPool;
 	// CMenuPool* m_pMenuPool;
@@ -51,9 +51,9 @@ public:
 		return CNetGamePool::m_pGangZonePool;
 	};
 
-	// CTextLabelPool* GetTextLabelPool() {
-	// 	return CNetGamePool::m_pTextLabelPool;
-	// };
+	CTextLabelPool* GetTextLabelPool() {
+		return CNetGamePool::m_pTextLabelPool;
+	};
 
 	CPickupPool* GetPickupPool() {
 		return CNetGamePool::m_pPickupPool;

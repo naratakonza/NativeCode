@@ -21,6 +21,7 @@ public:
     ImFont* GetSampFont() { return m_pSampFont; }
     ImFont* GetWeaponFont() { return m_pFontGTAWeap; }
     float GetFontSize() { return m_fFontSize; }
+    void RenderTextDeathMessage(ImVec2& pos, ImU32 col, bool bOutline, const char* text_begin, const char* text_end = nullptr, float font_size = 0.0f, ImFont* font = nullptr, bool bOutlineUseTextColor = false);
     void Render3DLabel(float fontSize, ImVec2 pos, char* utf8string, uint32_t dwColor);
     ImVec2 CalcTextSizeWithoutTags(char* szStr);
     bool ProcessInlineHexColor(const char* start, const char* end, ImVec4& color);

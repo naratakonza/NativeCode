@@ -670,6 +670,45 @@ void SetGravity(RakNet::BitStream bsData)
 	CPhysical::SetGravity(gravity);
 }
 
+void ChatBubble(RakNet::BitStream bsData)
+{
+    CNecessary::Log(OBFUSCATE("RPC: ChatBubble"));
+
+    uint16_t playerId;
+
+    uint32_t color;
+    uint32_t expireTime;
+    uint8_t texLength;
+
+    float drawDistance;
+
+    bsData.Read(playerId);
+    bsData.Read(color);
+    bsData.Read(drawDistance);
+    bsData.Read(expireTime);
+    bsData.Read(texLength);
+
+    if (texLength >= 255) {
+        return;
+    }
+
+    char pText[256]{};
+    bsData.Read(pText, texLength);
+
+    pText[texLength] = 0;
+
+    if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+    {
+        return;
+    }
+
+    if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)) {
+        return;
+    }
+
+    CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->AddBubbleMessage(expireTime, pText, color, drawDistance);
+}
+
 void ToggleClock(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: ToggleClock"));
@@ -1274,6 +1313,36 @@ void ClearActorAnimation(RakNet::BitStream bsData)
 	}
 }
 
+void SetPlayerFightingStyle(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetPlayerFightingStyle"));
+
+	uint16_t playerId;
+	uint8_t byteFightingStyle = static_cast<uint8_t>(eFightingStyle::STYLE_STANDARD);
+
+	bsData.Read(playerId);
+	bsData.Read(byteFightingStyle);
+
+	CPlayerPed* pPlayerPed = nullptr;
+
+	if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+	{
+		pPlayerPed = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed();
+	}
+	else
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId))
+		{
+			pPlayerPed = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetGamePlayer();
+		}
+	}
+
+	if (pPlayerPed)
+	{
+		pPlayerPed->SetFightingStyle(byteFightingStyle);
+	}
+}
+
 void SetPlayerSkin(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: SetPlayerSkin"));
@@ -1476,6 +1545,193 @@ void SetGameWeather(RakNet::BitStream bsData)
 	}
 }
 
+void ShowPlayerNameTag(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ShowPlayerNameTag"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint8_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for ShowPlayerNameTag"));
+        return;
+    }
+
+	uint16_t playerId;
+	uint8_t show;
+
+	bsData.Read(playerId);
+	bsData.Read(show);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) 
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)) 
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->SetRemoteShowNameTag(show);
+		}
+	}
+}
+
+void ApplyAnimation(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ApplyAnimation"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint8_t)) +
+		bytesToBits(sizeof(uint8_t)) +
+		bytesToBits(sizeof(float)) +
+		bytesToBits(sizeof(bool) * 4) +
+		bytesToBits(sizeof(uint32_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for ApplyAnimation"));
+        return;
+    }
+
+	uint16_t playerId;
+	uint8_t uiAnimLibLen;
+	char szAnimLib[64] = { '\0' };
+	uint8_t uiAnimNameLen;
+	char szAnimName[64] = { '\0' };
+	float fDelta;
+	bool bLoop;
+	bool bLockX;
+	bool bLockY;
+	bool bFreeze;
+	uint32_t uiTime;
+
+	bsData.Read(playerId);
+
+	bsData.Read(uiAnimLibLen);
+	if (uiAnimLibLen < 0 || uiAnimLibLen >= sizeof(szAnimLib)) {
+		return;
+	}
+
+	bsData.Read(szAnimLib, uiAnimLibLen);
+	szAnimLib[uiAnimLibLen] = '\0';
+
+	bsData.Read(uiAnimNameLen);
+	if (uiAnimNameLen < 0 || uiAnimNameLen >= sizeof(szAnimName)) {
+		return;
+	}
+
+	bsData.Read(szAnimName, uiAnimNameLen);
+	szAnimName[uiAnimNameLen] = '\0';
+
+	bsData.Read(fDelta);
+	bsData.Read(bLoop);
+	bsData.Read(bLockX);
+	bsData.Read(bLockY);
+	bsData.Read(bFreeze);
+	bsData.Read(uiTime);
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+		{
+			CPlayerPed *pPlayerPed = (CPlayerPed*)nullptr;
+			if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+			{
+				pPlayerPed = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed();
+			}
+			else if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(playerId))
+			{
+				pPlayerPed = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetGamePlayer();
+			}
+
+			if (pPlayerPed)
+			{
+				pPlayerPed->ApplyAnimation(szAnimName, szAnimLib, fDelta, (int)bLoop, (int)bLockX, (int)bLockY, (int)bFreeze, (int)uiTime);
+			}
+		}
+	}
+}
+
+void ClearAnimations(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: ClearAnimations"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for ClearAnimations"));
+        return;
+    }
+
+	uint16_t playerId;
+	bsData.Read(playerId);
+
+	if (CMultiPlayer::GetActiveNetwork())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+		{
+			CPlayerPed *pPlayerPed = (CPlayerPed*)nullptr;
+			if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+			{
+				pPlayerPed = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed();
+			}
+			else if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(playerId))
+			{
+				pPlayerPed = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetGamePlayer();
+			}
+
+			if (pPlayerPed) 
+			{
+				pPlayerPed->ClearAnimations();
+			}
+		}
+	}
+}
+
+void SetPlayerName(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetPlayerName"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint8_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerName"));
+        return;
+    }
+
+	uint16_t playerId;
+	uint8_t byteNickLen = 0;
+	char szNewName[24 + 1] = { '\0' };
+	uint8_t byteSuccess;
+
+	bsData.Read(playerId);
+	bsData.Read(byteNickLen);
+	if (byteNickLen >= eMaxItem::MAX_PLAYER_NAME + 1) {
+		return;
+	}
+
+	bsData.Read(szNewName, byteNickLen);
+	bsData.Read(byteSuccess);
+	szNewName[byteNickLen] = '\0';
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+	{
+		CNecessary::Log(OBFUSCATE("RPC: SetPlayerName byteSuccess = %d"), byteSuccess);
+		if (byteSuccess == 1)
+		{
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId))
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->SetRemoteName(szNewName);
+			}
+		}
+
+		if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+		{
+			strcpy(CMultiPlayer::GetActiveNetwork()->GetNetworkData().PlayerName, szNewName);
+		}
+	}
+}
+
 void SendGameTimeUpdate(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: SendGameTimeUpdate"));
@@ -1663,6 +1919,70 @@ void TextDrawSetString(RakNet::BitStream bsData)
 				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetTextDraw(wTextId)->SetText(cText);
 			}		
 		}
+	}
+}
+
+void Create3DTextLabel(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: Create3DTextLabel"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint32_t)) +
+		bytesToBits(sizeof(CVector)) +
+		bytesToBits(sizeof(float)) +
+		bytesToBits(sizeof(uint8_t)) +
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint16_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for Create3DTextLabel"));
+        return;
+    }
+
+	uint16_t wLabelId;
+	uint32_t dwColor;
+	CVector vecPos;
+	float fDrawDistance;
+	uint8_t byteTestLOS;
+	uint16_t playerId;
+	uint16_t vehicleId;
+	char szBuff[4096 + 1] = { '\0' };
+
+	bsData.Read(wLabelId);
+	bsData.Read(dwColor);
+	bsData.Read((char*)&vecPos, sizeof(CVector));
+	bsData.Read(fDrawDistance);
+	bsData.Read(byteTestLOS);
+	bsData.Read(playerId);
+	bsData.Read(vehicleId);
+	stringCompressor->DecodeString(szBuff, sizeof(szBuff), &bsData);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool()) 
+	{
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool()->Add(wLabelId, szBuff, dwColor, vecPos, fDrawDistance, byteTestLOS, playerId, vehicleId);
+	}
+}
+
+void Destroy3DTextLabel(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: Destroy3DTextLabel"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for Destroy3DTextLabel"));
+        return;
+    }
+
+	uint16_t wLabelId;
+
+	bsData.Read(wLabelId);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool()) 
+	{
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool()->Delete(wLabelId);
 	}
 }
 
@@ -1937,6 +2257,127 @@ void GangZoneStopFlash(RakNet::BitStream bsData)
 	}
 }
 
+void DeathBroadcast(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: DeathBroadcast"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for DeathBroadcast"));
+        return;
+    }
+
+	uint16_t playerId;
+
+	bsData.Read(playerId);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)) 
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->HandleWasted();
+		}
+	}
+}
+
+void SendDeathMessage(RakNet::BitStream bsData)
+{
+    CNecessary::Log(OBFUSCATE("RPC: SendDeathMessage"));
+
+    int bitsTotal =
+        bytesToBits(sizeof(uint16_t) * 2) +
+        bytesToBits(sizeof(uint8_t));
+
+    if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+        CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SendDeathMessage"));
+        return;
+    }
+
+    uint16_t killerId, playerId;
+    uint8_t reason;
+
+    bsData.Read(killerId);
+    bsData.Read(playerId);
+    bsData.Read(reason);
+
+    std::string killerName, playerName;
+    uint32_t killerColor = 0xFFFFFFFF, playerColor = 0xFFFFFFFF;
+    killerName.clear();
+    playerName.clear();
+
+    uint32_t fontcolor = 0xFFFFFFFF;
+
+    if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+    {
+        if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+        {
+            playerName = CMultiPlayer::GetActiveNetwork()->GetNetworkData().PlayerName;
+            playerColor = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerColorAsARGB();
+        }
+        else
+        {
+            if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(playerId))
+            {
+                playerName = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetRemoteName();
+                playerColor = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetPlayerColorAsARGB();
+            }
+            else
+            {
+                playerName = OBFUSCATE("  ");
+
+                if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID() != killerId && !CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(killerId))
+                {
+                    killerName = OBFUSCATE("  ");
+                    reason = 255;
+                }
+            }
+        }
+
+        if (killerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+        {
+            killerName = CMultiPlayer::GetActiveNetwork()->GetNetworkData().PlayerName;
+            killerColor = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerColorAsARGB();
+        }
+        else
+        {
+            if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(killerId))
+            {
+                killerName = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(killerId)->GetRemoteName();
+                killerColor = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(killerId)->GetPlayerColorAsARGB();
+            }
+            else
+            {
+                killerName = OBFUSCATE("  ");
+            }
+        }
+
+        if (killerId == eInvalidId::INVALID_PLAYER_ID)
+        {
+            if (reason == 200 || reason == 201)
+            {
+                fontcolor = (reason == 200) ? 0xFFFF0000 : 0xFF0000FF;
+            }
+
+            playerName = OBFUSCATE("  ");
+
+            if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+            {
+                killerName = CMultiPlayer::GetActiveNetwork()->GetNetworkData().PlayerName;
+                killerColor = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerColorAsARGB();
+            }
+            else if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(playerId))
+            {
+                killerName = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetRemoteName();
+                killerColor = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetPlayerColorAsARGB();
+            }
+        }
+    }
+
+    CGui::GetDeathWindow()->AddEntry(playerName.c_str(), playerColor, killerName.c_str(), killerColor, reason, fontcolor);
+}
+
 bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 {
     if (rpcid >= 255) {
@@ -2099,10 +2540,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		// 	break;
 		// }
 
-		// case RPC_ChatBubble: {
-		// 	ChatBubble(*bsData);
-		// 	break;
-		// }
+		case RPC_ChatBubble: {
+			ChatBubble(*bsData);
+			break;
+		}
 
 		case RPC_ToggleClock: {
 			ToggleClock(*bsData);
@@ -2324,15 +2765,15 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_WorldPlayerDeath: {
-		//     DeathBroadcast(*bsData);
-		//     break;
-		// }
+		case RPC_WorldPlayerDeath: {
+		    DeathBroadcast(*bsData);
+		    break;
+		}
 
-		// case RPC_DeathMessage: {
-		//     SendDeathMessage(*bsData);
-		//     break;
-		// }
+		case RPC_DeathMessage: {
+		    SendDeathMessage(*bsData);
+		    break;
+		}
 
 		// case RPC_SetVehicleNumberPlate: {
 		//     SetVehicleNumberPlate(*bsData);
@@ -2349,10 +2790,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_SetPlayerFightingStyle: {
-		//     SetPlayerFightingStyle(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerFightingStyle: {
+		    SetPlayerFightingStyle(*bsData);
+		    break;
+		}
 
 		case RPC_SetPlayerSkin: {
 		    SetPlayerSkin(*bsData);
@@ -2439,25 +2880,25 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_ShowPlayerNameTag: {
-		//     ShowPlayerNameTag(*bsData);
-		//     break;
-		// }
+		case RPC_ShowPlayerNameTag: {
+		    ShowPlayerNameTag(*bsData);
+		    break;
+		}
 
-		// case RPC_ApplyPlayerAnimation: {
-		//     ApplyAnimation(*bsData);
-		//     break;
-		// }
+		case RPC_ApplyPlayerAnimation: {
+		    ApplyAnimation(*bsData);
+		    break;
+		}
 
-		// case RPC_ClearPlayerAnimation: {
-		//     ClearAnimations(*bsData);
-		//     break;
-		// }
+		case RPC_ClearPlayerAnimation: {
+		    ClearAnimations(*bsData);
+		    break;
+		}
 
-		// case RPC_SetPlayerName: {
-		//     SetPlayerName(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerName: {
+		    SetPlayerName(*bsData);
+		    break;
+		}
 
 		case RPC_PlayerUpdate: {
 		    SendGameTimeUpdate(*bsData);
@@ -2514,15 +2955,15 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 			break;
 		}
 
-		// case RPC_Create3DTextLabel: {
-		//     Create3DTextLabel(*bsData);
-		//     break;
-		// }
+		case RPC_Create3DTextLabel: {
+		    Create3DTextLabel(*bsData);
+		    break;
+		}
 
-		// case RPC_Update3DTextLabel: {
-		//     Destroy3DTextLabel(*bsData);
-		//     break;
-		// }
+		case RPC_Update3DTextLabel: {
+		    Destroy3DTextLabel(*bsData);
+		    break;
+		}
 
 		// case RPC_SetPlayerSpecialAction: {
 		//     SetPlayerSpecialAction(*bsData);

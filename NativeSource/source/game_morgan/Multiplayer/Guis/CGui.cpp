@@ -1,6 +1,7 @@
 #include "../../../../Main.h"
 #include "CGui.h"
 
+CDeathWindow* CGui::pDeathWindow = nullptr;
 CPlayerTags* CGui::pPlayerTag = nullptr;
 CDebugInfo* CGui::pDebug = nullptr;
 CXSing* CGui::pXSing = nullptr;
@@ -16,6 +17,7 @@ void CGui::Initialise()
 {
     CNecessary::Log(OBFUSCATE("CGui Initialise"));
 
+    CGui::pDeathWindow = new CDeathWindow();
     CGui::pPlayerTag = new CPlayerTags();
     CGui::pDebug = new CDebugInfo();
     CGui::pXSing = new CXSing();
@@ -36,6 +38,7 @@ void CGui::Uninitialise()
 {
     CNecessary::Log(OBFUSCATE("CGui Uninitialise"));
 
+    SAFE_DELETE(CGui::pDeathWindow);
     SAFE_DELETE(CGui::pPlayerTag);
     SAFE_DELETE(CGui::pDebug);
     SAFE_DELETE(CGui::pXSing);

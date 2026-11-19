@@ -29,6 +29,10 @@ PATCHES = (
     (0x1ED22C, bytes.fromhex('096EA852')),
     (0x1F42C0, bytes.fromhex('E103142A')),
     (0x1F42C4, bytes.fromhex('1F000014')),
+    (0x1F2470, bytes.fromhex('E103162A0A010014')),
+    (0x1F24A8, bytes.fromhex('E103162AFC000014')),
+    (0x1F2790, bytes.fromhex('E103162A42000014')),
+    (0x1F27EC, bytes.fromhex('E103162A2B000014')),
     (0x1F2810, bytes.fromhex('E103162A')),
     (0x1F2814, bytes.fromhex('22000014')),
     (0x1F1E30, bytes.fromhex('E103162A')),
@@ -87,4 +91,46 @@ def patch_radar_gang_zones(binary, *, radar=True, crash_fix=False, texture_datab
         pack_into('<I', image, site, branch(site, thunk))
     for site, data in patches:
         image[site:site+len(data)] = data
+    return bytes(image)
+
+
+PLAYER_COLOUR_PATCHES = (
+    (0x1F2470, bytes.fromhex('DF220071291D0054'), bytes.fromhex('E103162A0A010014')),
+    (0x1F24A8, bytes.fromhex('DF220071691B0054'), bytes.fromhex('E103162AFC000014')),
+    (0x1F2790, bytes.fromhex('DF22007129040054'), bytes.fromhex('E103162A42000014')),
+    (0x1F27EC, bytes.fromhex('DF22007149010054'), bytes.fromhex('E103162A2B000014')),
+)
+EXPECTED.update({site: original for site, original, _ in PLAYER_COLOUR_PATCHES})
+
+
+def patch_radar_player_colours(binary):
+    if binary[:8] != bytes.fromhex('CFFAEDFE0C000001') or len(binary) < 32 or unpack_from('<I', binary, 12)[0] != 2:
+        raise ValueError('Radar player colours require the verified ARM64 iOS executable')
+
+    cursor = 32
+    command_end = 32 + unpack_from('<I', binary, 20)[0]
+    if command_end > len(binary):
+        raise ValueError('Truncated Mach-O load commands')
+    uuid = None
+    for _ in range(unpack_from('<I', binary, 16)[0]):
+        if cursor + 8 > command_end:
+            raise ValueError('Truncated Mach-O load command')
+        command, size = unpack_from('<II', binary, cursor)
+        if size < 8 or cursor + size > command_end:
+            raise ValueError('Invalid Mach-O load command')
+        if command == 0x1B and size == 24:
+            uuid = binary[cursor + 8:cursor + 24]
+        cursor += size
+    if uuid != bytes.fromhex('0E42E8F269923EE9A745B3FD6569A9FD'):
+        raise ValueError('Unexpected GTA SA iOS executable UUID')
+
+    if binary[0x2187B0:0x2187B4] != bytes.fromhex('4EFC0914') or binary[0x1F2810:0x1F2818] != bytes.fromhex('E103162A22000014'):
+        raise ValueError('Radar colour bridge and existing player colour patch are required')
+    for site, original, patched in PLAYER_COLOUR_PATCHES:
+        if binary[site:site + 8] not in (original, patched):
+            raise ValueError(f'Unexpected DrawEntityBlip colour route at 0x{site:X}')
+
+    image = bytearray(binary)
+    for site, _, patched in PLAYER_COLOUR_PATCHES:
+        image[site:site + 8] = patched
     return bytes(image)
