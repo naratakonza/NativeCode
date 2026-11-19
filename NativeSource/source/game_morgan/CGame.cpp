@@ -118,6 +118,44 @@ void CGame::DisplayHUD(bool bDisp)
     CGame::ToggleRadar(bDisp);
 }
 
+uint8_t CGame::FindFirstFreePlayerPedSlot()
+{
+    uint8_t x = 2;
+	while (x != eMaxItem::PLAYER_PED_SLOTS)
+	{
+		if (!CPlayerPedSlot::IsActive(x)) {
+			return x;
+		}
+
+		x++;
+	}
+
+    return 0;
+}
+
+CPlayerPed* CGame::NewPlayer(int iSkin, float fX, float fY, float fZ, float fRotation, uint8_t byteCreateMarker)
+{
+	// CNecessary::Log(OBFUSCATE("NewPlayer: %d %.2f %.2f %.2f %.2f %d"), iSkin, fX, fY, fZ, fRotation, byteCreateMarker);
+
+	uint8_t bytePlayerNum = CGame::FindFirstFreePlayerPedSlot();
+	if (!bytePlayerNum) {
+		return nullptr;
+	}
+
+	CPlayerPed* pPlayerNew = new CPlayerPed(bytePlayerNum, iSkin, fX, fY, fZ, fRotation);
+
+	return pPlayerNew;
+}
+
+void CGame::RemovePlayer(CPlayerPed* pPlayer)
+{
+	if (pPlayer)
+	{
+		CPlayerPedSlot::Set(pPlayer->m_bytePlayerNumber, 0);
+		SAFE_DELETE(pPlayer);
+	}
+}
+
 std::uint8_t CGame::GetActiveInterior()
 {
     std::uint32_t dwRet = 0;

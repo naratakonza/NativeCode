@@ -2,6 +2,7 @@
 #include "Core/CCheckPoint.h"
 #include "CLocalPlayer.h"
 #include "../../CGame.h"
+#include "../../CRadar.h"
 #include "../../CTheZones.h"
 #include "../CMultiPlayer.h"
 #include "../Audio/CAudio.h"
@@ -858,6 +859,21 @@ uint8_t CLocalPlayer::DetermineNumberOfPlayersInLocalRange()
 	}
 
 	return iNumPlayersInRange;
+}
+
+uint32_t CLocalPlayer::GetPlayerColor()
+{
+	return CRadar::TranslateColorCodeToRGBA(CLocalPlayer::GetLocalID());
+}
+
+void CLocalPlayer::SetPlayerColor(uint32_t dwColor)
+{
+	CRadar::SetRadarColor(CLocalPlayer::GetLocalID(), dwColor);
+}
+
+uint32_t CLocalPlayer::GetPlayerColorAsARGB()
+{
+	return (CRadar::TranslateColorCodeToRGBA(CLocalPlayer::GetLocalID()) >> 8) | 0xFF000000;
 }
 
 void CLocalPlayer::SendTakeDamage(uint16_t PlayerID, float fDamageFactor, uint32_t weaponType, uint32_t pedPieceType)

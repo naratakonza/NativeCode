@@ -24,6 +24,9 @@ public:
     static CRect GetScreenSafeArea();
     static bool IsAnimationLoaded(const char* animation);
     static void RequestAnimation(const char* animation);
+    static uint8_t FindFirstFreePlayerPedSlot();
+    static CPlayerPed* NewPlayer(int iSkin, float fX, float fY, float fZ, float fRotation, uint8_t byteCreateMarker = 0);
+	static void RemovePlayer(CPlayerPed* pPlayer);
     static void LoadAnimationsAndModels();
     static std::uint8_t GetActiveInterior();
     static bool IsDrawingBigMap();

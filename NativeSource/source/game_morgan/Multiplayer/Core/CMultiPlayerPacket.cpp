@@ -61,3 +61,15 @@ void CMultiPlayerPacket::SendChatMessage(const char* szMsg)
 
 	CMultiPlayer::GetActiveNetwork()->GetRakClient()->RPC(&RPC_Chat, &bsSend, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, NULL);
 }
+
+void CMultiPlayerPacket::UpdatePlayerScoresAndPings()
+{
+	static uint32_t dwLastUpdateTick = 0;
+
+	if ((CNecessary::GetTickCount() - dwLastUpdateTick) >= 3000)
+    {
+		dwLastUpdateTick = CNecessary::GetTickCount();
+		RakNet::BitStream bsParams;
+		CMultiPlayer::GetActiveNetwork()->GetRakClient()->RPC(&RPC_UpdateScoresPingsIPs, &bsParams, HIGH_PRIORITY, RELIABLE, 0, false, UNASSIGNED_NETWORK_ID, NULL);
+	}
+}

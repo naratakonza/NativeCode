@@ -100,6 +100,16 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 {
     if (CMultiPlayer::GetActiveNetwork())
 	{
+		for (const auto& playerPair : CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetAllRemotePlayers())
+        {
+			CRemotePlayer* pPlayer = playerPair.second;
+			if (pPlayer)
+			{
+				pPlayer->SetRemoteTeam(NO_TEAM);
+				pPlayer->ResetData();
+			}
+		}
+
 		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
 		{
 			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->ResetData();
@@ -113,6 +123,8 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 		CGui::GetSpawnScreen()->Enable(false);
 		CGui::GetDialog()->Enable(false);
 		
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->DeactivateAll();
+		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->Process();
 		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->DeleteAll();
 		CMapIconPool::DeleteAll();
 		CMultiPlayer::GetActiveNetwork()->InitialiseGameLogic();

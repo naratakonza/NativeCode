@@ -94,7 +94,7 @@ for source in \
     "$hooks/MultiTouch/CTouchEvent.cpp" "$hooks/CWidgets.cpp" "$hooks/CCrashFix.cpp" \
     "$multiplayer/Guis/CChat.cpp" "$multiplayer/Guis/CCommand.cpp" "$multiplayer/Core/CMultiPlayerPacket.cpp" "$native/source/game_morgan/CUtil.cpp" "$native/source/game_morgan/TextureDatabaseRuntime.cpp" "$native/source/game_morgan/CTxdStore.cpp" "$native/source/game_morgan/CTxdManager.cpp" "$native/source/game_morgan/CWorld.cpp" \
     "$multiplayer/Core/CMultiPlayerNetwork.cpp" "$multiplayer/Core/CMultiPlayerOpcode.cpp" "$native/source/game_morgan/CEntryExitManager.cpp" \
-    "$multiplayer/Pools/CNetGamePool.cpp" "$multiplayer/Pools/Process/CPlayerPool.cpp" \
+    "$multiplayer/Pools/CNetGamePool.cpp" "$multiplayer/Pools/Process/CPlayerPool.cpp" "$multiplayer/Syncs/CRemotePlayer.cpp" \
     "$multiplayer/Syncs/Core/CMarkerIcon.cpp" "$multiplayer/Syncs/Core/CCheckPoint.cpp" "$multiplayer/Pools/Process/CMapIconPool.cpp" \
     "$multiplayer/Guis/Gps/CGPSMarker.cpp" "$multiplayer/Guis/Gps/CGPSNavigator.cpp" "$native/source/game_morgan/CSprite.cpp" \
     "$multiplayer/Snapshot/CModelSnapshot.cpp" \
@@ -158,7 +158,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CTouchEvent.o" "$out/fileio-objects/CWidgets.o" "$out/fileio-objects/CCrashFix.o" \
     "$out/fileio-objects/CChat.o" "$out/fileio-objects/CCommand.o" "$out/fileio-objects/CMultiPlayerPacket.o" "$out/fileio-objects/CUtil.o" "$out/fileio-objects/TextureDatabaseRuntime.o" "$out/fileio-objects/CTxdStore.o" "$out/fileio-objects/CTxdManager.o" "$out/fileio-objects/CWorld.o" \
     "$out/fileio-objects/CMultiPlayerNetwork.o" "$out/fileio-objects/CMultiPlayerOpcode.o" "$out/fileio-objects/CEntryExitManager.o" \
-    "$out/fileio-objects/CNetGamePool.o" "$out/fileio-objects/CPlayerPool.o" \
+    "$out/fileio-objects/CNetGamePool.o" "$out/fileio-objects/CPlayerPool.o" "$out/fileio-objects/CRemotePlayer.o" \
     "$out/fileio-objects/CMarkerIcon.o" "$out/fileio-objects/CCheckPoint.o" "$out/fileio-objects/CMapIconPool.o" \
     "$out/fileio-objects/CGPSMarker.o" "$out/fileio-objects/CGPSNavigator.o" "$out/fileio-objects/CSprite.o" \
     "$out/fileio-objects/CModelSnapshot.o" \
