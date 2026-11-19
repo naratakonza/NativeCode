@@ -35,6 +35,8 @@ private:
     static void SetAudioMessages(const std::vector<std::string>& args);
     static void SetWidgetAlpha(const std::vector<std::string>& args);
     static void SetRadarAlpha(const std::vector<std::string>& args);
+    static void SetNameTagStyle(const std::vector<std::string>& args);
+    static void SetWeaponTag(const std::vector<std::string>& args);
     static void SetHudAlpha(const std::vector<std::string>& args);
     static void SetShadowStyle(const std::vector<std::string>& args);
 

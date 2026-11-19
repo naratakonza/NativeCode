@@ -2,6 +2,7 @@
 #include "CFontRender.h"
 #include "../CGui.h"
 #include "../../CMultiPlayer.h"
+#include "../../../CUtil.h"
 #include "../../../../utils/Storage/CStorage.h"
 #include "../../../../vendor/imgui/imgui_impl_renderware.h"
 
@@ -116,11 +117,6 @@ void CFontRender::Render()
     CFontRender::PreProcessInput();
     ImGui::NewFrame();
 
-    if (CGui::GetPlayerTag())
-    {
-        CGui::GetPlayerTag()->Render();
-    }
-
     if (CGui::GetGPSMarker())
     {
         CGui::GetGPSMarker()->Render();
@@ -129,6 +125,11 @@ void CFontRender::Render()
     if (CGui::GetGPSNavigator())
     {
         CGui::GetGPSNavigator()->Render();
+    }
+
+	if (CGui::GetPlayerTag())
+    {
+        CGui::GetPlayerTag()->Render();
     }
 
     if (CGui::GetDebug())
@@ -367,7 +368,7 @@ ImVec2 CFontRender::CalcTextSizeWithoutTags(char* szStr)
     char szNonColored[2048 + 1];
     int iNonColoredMsgLen = 0;
 
-    for (int pos = 0; pos < CNecessary::MPSTRLEN(szStr) && szStr[pos] != '\0'; pos++)
+    for (std::size_t pos = 0; pos < CNecessary::MPSTRLEN(szStr) && szStr[pos] != '\0'; pos++)
     {
         if (szStr[pos] == '{' && pos + 7 < CNecessary::MPSTRLEN(szStr))
         {
@@ -429,11 +430,17 @@ void CFontRender::TextWithColorsW(ImFont *font, const float font_size, uint8_t o
             else
             {
                 char temp[4096] = { '\0' };
-                size_t len = textCur - (colorStart - 1) + 1;
+                size_t len = std::min(static_cast<size_t>(textCur - (colorStart - 1)) + (*textCur == '}' ? 1U : 0U), sizeof(temp) - 1);
                 strncpy(temp, colorStart - 1, len);
                 temp[len] = '\0';
                 CGui::GetFontRender()->RenderTextMethod(vecPos, col, outline, temp, temp + len, font_size, font, false);
                 vecPos.x += ImGui::CalcTextSize(font, font_size, temp, temp + len).x;
+            }
+
+            if (*textCur == '\0')
+            {
+                textStart = textCur;
+                break;
             }
 
             textStart = textCur + 1;
