@@ -1538,12 +1538,11 @@ void CPlayerPed::ProcessCuffedControl()
 
     int iWeaponID = 0;
 
-    if (CScripting::ScriptCommand(&get_actor_armed_weapon, m_dwGTAId, &iWeaponID))
+    CScripting::ScriptCommand(&get_actor_armed_weapon, m_dwGTAId, &iWeaponID);
+
+    if (iWeaponID)
     {
-        if (iWeaponID)
-        {
-            CPlayerPed::SetArmedWeapon(0);
-        }
+        CPlayerPed::SetArmedWeapon(0);
     }
 }
 
@@ -1618,12 +1617,11 @@ void CPlayerPed::ProcessCarryControl()
 
     int iWeaponID = 0;
 
-    if (CScripting::ScriptCommand(&get_actor_armed_weapon, m_dwGTAId, &iWeaponID))
+    CScripting::ScriptCommand(&get_actor_armed_weapon, m_dwGTAId, &iWeaponID);
+
+    if (iWeaponID)
     {
-        if (iWeaponID)
-        {
-            CPlayerPed::SetArmedWeapon(0);
-        }
+        CPlayerPed::SetArmedWeapon(0);
     }
 }
 

@@ -75,7 +75,7 @@ int CStreaming::AddImageToList(const char* fileName, bool isPlayerIMG)
     }
 
     const auto asset = morgan::fileio::ResolveGameAssetPath({fileName, length});
-    const auto path = asset.Path();
+    const std::string_view path = asset.resource == morgan::fileio::Resource::ScriptImage ? "SAMP/script.img" : asset.Path();
     if (asset.disposition != morgan::fileio::Disposition::Redirect || path.size() < 5 || path.substr(path.size() - 4) != ".img") {
         return -1;
     }
@@ -98,7 +98,8 @@ int CStreaming::AddImageToList(const char* fileName, bool isPlayerIMG)
         }
 
         const char* existingName = &CStreaming::ms_files[48 * i];
-        if (morgan::fileio::ResolveGameAssetPath({existingName, ::strnlen(existingName, 40)}).Path() == path)
+        const auto existingAsset = morgan::fileio::ResolveGameAssetPath({existingName, ::strnlen(existingName, 40)});
+        if ((asset.resource == morgan::fileio::Resource::ScriptImage && existingAsset.resource == morgan::fileio::Resource::ScriptImage) || existingAsset.Path() == path)
         {
             return i;
         }
