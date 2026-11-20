@@ -122,6 +122,8 @@ void CMultiPlayer::Reconnect(bool waitconnect)
 
 		CGui::GetButton()->Enable(false);
 		CGui::GetXSing()->Enable(false);
+		CGui::GetDebug()->SetRenderFramerate(false);
+		CGui::GetDebug()->SetRenderMemory(false);
 		CGui::GetSpawnScreen()->Enable(false);
 		CGui::GetDialog()->Enable(false);
 		

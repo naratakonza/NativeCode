@@ -97,8 +97,8 @@ void main() {
       expect(keys.top, greaterThan(size.height * (tablet ? 0.240 : 0.340)));
       if (tablet) {
         expect(keys.bottom, closeTo(size.height * 0.45 - gap, 0.01));
-        expect(chat.bottom, closeTo(keys.bottom, 0.01));
-        expect(chat.top, greaterThan(safe.top + 4 * chatScale));
+        expect(chat.top, closeTo(safe.top + 4 * chatScale, 0.01));
+        expect(chat.bottom, lessThan(keys.top));
       } else {
         expect(chat.top, closeTo(safe.top + 4 * chatScale, 0.01));
         expect(
@@ -106,6 +106,15 @@ void main() {
           closeTo(math.max(safe.top + gap, size.height * 0.340 + gap), 0.01),
         );
       }
+      for (var i = 0; i < 6; i++) {
+        await sendChat(tester, 'addMessage', {
+          'message': 'Chat position check $i',
+          'type': 0,
+        });
+      }
+      await tester.pumpAndSettle();
+      expect(lastRegion(chatCalls), chat);
+      expect(lastRegion(keyCalls), keys);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();

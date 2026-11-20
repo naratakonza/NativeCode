@@ -156,7 +156,7 @@ bool CLocalPlayer::Process()
 		}
 		else if (CLocalPlayer::GetPlayerPed()->IsInVehicle() && !CLocalPlayer::GetPlayerPed()->IsAPassenger())
 		{
-			// CLocalPlayer::ProcessDriver(dwThisTick);
+			CLocalPlayer::ProcessDriver(dwThisTick);
 		}
 		else if (CLocalPlayer::GetPlayerPed()->GetActionTrigger() == eAction::ACTION_NORMAL || CLocalPlayer::GetPlayerPed()->GetActionTrigger() == eAction::ACTION_SCOPE)
 		{
@@ -235,10 +235,10 @@ void CLocalPlayer::HandleNeedsToRespawn()
 			CPad::DisplayWidgets(false);
 		}
 
-        if (CGui::GetButton() && /*CGui::GetDebug() &&*/ CGui::GetXSing() /*&& CGui::GetGButton()*/ && CGui::GetDialog())
+        if (CGui::GetButton() && CGui::GetDebug() && CGui::GetXSing() /*&& CGui::GetGButton()*/ && CGui::GetDialog())
 		{
-			// CGui::GetDebug()->SetRenderFramerate(false);
-			// CGui::GetDebug()->SetRenderMemory(false);
+			CGui::GetDebug()->SetRenderFramerate(false);
+			CGui::GetDebug()->SetRenderMemory(false);
 			CGui::GetButton()->Enable(false);
 			CGui::GetXSing()->Enable(false);
 			// CGui::GetGButton()->Enable(false);
@@ -659,10 +659,10 @@ bool CLocalPlayer::Spawn()
 	CLocalPlayer::m_bIsActive = true;
 	CLocalPlayer::m_bWaitingForSpawnRequestReply = false;
 
-    if (CGui::GetButton() /*&& CGui::GetDebug()*/ && CGui::GetXSing() /*&& CGui::GetGButton()*/)
+    if (CGui::GetButton() && CGui::GetDebug() && CGui::GetXSing() /*&& CGui::GetGButton()*/)
 	{
-		// CGui::GetDebug()->SetRenderFramerate(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("ShowFps")));
-		// CGui::GetDebug()->SetRenderMemory(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("ShowMem")));
+		CGui::GetDebug()->SetRenderFramerate(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("ShowFps")));
+		CGui::GetDebug()->SetRenderMemory(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("ShowMem")));
 		CGui::GetButton()->Enable(true);
 		CGui::GetXSing()->Enable(true);
 		// CGui::GetGButton()->Enable(true);
@@ -810,6 +810,32 @@ void CLocalPlayer::ProcessOnFoot(uint32_t dwThisTick)
 	}
 
 	CLocalPlayer::m_bPassengerDriveByMode = false;
+}
+
+void CLocalPlayer::ProcessDriver([[maybe_unused]] uint32_t dwThisTick)
+{
+    // CVehiclePool* pVehiclePool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetVehiclePool();
+    // CLocalPlayer::m_CurrentVehicle = pVehiclePool->FindIDFromGtaPtr((CVehicleGta*)CLocalPlayer::GetPlayerPed()->GetVehicle());
+
+    CLocalPlayer::GetPlayerPed()->RemoveWeaponWhenEnteringVehicle();
+    // CLocalPlayer::ProcessHead();
+    // CLocalPlayer::UpdateRCMode(eRcModeType::RC_MODE_ON);
+    // CLocalPlayer::ProcessInCarWorldBounds();
+
+    // if ((dwThisTick - CLocalPlayer::m_dwLastSendAimTick) > 1000)
+    // {
+        // CLocalPlayer::m_dwLastSendAimTick = dwThisTick;
+        // CLocalPlayer::SendAimSyncData();
+    // }
+
+    // if ((dwThisTick - CLocalPlayer::m_dwLastSendTick) > (uint32_t)CLocalPlayer::GetOptimumInCarSendRate())
+    // {
+        // CLocalPlayer::m_dwLastSendTick = CNecessary::GetTickCount();
+        // CLocalPlayer::SendInCarFullSyncData();
+    // }
+
+    // CLocalPlayer::ProcessVehicleDamageUpdates(CLocalPlayer::m_CurrentVehicle);
+    CLocalPlayer::m_bPassengerDriveByMode = false;
 }
 
 void CLocalPlayer::ProcessAnimation()

@@ -1488,3 +1488,13 @@ bool CPlayerPed::IsCrouching()
 
     return GetPed()->bIsDucking;
 }
+
+void CPlayerPed::RemoveWeaponWhenEnteringVehicle()
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x2434F8), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9\xFD\x43\x00\x91", 12, "__text");
+    if (!verified || !CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    reinterpret_cast<void (*)(CPedGta*, int)>(SA_ADDR(0x2434F8) + _dyld_get_image_vmaddr_slide(0))(GetPed(), 0);
+}

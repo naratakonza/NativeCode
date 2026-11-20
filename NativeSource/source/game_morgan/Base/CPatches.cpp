@@ -118,14 +118,18 @@ void CPatches::InstallTemporaryFrameratePatches()
 {
     CNecessary::Log(OBFUSCATE("CPatches InstallFrameratePatches"));
 
-    // FrontEndMenuManager.m_bDisplayFPS (FrontEndMenuManager + 0xC1)
-    const bool verified = CMemory::HasMappedInstruction(SA_ADDR(0x15A2B4), "\xA8\x31\x00\xB0") && CMemory::HasMappedInstruction(SA_ADDR(0x15A2B8), "\x08\xA1\x07\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x15A2BC), "\x08\x05\x43\x39") && CMemory::HasMappedInstruction(SA_ADDR(0x15A2C4), "\x67\xFB\xFF\x97");
-
+    const bool verified = CMemory::HasMappedInstruction(SA_ADDR(0x15A2B4), "\xA8\x31\x00\xB0") && CMemory::HasMappedInstruction(SA_ADDR(0x15A2B8), "\x08\xA1\x07\x91") && CMemory::HasMappedInstruction(SA_ADDR(0x15A2BC), "\x08\x05\x43\x39") && CMemory::HasMappedInstruction(SA_ADDR(0x159CCC), "\x68\x1D\x00\xF0") && CMemory::HasMappedInstruction(SA_ADDR(0x159CD0), "\x08\x91\x5A\x39");
     if (verified)
     {
         const auto slide = _dyld_get_image_vmaddr_slide(0);
-        *reinterpret_cast<std::uint8_t*>(SA_ADDR(0x78F2A9) + slide) = 1;
+        *reinterpret_cast<bool*>(SA_ADDR(0x78F2A9) + slide) = false; // FrontEndMenuManager.m_bDisplayFPS
+        *reinterpret_cast<uint8_t*>(SA_ADDR(0x5086A4) + slide) = static_cast<uint8_t>(true); // TemporaryFPSVisualization
     }
+
+    CMemory::makeNOP(SA_ADDR(0x1591F8), 1); // DisplayFPS: CFont::PrintString
+    CMemory::makeNOP(SA_ADDR(0x159EC4), 1); // TemporaryFPSVisualization: FPS
+    CMemory::makeNOP(SA_ADDR(0x159F34), 1); // TemporaryFPSVisualization: player position
+    CMemory::makeNOP(SA_ADDR(0x159F88), 1); // TemporaryFPSVisualization: memory
 }
 
 void CPatches::InstallMainPatches()
@@ -219,6 +223,12 @@ void CPatches::InstallMainPatches()
 
     // ปิด CCamera::ClearPlayerWeaponMode เฉพาะจุดเรียกจาก CPlayerPed::ClearWeaponTarget
     CMemory::makeNOP(SA_ADDR(0x26F5CC), 1);
+
+    // ข้าม PlayerInfo gate ใน CPed::RemoveWeaponWhenEnteringVehicle (remote Ped ไม่มี PlayerInfo slot 0/1).
+    CMemory::makeNOP(SA_ADDR(0x24353C), 3); // BL GetPlayerInfo / LDRB / CBZ; iOS ใช้ 3 คำสั่งแทน Android 4
+    CMemory::makeNOP(SA_ADDR(0x37AF04), 1); // CTaskSimpleCarGetIn::ProcessPed
+    CMemory::makeNOP(SA_ADDR(0x37C848), 1); // CTaskSimpleCarSetPedInAsDriver::ProcessPed
+    CMemory::makeNOP(SA_ADDR(0x37BF48), 1); // CTaskSimpleCarSetPedInAsPassenger::ProcessPed
 
     // ปิดการเรียกใช้งาน CamShakeNoPos จาก CWeapon::FireSniper (ปิดหน้าจอสั่นขณะยิงสไน)
     CMemory::makeNOP(SA_ADDR(0x4334DC), 1);

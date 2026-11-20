@@ -3,10 +3,132 @@
 #include "../Audio/CAudio.h"
 #include "../CMultiPlayer.h"
 #include "../Guis/CGui.h"
+#include "../../CGame.h"
+#include "../../CFont.h"
+#include "../../CStreaming.h"
+#include "../../Enums/eFontStyle.h"
+#include "../../Enums/eFontAlignment.h"
+
+#include <mach-o/dyld.h>
 
 CDebugInfo::CDebugInfo()
 {
+    CDebugInfo::m_dwLastFramerateUpdateTick = CNecessary::GetTickCount();
     CDebugInfo::m_dwLastTitleUpdateTick = CNecessary::GetTickCount();
+    CDebugInfo::m_dwLastMemoryUpdateTick = CNecessary::GetTickCount();
+
+    CDebugInfo::SetRenderFramerate(false);
+    CDebugInfo::SetRenderMemory(false);
+}
+
+CDebugInfo::~CDebugInfo()
+{
+    CDebugInfo::SetRenderFramerate(false);
+    CDebugInfo::SetRenderMemory(false);
+}
+
+void CDebugInfo::RenderInfo()
+{
+    if (!CMultiPlayer::GetActiveNetwork()) {
+        return;
+    }
+
+    if (CMultiPlayer::GetActiveNetwork()->GetNetworkState() != eNetworkState::GAMESTATE_CONNECTED) {
+        return;
+    }
+
+    if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool())
+    {
+        if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetState())
+        {
+            return;
+        }
+    }
+
+    // รอโยกระบบ MainMenuScreens และ VoiceMenu.
+    if ((CGui::GetScoreBoard() && CGui::GetScoreBoard()->GetActiveScore()) /*|| CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() || (CGui::GetVoiceMenu()->GetActiveVoiceMenu() && !CVoiceMenu::m_bCustomizeMode) || CGui::GetClientMenu()->GetActiveClientMenu() || CGui::GetChatMenu()->GetActiveChatMenu()*/) {
+        return;
+    }
+
+    // if (CGui::GetEditObject()->IsEditModeActive())
+    // {
+    //     return;
+    // }
+
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x159CEC), "\x48\x2F\x00\x90\x08\xF1\x28\x91\x00\x01\x40\xBD", 12, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x159D5C), "\x54\x1C\x00\xB0\x80\x7E\x0B\xBD", 8, "__text");
+    if (!verified) {
+        return;
+    }
+
+    const CRect screenArea = CGame::GetScreenSafeArea();
+    const float screenWidth = screenArea.X2 - screenArea.X1;
+    const float screenHeight = screenArea.Y2 - screenArea.Y1;
+    if (screenWidth <= 0.0f || screenHeight <= 0.0f) {
+        return;
+    }
+
+    uint32_t color = 0xFFFFFFFF;
+    CFont::SetBackground(0, 0);
+    CFont::SetScale(0.6f, 1.14f);
+    CFont::SetOrientation(eFontAlignment::ALIGN_LEFT);
+    CFont::SetJustify(0);
+    CFont::SetWrapx(screenArea.X2);
+    CFont::SetProportional(0);
+    CFont::SetFontStyle(eFontStyle::FONT_SUBTITLES);
+    CFont::SetEdge(0);
+    CFont::SetColor(&color);
+
+    const float posX = screenArea.X1 + (screenWidth / 640.0f) * 4.0f;
+    const float maxY = std::max(screenArea.Y1, screenArea.Y2 - std::max(0.0f, CFont::GetHeight(false)));
+
+    if (CDebugInfo::m_uiDrawFPS)
+    {
+        static char bufferDebugFps[16 + 1]{};
+        if ((CNecessary::GetTickCount() - CDebugInfo::m_dwLastFramerateUpdateTick) > 1000)
+        {
+            float* pFramerate = reinterpret_cast<float*>(SA_ADDR(0x4E2B7C) + _dyld_get_image_vmaddr_slide(0));
+            std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), OBFUSCATE("FPS: %.2f"), *pFramerate);
+
+            if (*pFramerate > 120 && *pFramerate <= 130)
+            {
+                std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), OBFUSCATE("FPS: 125.00"));
+            }
+            else if (*pFramerate > 90 && *pFramerate <= 93)
+            {
+                std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), OBFUSCATE("FPS: 90.91"));
+            }
+            else if (*pFramerate > 60.25f && *pFramerate <= 63)
+            {
+                std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), OBFUSCATE("FPS: 62.50"));
+            }
+
+            CDebugInfo::m_dwLastFramerateUpdateTick = CNecessary::GetTickCount();
+        }
+
+        const float posY = std::clamp(screenArea.Y1 + (screenHeight / 448.0f) * 200.0f, screenArea.Y1, maxY);
+        CFont::PrintString(posX, posY, bufferDebugFps);
+    }
+
+    // static char bufferDebugRam[20 + 1]{};
+    // unsigned long currentRAM = CNecessary::GetCurrentMemoryUsage();
+    // float currentRAMInGB = currentRAM / (1024.0f * 1024.0f);
+    // std::snprintf(bufferDebugRam, sizeof(bufferDebugRam), OBFUSCATE("RAM: %.3f"), currentRAMInGB);
+    // CFont::PrintString(posX, screenArea.Y1 + (screenHeight / 448.0f) * 240.0f, bufferDebugRam);
+
+    if (CDebugInfo::m_uiDrawMem)
+    {
+        static char bufferDebugMem[20 + 1]{};
+        if ((CNecessary::GetTickCount() - CDebugInfo::m_dwLastMemoryUpdateTick) > 1000)
+        {
+            int pMemoryUse = static_cast<int>(CStreaming::ms_memoryUsed);
+            int ms_memoryAvailable = static_cast<int>(CStreaming::ms_memoryAvailable);
+            std::snprintf(bufferDebugMem, sizeof(bufferDebugMem), OBFUSCATE("MEM: %d/%d"), pMemoryUse >> 20, ms_memoryAvailable >> 20);
+            CDebugInfo::m_dwLastMemoryUpdateTick = CNecessary::GetTickCount();
+        }
+
+        const float posY = std::clamp(screenArea.Y1 + (screenHeight / 448.0f) * 210.0f, screenArea.Y1, maxY);
+        CFont::PrintString(posX, posY, bufferDebugMem);
+    }
 }
 
 void CDebugInfo::RenderTitle()
@@ -43,4 +165,14 @@ void CDebugInfo::RenderAudioStreamTag()
     const ImVec2 textSize = ImGui::CalcTextSize(fontSize, stream->m_streamLabel);
     ImVec2 pos(10.0f * screenScale, io.DisplaySize.y - textSize.y * 2.0f - 12.0f * screenScale);
     CGui::GetFontRender()->RenderText(pos, IM_COL32(212, 212, 212, 255), true, stream->m_streamLabel, nullptr, fontSize);
+}
+
+void CDebugInfo::SetRenderFramerate(uint32_t bDraw)
+{
+    CDebugInfo::m_uiDrawFPS = bDraw;
+}
+
+void CDebugInfo::SetRenderMemory(uint32_t bDraw)
+{
+    CDebugInfo::m_uiDrawMem = bDraw;
 }

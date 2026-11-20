@@ -317,6 +317,11 @@ extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (
                 CGui::GetFontRender()->Render();
             }
 
+            if (CGui::GetDebug())
+            {
+                CGui::GetDebug()->RenderInfo();
+            }
+
             CInterface::Control();
 
             if (CGui::GetScoreBoard()->GetActiveScore() /*|| CGui::GetMainMenuScreens()->GetActiveMainMenuScreens() || (CGui::GetVoiceMenu()->GetActiveVoiceMenu() && !CVoiceMenu::m_bCustomizeMode) || CGui::GetClientMenu()->GetActiveClientMenu() || CGui::GetChatMenu()->GetActiveChatMenu()*/) {
