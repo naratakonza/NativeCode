@@ -83,3 +83,4 @@ _CPad_GetTarget_hook
 _CPad_CycleWeaponLeftJustDown_hook
 _CPad_CycleWeaponRightJustDown_hook
 _CTaskSimplePlayerOnFoot_ProcessPlayerWeapon_hook
+_CPed_GetWeaponSkill_hook

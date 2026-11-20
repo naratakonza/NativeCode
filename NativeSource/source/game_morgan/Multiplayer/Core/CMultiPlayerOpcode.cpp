@@ -2278,6 +2278,47 @@ void GangZoneStopFlash(RakNet::BitStream bsData)
 	}
 }
 
+void SetPlayerSkillLevel(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetPlayerSkillLevel"));
+
+	int bitsTotal =
+		bytesToBits(sizeof(uint16_t)) +
+		bytesToBits(sizeof(uint32_t)) +
+		bytesToBits(sizeof(uint16_t));
+
+	if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    	CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerSkillLevel"));
+        return;
+    }
+
+	uint16_t playerId;
+	uint32_t dSkillID;
+	uint16_t wLevel;
+
+	bsData.Read(playerId);
+	bsData.Read(dSkillID);
+	bsData.Read(wLevel);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) 
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
+		{
+			if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
+			{
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->SetWeaponSkill(dSkillID, wLevel);
+			} 
+			else 
+			{
+				if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(playerId)) 
+				{
+					CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetGamePlayer()->SetWeaponSkill(dSkillID, wLevel);
+				}
+			}
+		}
+	}
+}
+
 void DeathBroadcast(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: DeathBroadcast"));
@@ -3041,10 +3082,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_SetPlayerSkillLevel: {
-		// 	SetPlayerSkillLevel(*bsData);
-		// 	break;
-		// }
+		case RPC_SetPlayerSkillLevel: {
+			SetPlayerSkillLevel(*bsData);
+			break;
+		}
 
 		// case RPC_SetPlayerDrunkLevel: {
 		//     SetPlayerDrunkLevel(*bsData);

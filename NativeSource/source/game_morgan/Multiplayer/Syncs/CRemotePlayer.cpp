@@ -174,10 +174,10 @@ bool CRemotePlayer::SpawnGamePlayer(uint8_t byteTeam, unsigned int iSkin, CVecto
 				pGamePlayer->ShowMarker(CRemotePlayer::GetRemotePlayerID());
 			}
 
-			// for (int i = 0; i < 11; i++)
-			// {
-			// 	pGamePlayer->SetWeaponSkill(i, weaponSkills[i]);
-			// }
+			for (int i = 0; i < 11; i++)
+			{
+				pGamePlayer->SetWeaponSkill(i, weaponSkills[i]);
+			}
 
 			if (byteTeam != NO_TEAM)
 			{

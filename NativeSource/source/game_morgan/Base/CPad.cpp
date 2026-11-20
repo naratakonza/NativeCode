@@ -53,6 +53,7 @@ static bool padProcessControlInstalled = false;
 static bool pedMethodHooksInstalled = false;
 static bool taskUseGunHookInstalled = false;
 static bool weaponHooksInstalled = false;
+static bool weaponSkillHookInstalled = false;
 static uint16_t byteSavedCameraMode = 0;
 
 extern "C"
@@ -1360,6 +1361,46 @@ extern "C" __attribute__((visibility("default"))) uint32_t CPad_CycleWeaponRight
     }
 }
 
+uint32_t (*CPed_GetWeaponSkill)(CPedGta* thiz);
+extern "C" __attribute__((visibility("default"))) uint32_t CPed_GetWeaponSkill_hook(CPedGta* thiz, uint32_t (*original)(CPedGta*))
+{
+    if (!weaponSkillHookInstalled || !pthread_main_np() || !CMultiPlayer::IsSampActive())
+    {
+        return original(thiz);
+    }
+
+    CPed_GetWeaponSkill = original;
+
+    uintptr_t calledFrom = reinterpret_cast<uintptr_t>(__builtin_return_address(0));
+    calledFrom -= SA_ADDR(0x0) + _dyld_get_image_vmaddr_slide(0);
+
+    if (calledFrom == 0x316D40)
+    {
+        static bool bWeaponSkillsStored = false;
+        byteInternalPlayer = CWorld::PlayerInFocus;
+        CPad::m_byteCurPlayer = CPedPointerRecorder::FindPlayerNumFromPointer((uintptr_t)thiz);
+
+        if (thiz && CPad::m_byteCurPlayer != 0 && byteInternalPlayer == 0)
+        {
+            CCameraAim::GameStoreLocalPlayerSkills();
+            CCameraAim::GameSetRemotePlayerSkills(CPad::m_byteCurPlayer);
+            bWeaponSkillsStored = true;
+        }
+
+        uint32_t result = reinterpret_cast<uint32_t (*)(CPedGta*, uint32_t)>(SA_ADDR(0x2438E0) + _dyld_get_image_vmaddr_slide(0))(thiz, thiz->WeaponSlots[thiz->byteCurWeaponSlot].dwType);
+
+        if (bWeaponSkillsStored)
+        {
+            CCameraAim::GameSetLocalPlayerSkills();
+            bWeaponSkillsStored = false;
+        }
+
+        return result;
+    }
+
+    return CPed_GetWeaponSkill(thiz);
+}
+
 void CPad::Initialise()
 {
     CNecessary::Log(OBFUSCATE("CPad Initialise"));
@@ -1370,6 +1411,9 @@ void CPad::Initialise()
     pedMethodHooksInstalled = CMemory::InstallMethodHook(SA_ADDR(0x4A83D8), (uintptr_t)CPlayerPed_ProcessCollision_hook) && pedMethodHooksInstalled;
 
     taskUseGunHookInstalled = CMemory::InstallMethodHook(SA_ADDR(0x4A9CB0), reinterpret_cast<uintptr_t>(CPad_TaskUseGun_hook));
+
+    // สลับ WeaponSkill ของผู้เล่นอื่นเฉพาะตอนวาดอาวุธ ตาม Thunder
+    weaponSkillHookInstalled = CMemory::HasMappedInstruction(SA_ADDR(0x316D3C), "\xA7\x03\x06\x94") && CMemory::HasMappedBytes(SA_ADDR(0x23E7A0), "\xE9\x23\xBC\x6D\xF6\x57\x01\xA9", 8, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x2438E0), "\xE9\x23\xBC\x6D\xF6\x57\x01\xA9", 8, "__text");
 
     // สำหรับ ONFOOT
     padProcessControlInstalled = padProcessControlInstalled && CMemory::HasMappedInstruction(SA_ADDR(0x15CE14), "\x48\xEA\x0C\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x15CF34), "\x06\xEA\x0C\x14");
