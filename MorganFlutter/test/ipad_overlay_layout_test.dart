@@ -90,6 +90,13 @@ void main() {
       final gap = math.max(10.0, 12 * keyScale);
       expect(chat.height, closeTo(height, 0.01));
       expect(keys.height, closeTo(41 * keyScale, 0.01));
+      final infoLeft = safe.left + (size.width - safe.horizontal) * 4 / 640;
+      final toggle = tester.getRect(find.ancestor(
+        of: find.text('>>'),
+        matching: find.byType(GestureDetector),
+      ).first);
+      expect(keys.left, closeTo(infoLeft, 0.01));
+      expect(toggle.left, closeTo(infoLeft, 0.01));
       expect(
         tester.widget<Text>(find.text('>>')).style!.fontSize,
         closeTo(11.25 * keyScale, 0.01),

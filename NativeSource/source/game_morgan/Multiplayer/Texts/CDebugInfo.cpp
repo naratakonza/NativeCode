@@ -8,6 +8,7 @@
 #include "../../CStreaming.h"
 #include "../../Enums/eFontStyle.h"
 #include "../../Enums/eFontAlignment.h"
+#include "../../../../Launcher/MGFlutter.h"
 
 #include <mach-o/dyld.h>
 
@@ -79,7 +80,18 @@ void CDebugInfo::RenderInfo()
     CFont::SetColor(&color);
 
     const float posX = screenArea.X1 + (screenWidth / 640.0f) * 4.0f;
-    const float maxY = std::max(screenArea.Y1, screenArea.Y2 - std::max(0.0f, CFont::GetHeight(false)));
+    const float fontHeight = std::max(0.0f, CFont::GetHeight(false));
+    const float lineSpacing = std::max(fontHeight, (screenHeight / 448.0f) * 10.0f);
+    const float gap = (screenHeight / 448.0f) * 6.0f;
+    float infoY = screenArea.Y1 + (screenHeight / 448.0f) * 220.0f;
+    float keybarBottom = 0.0f;
+    if (MGGetFlutterKeysBarBottom(keybarBottom))
+    {
+        infoY = std::max(infoY, keybarBottom + fontHeight + gap);
+    }
+
+    const float maxY = std::max(screenArea.Y1, screenArea.Y2 - fontHeight - lineSpacing);
+    infoY = std::clamp(infoY, screenArea.Y1, maxY);
 
     if (CDebugInfo::m_uiDrawFPS)
     {
@@ -87,33 +99,26 @@ void CDebugInfo::RenderInfo()
         if ((CNecessary::GetTickCount() - CDebugInfo::m_dwLastFramerateUpdateTick) > 1000)
         {
             float* pFramerate = reinterpret_cast<float*>(SA_ADDR(0x4E2B7C) + _dyld_get_image_vmaddr_slide(0));
-            std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), OBFUSCATE("FPS: %.2f"), *pFramerate);
+            std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), OBFUSCATE("FPS: %.0f"), *pFramerate);
 
             if (*pFramerate > 120 && *pFramerate <= 130)
             {
-                std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), "%s", static_cast<const char*>(OBFUSCATE("FPS: 125.00")));
+                std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), OBFUSCATE("FPS: %.0f"), 125.0);
             }
             else if (*pFramerate > 90 && *pFramerate <= 93)
             {
-                std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), "%s", static_cast<const char*>(OBFUSCATE("FPS: 90.91")));
+                std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), OBFUSCATE("FPS: %.0f"), 90.91);
             }
             else if (*pFramerate > 60.25f && *pFramerate <= 63)
             {
-                std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), "%s", static_cast<const char*>(OBFUSCATE("FPS: 62.50")));
+                std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), OBFUSCATE("FPS: %.0f"), 62.5);
             }
 
             CDebugInfo::m_dwLastFramerateUpdateTick = CNecessary::GetTickCount();
         }
 
-        const float posY = std::clamp(screenArea.Y1 + (screenHeight / 448.0f) * 200.0f, screenArea.Y1, maxY);
-        CFont::PrintString(posX, posY, bufferDebugFps);
+        CFont::PrintString(posX, infoY, bufferDebugFps);
     }
-
-    // static char bufferDebugRam[20 + 1]{};
-    // unsigned long currentRAM = CNecessary::GetCurrentMemoryUsage();
-    // float currentRAMInGB = currentRAM / (1024.0f * 1024.0f);
-    // std::snprintf(bufferDebugRam, sizeof(bufferDebugRam), OBFUSCATE("RAM: %.3f"), currentRAMInGB);
-    // CFont::PrintString(posX, screenArea.Y1 + (screenHeight / 448.0f) * 240.0f, bufferDebugRam);
 
     if (CDebugInfo::m_uiDrawMem)
     {
@@ -126,8 +131,7 @@ void CDebugInfo::RenderInfo()
             CDebugInfo::m_dwLastMemoryUpdateTick = CNecessary::GetTickCount();
         }
 
-        const float posY = std::clamp(screenArea.Y1 + (screenHeight / 448.0f) * 210.0f, screenArea.Y1, maxY);
-        CFont::PrintString(posX, posY, bufferDebugMem);
+        CFont::PrintString(posX, std::min(infoY + lineSpacing, std::max(screenArea.Y1, screenArea.Y2 - fontHeight)), bufferDebugMem);
     }
 }
 

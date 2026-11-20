@@ -5,6 +5,7 @@
 
 #include "../Main.h"
 #include "../source/game_morgan/CTimer.h"
+#include "../source/game_morgan/CGame.h"
 #include "../source/game_morgan/Multiplayer/Guis/CGui.h"
 
 @protocol MGLoadingProject <NSObject>
@@ -908,6 +909,30 @@ bool MGUpdateFlutterKeysBar(bool visible, bool inVehicle, bool menuActive, bool 
             [screen updateKeysVisibility];
         }
     });
+    return true;
+}
+
+bool MGGetFlutterKeysBarBottom(float& bottom)
+{
+    if (!NSThread.isMainThread) {
+        return false;
+    }
+
+    MGFlutter* screen = flutter;
+    const CGRect area = screen.overlay.keysArea;
+    const CGFloat viewHeight = screen.overlay.bounds.size.height;
+    if (!screen || CGRectIsEmpty(area) || !std::isfinite(viewHeight) || viewHeight <= 0.0) {
+        return false;
+    }
+
+    int screenWidth = 0;
+    int screenHeight = 0;
+    CGame::GetScreenWidthAndHeight(&screenWidth, &screenHeight);
+    if (screenHeight <= 0) {
+        return false;
+    }
+
+    bottom = static_cast<float>(CGRectGetMaxY(area) * screenHeight / viewHeight);
     return true;
 }
 

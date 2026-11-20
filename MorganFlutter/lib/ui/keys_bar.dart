@@ -198,7 +198,7 @@ class _SampKeysBarState extends State<SampKeysBar>
             SampOverlayLayout.tabletPanelBottom(media.size, safe) - panelHeight)
         : radarTop;
     final double maxLeft = screenWidth - safe.right - btnWidth - 2.0 * spacing;
-    final double leftPos = (widget.radarLeft * screenWidth / 1000.0)
+    final double leftPos = (safe.left + usableWidth * 4.0 / 640.0)
         .clamp(safe.left, math.max(safe.left, maxLeft));
     // Wait for the actual radar bounds; never move the panel upwards over it.
     if (scale <= 0 ||
@@ -280,7 +280,6 @@ class _SampKeysBarState extends State<SampKeysBar>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(width: spacing),
                     _ToggleButton(
                       isExpanded: _isExpanded,
                       width: btnWidth,
