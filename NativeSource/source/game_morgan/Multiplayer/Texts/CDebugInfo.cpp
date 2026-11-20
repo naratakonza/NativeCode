@@ -91,15 +91,15 @@ void CDebugInfo::RenderInfo()
 
             if (*pFramerate > 120 && *pFramerate <= 130)
             {
-                std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), OBFUSCATE("FPS: 125.00"));
+                std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), "%s", static_cast<const char*>(OBFUSCATE("FPS: 125.00")));
             }
             else if (*pFramerate > 90 && *pFramerate <= 93)
             {
-                std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), OBFUSCATE("FPS: 90.91"));
+                std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), "%s", static_cast<const char*>(OBFUSCATE("FPS: 90.91")));
             }
             else if (*pFramerate > 60.25f && *pFramerate <= 63)
             {
-                std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), OBFUSCATE("FPS: 62.50"));
+                std::snprintf(bufferDebugFps, sizeof(bufferDebugFps), "%s", static_cast<const char*>(OBFUSCATE("FPS: 62.50")));
             }
 
             CDebugInfo::m_dwLastFramerateUpdateTick = CNecessary::GetTickCount();
