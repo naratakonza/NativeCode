@@ -99,5 +99,4 @@ _CTaskSimpleGetUp_ProcessPed_hook
 _CTaskSimpleUseGun_RemoveStanceAnims_hook
 _CObject_ProcessGarageDoorBehaviour_hook
 _emu_ArraysGetID_hook
-
 _CWorld_ProcessPedsAfterPreRender_hook
