@@ -82,12 +82,12 @@ void CDebugInfo::RenderInfo()
     const float posX = screenArea.X1 + (screenWidth / 640.0f) * 4.0f;
     const float fontHeight = std::max(0.0f, CFont::GetHeight(false));
     const float lineSpacing = std::max(fontHeight, (screenHeight / 448.0f) * 10.0f);
-    const float gap = (screenHeight / 448.0f) * 6.0f;
+    const float gap = (screenHeight / 448.0f) * 3.0f;
     float infoY = screenArea.Y1 + (screenHeight / 448.0f) * 220.0f;
     float keybarBottom = 0.0f;
     if (MGGetFlutterKeysBarBottom(keybarBottom))
     {
-        infoY = std::max(infoY, keybarBottom + fontHeight + gap);
+        infoY = keybarBottom + gap;
     }
 
     const float maxY = std::max(screenArea.Y1, screenArea.Y2 - fontHeight - lineSpacing);
