@@ -5,7 +5,6 @@
 #include "../../CGame.h"
 #include "../../Base/CWidgets.h"
 // #include "CVoiceMenu.h"
-// #include "../utils/Java/CJava.h"
 
 void CInterface::Control()
 {

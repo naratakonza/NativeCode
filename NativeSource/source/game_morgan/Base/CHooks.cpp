@@ -7,6 +7,7 @@
 #include "MultiTouch/CTouchEvent.h"
 #include "../CAspectRatio.h"
 #include "../CDraw.h"
+#include "../CGyro.h"
 #include "../CHud.h"
 #include "../CRadar.h"
 #include "../CCameraController.h"
@@ -14,6 +15,10 @@
 #include "../CWorld.h"
 #include "../Models/CModelInfo.h"
 #include "../CPools.h"
+#include "../CPedIntelligence.h"
+#include "../CUtil.h"
+#include "../Tasks/TaskTypes/CTaskSimplePlayerOnFoot.h"
+#include "../Enums/eWeaponSampid.h"
 #include "../CStreaming.h"
 #include "../CTxdManager.h"
 #include "../Entity/Ped/CPlayerPed.h"
@@ -45,6 +50,10 @@ extern "C"
 static bool gameProcessHookInstalled = false;
 static bool renderTitleHookInstalled = false;
 static bool clothesRebuildHookInstalled = false;
+static bool indicatorHooksInstalled = false;
+static bool cameraGyroHooksInstalled = false;
+
+uintptr_t pSavedAimTarget = 0;
 
 extern "C" __attribute__((visibility("default"))) void InitialiseRenderWare_hook(void* (*load)(const char*, bool, int))
 {
@@ -566,6 +575,352 @@ extern "C" __attribute__((visibility("default"))) uintptr_t TextureDatabaseRunti
     return 0;
 }
 
+bool (*CPedIntelligence_TestForStealthKill)(CPedIntelligence* thiz, CPedGta* pTarget, bool bUnknown);
+extern "C" __attribute__((visibility("default"))) bool CPedIntelligence_TestForStealthKill_hook(CPedIntelligence* thiz, CPedGta* pTarget, bool bUnknown, bool (*original)(CPedIntelligence*, CPedGta*, bool))
+{
+    if (!indicatorHooksInstalled || !pthread_main_np() || !CMultiPlayer::IsSampActive()) {
+        return original(thiz, pTarget, bUnknown);
+    }
+
+    CPedIntelligence_TestForStealthKill = original;
+
+    CPedGta* pPlayerPed = CUtil::GamePool_FindPlayerPed();
+    if (pPlayerPed && thiz && thiz->m_pPed == pPlayerPed)
+    {
+        bool isKnife = false;
+        int8_t slot = pPlayerPed->byteCurWeaponSlot;
+        if (slot >= 0 && slot < 13)
+        {
+            uint32_t weaponType = pPlayerPed->WeaponSlots[slot].dwType;
+            if (weaponType == eWeaponSampId::WEAPON_KNIFE)
+            {
+                isKnife = true;
+            }
+        }
+
+        if (isKnife && pTarget && CUtil::IsPedPointerValid(reinterpret_cast<uintptr_t>(pTarget)))
+        {
+            if (pTarget->fHealth > 0.1f)
+            {
+                CVector playerPos = (pPlayerPed->mat != nullptr) ? pPlayerPed->mat->pos : pPlayerPed->m_transform.m_vPosn;
+                CVector targetPos = (pTarget->mat != nullptr) ? pTarget->mat->pos : pTarget->m_transform.m_vPosn;
+
+                float dist = CUtil::GetDistance(playerPos, targetPos);
+                if (dist <= 2.5f)
+                {
+                    CVector targetForward;
+                    if (pTarget->mat != nullptr)
+                    {
+                        targetForward = pTarget->mat->up;
+                    }
+                    else
+                    {
+                        float heading = pTarget->m_transform.m_fHeading;
+                        targetForward.x = -std::sin(heading);
+                        targetForward.y = std::cos(heading);
+                        targetForward.z = 0.0f;
+                    }
+
+                    CVector dirToPlayer;
+                    dirToPlayer.x = playerPos.x - targetPos.x;
+                    dirToPlayer.y = playerPos.y - targetPos.y;
+                    dirToPlayer.z = 0.0f;
+
+                    float dirLen = std::sqrt(dirToPlayer.x * dirToPlayer.x + dirToPlayer.y * dirToPlayer.y);
+                    if (dirLen > 0.0f)
+                    {
+                        dirToPlayer.x /= dirLen;
+                        dirToPlayer.y /= dirLen;
+                    }
+
+                    float dot = dirToPlayer.x * targetForward.x + dirToPlayer.y * targetForward.y;
+                    if (dot < -0.5f) // อยู่ด้านหลังเท่านั้น
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    return CPedIntelligence_TestForStealthKill(thiz, pTarget, bUnknown);
+}
+
+void (*CPlayerPed_DrawTriangleForMouseRecruitPed)(uintptr_t thiz);
+extern "C" __attribute__((visibility("default"))) void CPlayerPed_DrawTriangleForMouseRecruitPed_hook(uintptr_t thiz, void (*original)(uintptr_t))
+{
+    if (!indicatorHooksInstalled || !pthread_main_np() || !CMultiPlayer::IsSampActive()) {
+        original(thiz);
+        return;
+    }
+
+    CPlayerPed_DrawTriangleForMouseRecruitPed = original;
+
+    if (thiz == 0) {
+        return;
+    }
+
+    CPedGta* pPlayerPed = reinterpret_cast<CPedGta*>(thiz);
+
+    bool isBlockPunch = false;
+    bool isMelee = false;
+    bool isKnife = false;
+    int8_t slot = pPlayerPed->byteCurWeaponSlot;
+    if (slot >= 0 && slot < 13)
+    {
+        uint32_t weaponType = pPlayerPed->WeaponSlots[slot].dwType;
+        if (CPad::m_iSaveBlockPunch)
+        {
+            isBlockPunch = true;
+        }
+        else if (weaponType > 0 && weaponType <= eWeaponSampId::WEAPON_CANE)
+        {
+            isMelee = true;
+            if (weaponType == eWeaponSampId::WEAPON_KNIFE)
+            {
+                isKnife = true;
+            }
+        }
+    }
+
+    static bool m_bWasMeleeAiming = false;
+    if (isMelee || isBlockPunch)
+    {
+        *reinterpret_cast<uintptr_t*>(thiz + 0x988) = 0;
+        pSavedAimTarget = CUtil::FindFistTarget(pPlayerPed);
+        m_bWasMeleeAiming = true;
+    }
+    else
+    {
+        pSavedAimTarget = 0;
+        if (m_bWasMeleeAiming)
+        {
+            *reinterpret_cast<uintptr_t*>(thiz + 0x988) = 0;
+            m_bWasMeleeAiming = false;
+        }
+
+        return CPlayerPed_DrawTriangleForMouseRecruitPed(thiz);
+    }
+
+    if (pSavedAimTarget != 0 && CUtil::IsPedPointerValid(pSavedAimTarget))
+    {
+        uint8_t flags = *reinterpret_cast<uint8_t*>(pSavedAimTarget + 0x5A);
+
+        if ((flags & 7) == 3)
+        {
+            *reinterpret_cast<uintptr_t*>(thiz + 0x988) = pSavedAimTarget;
+        }
+    }
+
+    if (isKnife)
+    {
+        bool isBehind = false;
+        if (pSavedAimTarget != 0 && CUtil::IsPedPointerValid(pSavedAimTarget))
+        {
+            CPedGta* pTargetPed = reinterpret_cast<CPedGta*>(pSavedAimTarget);
+            if (pTargetPed->fHealth > 0.1f)
+            {
+                CVector playerPos = (pPlayerPed->mat != nullptr) ? pPlayerPed->mat->pos : pPlayerPed->m_transform.m_vPosn;
+                CVector targetPos = (pTargetPed->mat != nullptr) ? pTargetPed->mat->pos : pTargetPed->m_transform.m_vPosn;
+
+                float dist = CUtil::GetDistance(playerPos, targetPos);
+                if (dist <= 2.5f) // กำหนดระยะว่าจะให้ทำงานไกล้ขนาดไหน
+                {
+                    CVector targetForward;
+                    if (pTargetPed->mat != nullptr)
+                    {
+                        targetForward = pTargetPed->mat->up;
+                    }
+                    else
+                    {
+                        float heading = pTargetPed->m_transform.m_fHeading;
+                        targetForward.x = -std::sin(heading);
+                        targetForward.y = std::cos(heading);
+                        targetForward.z = 0.0f;
+                    }
+
+                    CVector dirToPlayer;
+                    dirToPlayer.x = playerPos.x - targetPos.x;
+                    dirToPlayer.y = playerPos.y - targetPos.y;
+                    dirToPlayer.z = 0.0f;
+
+                    float dirLen = std::sqrt(dirToPlayer.x * dirToPlayer.x + dirToPlayer.y * dirToPlayer.y);
+                    if (dirLen > 0.0f)
+                    {
+                        dirToPlayer.x /= dirLen;
+                        dirToPlayer.y /= dirLen;
+                    }
+
+                    float dot = dirToPlayer.x * targetForward.x + dirToPlayer.y * targetForward.y;
+                    if (dot < -0.5f) // อยู่ด้านหลังเท่านั้น
+                    {
+                        isBehind = true;
+                    }
+                }
+            }
+        }
+
+        if (isBehind)
+        {
+            pPlayerPed->m_pEntLockOnTarget = reinterpret_cast<CEntityGta*>(pSavedAimTarget);
+            *reinterpret_cast<uintptr_t*>(thiz + 0x988) = pSavedAimTarget;
+        }
+        else
+        {
+            pPlayerPed->m_pEntLockOnTarget = nullptr;
+            *reinterpret_cast<uintptr_t*>(thiz + 0x988) = 0;
+        }
+    }
+
+    return CPlayerPed_DrawTriangleForMouseRecruitPed(thiz);
+}
+
+void (*Process_M16_1stPerson)(uintptr_t thiz, uintptr_t target, float f1, float f2, float f3);
+extern "C" __attribute__((visibility("default"))) void Process_M16_1stPerson_hook(uintptr_t thiz, uintptr_t target, float f1, float f2, float f3, void (*original)(uintptr_t, uintptr_t, float, float, float))
+{
+    if (!cameraGyroHooksInstalled || !pthread_main_np() || !CMultiPlayer::IsSampActive())
+    {
+        original(thiz, target, f1, f2, f3);
+        return;
+    }
+
+    Process_M16_1stPerson = original;
+
+    Process_M16_1stPerson(thiz, target, f1, f2, f3);
+
+    if (CGyro::IsGyro() && (CGyro::GetGyroMode() == eGyroMode::GYRO_AIM_MODE || CGyro::GetGyroMode() == eGyroMode::GYRO_ALL_MODE))
+    {
+        float aimSens = CGyro::GetAimSensitivity() / 100.0f;
+        float gyroX = CGyro::GetGyroX();
+        float gyroY = CGyro::GetGyroY();
+
+        if (fabs(gyroX) < 0.015f)
+        {
+            gyroX = 0.0f;
+        }
+
+        if (fabs(gyroY) < 0.015f)
+        {
+            gyroY = 0.0f;
+        }
+
+        double elapsedTime = CGyro::GetElapsedTime();
+        if (elapsedTime <= 0.0)
+        {
+            elapsedTime = 0.016;
+        }
+
+        // เอา fov มาคำนวนความไวด้วย เพื่อความสมดุล
+        float fovFactor = CDraw::GetFov() / 70.0f;
+        if (fovFactor > 1.0f)
+        {
+            fovFactor = 1.0f;
+        }
+
+        // การหัน (แนวนอน)
+        float gyroOffsetY = gyroY * 1.0f * static_cast<float>(elapsedTime) * aimSens * fovFactor;
+        // ระยะห่าง (แนวตั้ง)
+        float gyroOffsetX = gyroX * 1.0f * static_cast<float>(elapsedTime) * aimSens * fovFactor;
+
+        float* pAlpha = reinterpret_cast<float*>(thiz + 0x94);
+        float* pBeta = reinterpret_cast<float*>(thiz + 0x84);
+
+        *pAlpha += gyroOffsetY;
+        *pBeta += gyroOffsetX;
+
+        if (*pAlpha > 3.1415926535f)
+        {
+            *pAlpha -= 2.0f * 3.1415926535f;
+        }
+        else if (*pAlpha < -3.1415926535f)
+        {
+            *pAlpha += 2.0f * 3.1415926535f;
+        }
+
+        if (*pBeta > 1.047197551f)
+        {
+            *pBeta = 1.047197551f;
+        }
+        else if (*pBeta < -1.560796327f)
+        {
+            *pBeta = -1.560796327f;
+        }
+    }
+}
+
+void (*Process_Rocket)(uintptr_t thiz, uintptr_t target, float f1, float f2, float f3, bool b1);
+extern "C" __attribute__((visibility("default"))) void Process_Rocket_hook(uintptr_t thiz, uintptr_t target, float f1, float f2, float f3, bool b1, void (*original)(uintptr_t, uintptr_t, float, float, float, bool))
+{
+    if (!cameraGyroHooksInstalled || !pthread_main_np() || !CMultiPlayer::IsSampActive())
+    {
+        original(thiz, target, f1, f2, f3, b1);
+        return;
+    }
+
+    Process_Rocket = original;
+
+    Process_Rocket(thiz, target, f1, f2, f3, b1);
+
+    if (CGyro::IsGyro() && (CGyro::GetGyroMode() == eGyroMode::GYRO_AIM_MODE || CGyro::GetGyroMode() == eGyroMode::GYRO_ALL_MODE))
+    {
+        float aimSens = CGyro::GetAimSensitivity() / 100.0f;
+        float gyroX = CGyro::GetGyroX();
+        float gyroY = CGyro::GetGyroY();
+
+        if (fabs(gyroX) < 0.015f)
+        {
+            gyroX = 0.0f;
+        }
+
+        if (fabs(gyroY) < 0.015f)
+        {
+            gyroY = 0.0f;
+        }
+
+        double elapsedTime = CGyro::GetElapsedTime();
+        if (elapsedTime <= 0.0)
+        {
+            elapsedTime = 0.016;
+        }
+
+        // เอา fov มาคำนวนความไวด้วย เพื่อความสมดุล
+        float fovFactor = CDraw::GetFov() / 70.0f;
+        if (fovFactor > 1.0f)
+        {
+            fovFactor = 1.0f;
+        }
+
+        // การหัน (แนวนอน)
+        float gyroOffsetY = gyroY * 1.0f * static_cast<float>(elapsedTime) * aimSens * fovFactor;
+        // ระยะห่าง (แนวตั้ง)
+        float gyroOffsetX = gyroX * 1.0f * static_cast<float>(elapsedTime) * aimSens * fovFactor;
+
+        float* pAlpha = reinterpret_cast<float*>(thiz + 0x94);
+        float* pBeta = reinterpret_cast<float*>(thiz + 0x84);
+
+        *pAlpha += gyroOffsetY;
+        *pBeta += gyroOffsetX;
+
+        if (*pAlpha > 3.1415926535f)
+        {
+            *pAlpha -= 2.0f * 3.1415926535f;
+        }
+        else if (*pAlpha < -3.1415926535f)
+        {
+            *pAlpha += 2.0f * 3.1415926535f;
+        }
+
+        if (*pBeta > 1.047197551f)
+        {
+            *pBeta = 1.047197551f;
+        }
+        else if (*pBeta < -1.560796327f)
+        {
+            *pBeta = -1.560796327f;
+        }
+    }
+}
+
 void CHooks::InstallNecessary()
 {
     CMemory::WriteProcessMemory(SA_ADDR(0xCE30C), (uintptr_t)"\xEA\x25\x0F\x14", 4); // กระโดดไป Pickup Update
@@ -592,6 +947,12 @@ void CHooks::InstallMenu()
     }
 
     clothesRebuildHookInstalled = CMemory::HasMappedInstruction(SA_ADDR(0x86450), "\xF6\x57\xBD\xA9") && CMemory::HasMappedBytes(SA_ADDR(0x49728C), "\x62\xDF\xFF\xF0\x42\x40\x11\x91\xF0\x00\x00\xD0\x10\x5A\x42\xF9\x00\x02\x1F\xD6", 20, "__mg_gameproc");
+
+    // ระบบ Indicator: iOS
+    indicatorHooksInstalled = CMemory::HasMappedBytes(SA_ADDR(0x273768), "\xFF\x83\x02\xD1\xEF\x3B\x03\x6D", 8, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x26AEB8), "\xFF\x03\x01\xD1\xF6\x57\x01\xA9", 8, "__text") && CMemory::HasMappedInstruction(SA_ADDR(0x159B3C), "\xE2\xF7\x0C\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x3BEF80), "\xD6\x62\x03\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x3BFB10), "\xF2\x5F\x03\x94") && CMemory::HasMappedBytes(SA_ADDR(0x497AC4), "\xE1\xEE\xFF\x90\x21\xA0\x1D\x91\xF0\x00\x00\xD0\x10\xFE\x42\xF9\x00\x02\x1F\xD6\x83\xEE\xFF\xF0\x63\xE0\x3A\x91\xF0\x00\x00\xD0\x10\x02\x43\xF9\x00\x02\x1F\xD6", 40, "__mg_gameproc");
+
+    // Gyro ของกล้องเล็ง M16/สไนเปอร์ และจรวด ทั้งสองสถานะของ iOS
+    cameraGyroHooksInstalled = CMemory::HasMappedBytes(SA_ADDR(0x11FEB8), "\xFF\x43\x03\xD1\xED\x33\x06\x6D", 8, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x121584), "\xFF\xC3\x02\xD1\xE9\x23\x06\x6D", 8, "__text") && CMemory::HasMappedInstruction(SA_ADDR(0x11C058), "\xA5\xEE\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x11C0E4), "\x87\xEE\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x11C1B0), "\x54\xEE\x0D\x94") && CMemory::HasMappedBytes(SA_ADDR(0x497AEC), "\x42\xE4\xFF\x90\x42\xE0\x3A\x91\xF0\x00\x00\xD0\x10\x06\x43\xF9\x00\x02\x1F\xD6\x43\xE4\xFF\xD0\x63\x10\x16\x91\xF0\x00\x00\xD0\x10\x0A\x43\xF9\x00\x02\x1F\xD6", 40, "__mg_gameproc");
 }
 
 void CHooks::SetHooking(eHookType type)
@@ -618,6 +979,7 @@ void CHooks::SetHooking(eHookType type)
             CTouchEvent::Initialise();
             CWidgets::Initialise();
             CPad::Initialise();
+            CTaskSimplePlayerOnFoot::Initialize();
             CAspectRatio::Initialise();
             CDraw::Initialise();
             CHud::Initialise();

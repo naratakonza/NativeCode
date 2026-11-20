@@ -51,6 +51,9 @@ extern uint32_t m_dwAbortClimbTickCounter;
 
 static bool padProcessControlInstalled = false;
 static bool pedMethodHooksInstalled = false;
+static bool taskUseGunHookInstalled = false;
+static bool weaponHooksInstalled = false;
+static uint16_t byteSavedCameraMode = 0;
 
 extern "C"
 {
@@ -85,29 +88,28 @@ uint16_t CPad::GetPedWalk(CPad* thiz, eJoystickKeys keyType, int16_t (*CPad_GetP
 
 		bool bWalk = CPad::RemotePlayerKeys[CPad::m_byteCurPlayer].bKeys[ePadKeys::KEY_WALK];
 
-		// เดียวมาทำต่อภายหลัง
-		// if (bWalk)
-		// {
-		// 	if (CMultiPlayer::GetActiveNetwork() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools())
-		// 	{
-		// 		CPlayerPool* pPlayerPool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool();
-		// 		if (pPlayerPool)
-		// 		{
-		// 			uintptr_t pPed = CPedPointerRecorder::FindPlayerPointerFromNum(CPad::m_byteCurPlayer);
-		// 			if (pPed)
-		// 			{
-		// 				uint16_t playerId = pPlayerPool->FindRemotePlayerIDFromGtaPtr(reinterpret_cast<CPedGta*>(pPed));
-		// 				if (playerId != eInvalidId::INVALID_PLAYER_ID)
-		// 				{
-		// 					if (pPlayerPool->IsPlayerNPC(playerId))
-		// 					{
-		// 						dwResult = 0x20;
-		// 					}
-		// 				}
-		// 			}
-		// 		}
-		// 	}
-		// }
+		if (bWalk)
+		{
+			if (CMultiPlayer::GetActiveNetwork() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools())
+			{
+				CPlayerPool* pPlayerPool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool();
+				if (pPlayerPool)
+				{
+					uintptr_t pPed = CPedPointerRecorder::FindPlayerPointerFromNum(CPad::m_byteCurPlayer);
+					if (pPed)
+					{
+						uint16_t playerId = pPlayerPool->FindRemotePlayerIDFromGtaPtr(reinterpret_cast<CPedGta*>(pPed));
+						if (playerId != eInvalidId::INVALID_PLAYER_ID)
+						{
+							if (pPlayerPool->IsPlayerNPC(playerId))
+							{
+								dwResult = 0x20;
+							}
+						}
+					}
+				}
+			}
+		}
 
 		if ((dwResult == 0xFF80 || dwResult == 0x80) && bWalk)
 		{
@@ -264,6 +266,73 @@ extern "C" __attribute__((visibility("default"))) void CPed_UpdatePosition_hook(
     {
         pPed->m_pGroundPhysical = pSavedGroundPhysical;
     }
+}
+
+uint32_t CPad::TaskUseGun(uintptr_t thiz, uintptr_t pPed)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x3499C4), "\xF6\x57\xBD\xA9\xF4\x4F\x01\xA9", 8, "__text");
+    if (!verified) {
+        return 0;
+    }
+
+    if (!taskUseGunHookInstalled || !pthread_main_np() || !CMultiPlayer::IsSampActive()) {
+        return reinterpret_cast<uint32_t (*)(uintptr_t, uintptr_t)>(SA_ADDR(0x3499C4) + _dyld_get_image_vmaddr_slide(0))(thiz, pPed);
+    }
+
+    uint32_t pedPositionResult = 0;
+    byteInternalPlayer = CWorld::PlayerInFocus;
+    CPad::m_byteCurPlayer = CPedPointerRecorder::FindPlayerNumFromPointer(pPed);
+
+    if (thiz && CPad::m_byteCurPlayer != 0 && byteInternalPlayer == 0)
+    {
+        CPad::SwitchOnFootContextToRemotePlayer(CPad::m_byteCurPlayer);
+
+        byteSavedCameraMode = *pbyteCameraMode;
+        *pbyteCameraMode = CCameraAim::GameGetPlayerCameraMode(CPad::m_byteCurPlayer);
+
+        wSavedCameraMode2 = *wCameraMode2;
+        *wCameraMode2 = CCameraAim::GameGetPlayerCameraMode(CPad::m_byteCurPlayer);
+        if (*wCameraMode2 == 4)
+        {
+            *wCameraMode2 = 0;
+        }
+
+        CCameraAim::GameStoreLocalPlayerCameraExtZoom();
+        CCameraAim::GameSetRemotePlayerCameraExtZoom(CPad::m_byteCurPlayer);
+
+        CCameraAim::GameStoreLocalPlayerAim();
+        CCameraAim::GameSetRemotePlayerAim(CPad::m_byteCurPlayer);
+
+        CCameraAim::GameStoreLocalPlayerSkills();
+        CCameraAim::GameSetRemotePlayerSkills(CPad::m_byteCurPlayer);
+
+        CWorld::PlayerInFocus = CPad::m_byteCurPlayer;
+
+        pedPositionResult = reinterpret_cast<uint32_t (*)(uintptr_t, uintptr_t)>(SA_ADDR(0x3499C4) + _dyld_get_image_vmaddr_slide(0))(thiz, pPed);
+
+        *pbyteCameraMode = byteSavedCameraMode;
+        *wCameraMode2 = wSavedCameraMode2;
+
+        CCameraAim::GameSetLocalPlayerSkills();
+
+        CCameraAim::GameSetLocalPlayerCameraExtZoom();
+
+        CWorld::PlayerInFocus = 0;
+
+        CPad::SwitchOnFootContextToLocalPlayer();
+        CCameraAim::GameSetLocalPlayerAim();
+    }
+    else
+    {
+        pedPositionResult = reinterpret_cast<uint32_t (*)(uintptr_t, uintptr_t)>(SA_ADDR(0x3499C4) + _dyld_get_image_vmaddr_slide(0))(thiz, pPed);
+    }
+
+    return pedPositionResult;
+}
+
+extern "C" __attribute__((visibility("default"))) uint32_t CPad_TaskUseGun_hook(uintptr_t thiz, uintptr_t pPed)
+{
+    return CPad::TaskUseGun(thiz, pPed);
 }
 
 extern "C" __attribute__((visibility("default"))) void CCivilianPed_ProcessControl_hook(CPedGta* pPed)
@@ -1047,6 +1116,250 @@ extern "C" __attribute__((visibility("default"))) void CPed_ProcessControl_hook(
 	}
 }
 
+uint32_t (*CPad_GetWeapon)(uintptr_t thiz, CPedGta* pPed, bool bShoulderPossible);
+extern "C" __attribute__((visibility("default"))) uint32_t CPad_GetWeapon_hook(uintptr_t thiz, CPedGta* pPed, bool bShoulderPossible, uint32_t (*original)(uintptr_t, CPedGta*, bool))
+{
+    if (!weaponHooksInstalled || !pthread_main_np() || !CMultiPlayer::IsSampActive())
+    {
+        return original(thiz, pPed, bShoulderPossible);
+    }
+
+    CPad_GetWeapon = original;
+
+    if (CPad::m_pCurrentContextOnFoot == Context::REMOTE_PLAYER)
+    {
+        return CPad::RemotePlayerKeys[CPad::m_byteCurPlayer].bKeys[ePadKeys::KEY_FIRE] ? 0xFF : 0x00;
+    }
+    else
+    {
+        // // Quick Aim
+        // if (!CPad::m_iSaveTargetingActive && CMultiPlayer::GetActiveNetwork() && CGame::GetPlayer())
+        // {
+        //     uint8_t currentWeapon = CGame::GetPlayer()->GetCurrentWeapon();
+        //     if (currentWeapon != eWeaponSampId::WEAPON_GRENADE && currentWeapon != eWeaponSampId::WEAPON_TEARGAS && currentWeapon != eWeaponSampId::WEAPON_MOLTOV && !(currentWeapon >= eWeaponSampId::WEAPON_SATCHEL && currentWeapon < eWeaponSampId::WEAPON_FIREEXTINGUISHER))
+        //     {
+        //         if (CTouchInterface::IsTouched(0x15, 0, 1))
+        //         {
+        //             uint8_t old = CWorld::PlayerInFocus;
+        //             CWorld::PlayerInFocus = 0;
+        //             CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = 255;
+        //             CWorld::PlayerInFocus = old;
+        //             return CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE];
+        //         }
+        //     }
+        // }
+
+        uint8_t old = CWorld::PlayerInFocus;
+        CWorld::PlayerInFocus = CPad::m_byteCurPlayer;
+        CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = CPad_GetWeapon(thiz, pPed, bShoulderPossible);
+        CWorld::PlayerInFocus = old;
+        return CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE];
+    }
+}
+
+uint32_t (*CPad_WeaponJustDown)(uintptr_t thiz, uintptr_t ped, bool bShoulderPossible, bool bEnableTouch);
+extern "C" __attribute__((visibility("default"))) uint32_t CPad_WeaponJustDown_hook(uintptr_t thiz, uintptr_t ped, bool bShoulderPossible, bool bEnableTouch, uint32_t (*original)(uintptr_t, uintptr_t, bool, bool))
+{
+    if (!weaponHooksInstalled || !pthread_main_np() || !CMultiPlayer::IsSampActive())
+    {
+        return original(thiz, ped, bShoulderPossible, bEnableTouch);
+    }
+
+    CPad_WeaponJustDown = original;
+
+    if (CPad::m_pCurrentContextOnFoot == Context::REMOTE_PLAYER)
+    {
+        return CPad::RemotePlayerKeys[CPad::m_byteCurPlayer].bKeys[ePadKeys::KEY_FIRE];
+    }
+    else
+    {
+        return CPad_WeaponJustDown(thiz, ped, bShoulderPossible, bEnableTouch);
+    }
+}
+
+uint32_t (*CCamera_IsTargetingActive)(uintptr_t thiz, CPedGta* pPed);
+extern "C" __attribute__((visibility("default"))) uint32_t CCamera_IsTargetingActive_hook(uintptr_t thiz, CPedGta* pPed, uint32_t (*original)(uintptr_t, CPedGta*))
+{
+    if (!weaponHooksInstalled || !pthread_main_np() || !CMultiPlayer::IsSampActive())
+    {
+        return original(thiz, pPed);
+    }
+
+    CCamera_IsTargetingActive = original;
+
+    if (pPed != CUtil::GamePool_FindPlayerPed())
+    {
+        return CPad::RemotePlayerKeys[CPad::m_byteCurPlayer].bKeys[ePadKeys::KEY_HANDBRAKE] ? 1 : 0;
+    }
+    else
+    {
+        if (CGui::GetScoreBoard()->GetActiveScore() /*|| CGui::GetMainMenuScreens()->GetActiveMainMenuScreens()*/ || CGui::GetDialog()->GetActiveDialog() /*|| CGui::GetVoiceMenu()->GetActiveVoiceMenu() || CGui::GetClientMenu()->GetActiveClientMenu() || CGui::GetChatMenu()->GetActiveChatMenu()*/) {
+            CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = false;
+            *wCameraMode2 = 0;
+            return 0;
+        }
+
+        if (CMultiPlayer::GetActiveNetwork())
+        {
+            if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool())
+            {
+                if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetState())
+                {
+                    CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = false;
+                    *wCameraMode2 = 0;
+                    return 0;
+                }
+            }
+
+            // if (CGui::GetObjectEdit())
+            // {
+                // if (CGui::GetObjectEdit()->GetActiveObjectEdit())
+                // {
+                    // CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = false;
+                    // *wCameraMode2 = 0;
+                    // return 0;
+                // }
+            // }
+        }
+
+        if (CPad::m_iSaveBlockPunch) {
+            CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = false;
+            return 0;
+        }
+
+        uint32_t result = reinterpret_cast<uint32_t (*)(uintptr_t)>(SA_ADDR(0x133670) + _dyld_get_image_vmaddr_slide(0))(SA_ADDR(0x72CF08) + _dyld_get_image_vmaddr_slide(0));
+        CPad::m_iSaveTargetingActive = result;
+        CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = result;
+        return result;
+    }
+}
+
+uint32_t (*CPad_GetEnterTargeting)(uintptr_t thiz);
+extern "C" __attribute__((visibility("default"))) uint32_t CPad_GetEnterTargeting_hook(uintptr_t thiz, uint32_t (*original)(uintptr_t))
+{
+    if (!weaponHooksInstalled || !pthread_main_np() || !CMultiPlayer::IsSampActive())
+    {
+        return original(thiz);
+    }
+
+    CPad_GetEnterTargeting = original;
+
+    if (CPad::m_pCurrentContextOnFoot == Context::REMOTE_PLAYER)
+    {
+        return 0;
+    }
+    else
+    {
+        if (CGui::GetScoreBoard()->GetActiveScore() /*|| CGui::GetMainMenuScreens()->GetActiveMainMenuScreens()*/ || CGui::GetDialog()->GetActiveDialog() /*|| CGui::GetVoiceMenu()->GetActiveVoiceMenu() || CGui::GetClientMenu()->GetActiveClientMenu() || CGui::GetChatMenu()->GetActiveChatMenu()*/) {
+            CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = false;
+            *wCameraMode2 = 0;
+            return 0;
+        }
+
+        if (CMultiPlayer::GetActiveNetwork())
+        {
+            if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool())
+            {
+                if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetState())
+                {
+                    CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = false;
+                    *wCameraMode2 = 0;
+                    return 0;
+                }
+            }
+
+            // if (CGui::GetObjectEdit())
+            // {
+                // if (CGui::GetObjectEdit()->GetActiveObjectEdit())
+                // {
+                    // CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = false;
+                    // *wCameraMode2 = 0;
+                    // return 0;
+                // }
+            // }
+        }
+
+        if (CPad::m_iSaveBlockPunch) {
+            CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = false;
+            return 0;
+        }
+
+        uintptr_t result = CPad_GetEnterTargeting(thiz);
+        CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_HANDBRAKE] = result;
+        return result;
+    }
+}
+
+bool (*CPad_GetTarget)(uintptr_t *thiz, bool bCheckWidget);
+extern "C" __attribute__((visibility("default"))) bool CPad_GetTarget_hook(uintptr_t *thiz, bool bCheckWidget, bool (*original)(uintptr_t*, bool))
+{
+    if (!weaponHooksInstalled || !pthread_main_np() || !CMultiPlayer::IsSampActive())
+    {
+        return original(thiz, bCheckWidget);
+    }
+
+    CPad_GetTarget = original;
+
+    if (CPad::m_pCurrentContextOnFoot == Context::REMOTE_PLAYER)
+    {
+        if (CPad::dwCurWeaponProcessingPlayer) {
+            return CPad::dwCurWeaponProcessingPlayer->bIsAimingGun;
+        }
+
+        return false;
+    }
+
+    return CPad_GetTarget(thiz, bCheckWidget);
+}
+
+uint32_t (*CPad_CycleWeaponLeftJustDown)(uintptr_t thiz);
+extern "C" __attribute__((visibility("default"))) uint32_t CPad_CycleWeaponLeftJustDown_hook(uintptr_t thiz, uint32_t (*original)(uintptr_t))
+{
+    if (!weaponHooksInstalled || !pthread_main_np() || !CMultiPlayer::IsSampActive())
+    {
+        return original(thiz);
+    }
+
+    CPad_CycleWeaponLeftJustDown = original;
+
+    if (CPad::m_pCurrentContextOnFoot == Context::REMOTE_PLAYER)
+    {
+        return 0;
+    }
+    else
+    {
+        CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_LOOK_LEFT] = CPad_CycleWeaponLeftJustDown(thiz);
+        return CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_LOOK_LEFT];
+    }
+}
+
+uint32_t (*CPad_CycleWeaponRightJustDown)(uintptr_t thiz);
+extern "C" __attribute__((visibility("default"))) uint32_t CPad_CycleWeaponRightJustDown_hook(uintptr_t thiz, uint32_t (*original)(uintptr_t))
+{
+    if (!weaponHooksInstalled || !pthread_main_np() || !CMultiPlayer::IsSampActive())
+    {
+        return original(thiz);
+    }
+
+    CPad_CycleWeaponRightJustDown = original;
+
+    if (CPad::m_pCurrentContextOnFoot == Context::REMOTE_PLAYER)
+    {
+        return 0;
+    }
+    else
+    {
+        if (CTouchInterface::IsReleased(29, 0, 1))
+        {
+            CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_LOOK_RIGHT] = true;
+            return CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_LOOK_RIGHT];
+        }
+
+        CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_LOOK_RIGHT] = CPad_CycleWeaponRightJustDown(thiz);
+        return CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_LOOK_RIGHT];
+    }
+}
+
 void CPad::Initialise()
 {
     CNecessary::Log(OBFUSCATE("CPad Initialise"));
@@ -1055,6 +1368,8 @@ void CPad::Initialise()
 
 	pedMethodHooksInstalled = CMemory::InstallMethodHook(SA_ADDR(0x4A7150), (uintptr_t)CCivilianPed_ProcessControl_hook);
     pedMethodHooksInstalled = CMemory::InstallMethodHook(SA_ADDR(0x4A83D8), (uintptr_t)CPlayerPed_ProcessCollision_hook) && pedMethodHooksInstalled;
+
+    taskUseGunHookInstalled = CMemory::InstallMethodHook(SA_ADDR(0x4A9CB0), reinterpret_cast<uintptr_t>(CPad_TaskUseGun_hook));
 
     // สำหรับ ONFOOT
     padProcessControlInstalled = padProcessControlInstalled && CMemory::HasMappedInstruction(SA_ADDR(0x15CE14), "\x48\xEA\x0C\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x15CF34), "\x06\xEA\x0C\x14");
@@ -1065,6 +1380,9 @@ void CPad::Initialise()
     {
         CPad_AllowAimingRotation = 0;
     }
+
+	// สำหรับ Weapon
+    weaponHooksInstalled = CMemory::HasMappedInstruction(SA_ADDR(0x15DB74), "\xE8\xE7\x0C\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x15DE3C), "\x3C\xE7\x0C\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x13A780), "\xF1\x74\x0D\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x15E610), "\x54\xE5\x0C\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x15E854), "\xC9\xE4\x0C\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x15E2C4), "\x33\xE6\x0C\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x15E354), "\x15\xE6\x0C\x14") && CMemory::HasMappedBytes(SA_ADDR(0x133670), "\xF4\x4F\xBE\xA9\xFD\x7B\x01\xA9", 8, "__text");
 }
 
 void CPad::DisplayWidgets(bool bDisp)

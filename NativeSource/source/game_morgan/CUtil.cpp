@@ -1,10 +1,13 @@
 #include "CUtil.h"
 #include "CFont.h"
 #include "CWorld.h"
+#include "CPools.h"
+#include "Entity/Ped/CPedGta.h"
 #include "Core/CMatrix.h"
 #include "../utils/Memory/CMemory.h"
 #include "../utils/Necessary/CNecessary.h"
 
+#include <cmath>
 #include <mach-o/dyld.h>
 #include <pthread.h>
 #include <unordered_map>
@@ -445,4 +448,153 @@ void CUtil::FilterColors(char* szStr)
 
     szNonColored[iNonColoredMsgLen] = 0;
     strcpy(szStr, szNonColored);
+}
+
+float CUtil::GetDistance(CVector vec1, CVector vec2)
+{
+    return sqrt((vec1.z - vec2.z) * (vec1.z - vec2.z) + (vec1.y - vec2.y) * (vec1.y - vec2.y) + (vec1.x - vec2.x) * (vec1.x - vec2.x));
+}
+
+bool CUtil::IsPedPointerValid(uintptr_t pPed)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x16DA74), "\xA0\x01\xF8\x37\x28\x2E\x00\xF0\x08\xED\x47\xF9", 12, "__text");
+    if (!verified || !pthread_main_np())
+    {
+        return false;
+    }
+
+    if (pPed == 0) {
+        return false;
+    }
+
+    CPools* pPedPool = *reinterpret_cast<CPools**>(SA_ADDR(0x734FD8) + _dyld_get_image_vmaddr_slide(0));
+    if (pPedPool == nullptr || pPedPool->objects == nullptr) {
+        return false;
+    }
+
+    uintptr_t start = reinterpret_cast<uintptr_t>(pPedPool->objects);
+    uintptr_t size = 2504;
+    uintptr_t count = pPedPool->count;
+    uintptr_t end = start + size * count;
+
+    if (pPed >= start && pPed < end && ((pPed - start) % size) == 0)
+    {
+        size_t index = (pPed - start) / size;
+        if (pPedPool->flags != nullptr)
+        {
+            return (pPedPool->flags[index] & 0x80) == 0;
+        }
+    }
+
+    return false;
+}
+
+uintptr_t CUtil::FindFistTarget(CPedGta* pPlayerPed)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x16DA74), "\xA0\x01\xF8\x37\x28\x2E\x00\xF0\x08\xED\x47\xF9", 12, "__text");
+    if (!verified || !pthread_main_np())
+    {
+        return 0;
+    }
+
+    if (pPlayerPed == nullptr) {
+        return 0;
+    }
+
+    CPools* pPedPool = *reinterpret_cast<CPools**>(SA_ADDR(0x734FD8) + _dyld_get_image_vmaddr_slide(0));
+    if (pPedPool == nullptr || pPedPool->objects == nullptr) {
+        return 0;
+    }
+
+    uintptr_t start = reinterpret_cast<uintptr_t>(pPedPool->objects);
+    uintptr_t size = 2504;
+    uintptr_t count = pPedPool->count;
+
+    uintptr_t bestTarget = 0;
+    float bestDist = 5.0f; // ระยะโจมตีสูงสุด 5 เมตรสำหรับหมัด
+
+    CVector playerPos;
+    if (pPlayerPed->mat != nullptr)
+    {
+        playerPos = pPlayerPed->mat->pos;
+    }
+    else
+    {
+        playerPos = pPlayerPed->m_transform.m_vPosn;
+    }
+
+    CVector vecForward;
+    if (pPlayerPed->mat != nullptr)
+    {
+        vecForward = pPlayerPed->mat->up;
+    }
+    else
+    {
+        float heading = pPlayerPed->m_transform.m_fHeading;
+        vecForward.x = -std::sin(heading);
+        vecForward.y = std::cos(heading);
+        vecForward.z = 0.0f;
+    }
+
+    float len2d = std::sqrt(vecForward.x * vecForward.x + vecForward.y * vecForward.y);
+    if (len2d > 0.0f)
+    {
+        vecForward.x /= len2d;
+        vecForward.y /= len2d;
+    }
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        if ((pPedPool->flags[i] & 0x80) != 0) {
+            continue;
+        }
+
+        uintptr_t pPedAddr = start + i * size;
+        if (pPedAddr == reinterpret_cast<uintptr_t>(pPlayerPed)) {
+            continue;
+        }
+
+        CPedGta* pPed = reinterpret_cast<CPedGta*>(pPedAddr);
+        if (pPed->fHealth <= 0.1f) {
+            continue;
+        }
+
+        CVector targetPos;
+        if (pPed->mat != nullptr)
+        {
+            targetPos = pPed->mat->pos;
+        }
+        else
+        {
+            targetPos = pPed->m_transform.m_vPosn;
+        }
+
+        float dist = CUtil::GetDistance(playerPos, targetPos);
+        if (dist <= 5.0f)
+        {
+            CVector dir;
+            dir.x = targetPos.x - playerPos.x;
+            dir.y = targetPos.y - playerPos.y;
+            dir.z = 0.0f;
+
+            float dirLen = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+            if (dirLen > 0.0f)
+            {
+                dir.x /= dirLen;
+                dir.y /= dirLen;
+            }
+
+            float dot = dir.x * vecForward.x + dir.y * vecForward.y;
+            if (dot > 0.5f)
+            {
+                if (dist < bestDist)
+                {
+                    bestDist = dist;
+                    bestTarget = pPedAddr;
+                }
+            }
+        }
+    }
+
+    return bestTarget;
 }

@@ -76,6 +76,7 @@ public:
     static void RemoteProcessControl(uintptr_t thiz, void (*CPed_ProcessControl)(uintptr_t));
     static void RemoveInvalidRemotePlayer(uintptr_t thiz, void (*CPed_ProcessControl)(uintptr_t));
     static uint16_t GetPedWalk(CPad* thiz, eJoystickKeys keyType, int16_t (*CPad_GetPedWalk)(CPad*));
+    static uint32_t TaskUseGun(uintptr_t thiz, uintptr_t pPed);
     static bool isLocalPlayerSprinting();
     static void DisplayWidgets(bool bDisp);
     static bool IsActiveWidgets();

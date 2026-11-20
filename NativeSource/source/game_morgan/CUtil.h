@@ -18,6 +18,9 @@ public:
     static void RpAnimBlendClumpUpdateAnimations(uintptr_t pClump, float fTimeStep, int bOnScreen);
     static float DegToRad(float fDegrees);
     static float FloatOffset(float f1, float f2);
+    static float GetDistance(CVector vec1, CVector vec2);
+    static bool IsPedPointerValid(uintptr_t pPed);
+    static uintptr_t FindFistTarget(CPedGta* pPlayerPed);
     static float GetDistanceBetween3DPoints(CVector* f, CVector* s);
     static float GetDistanceBetweenPointAndLine(CVector* p, CVector* a, CVector* b);
     static CVector Multiply3x3(const CMatrix *m, const CVector *v);

@@ -386,7 +386,7 @@ void CMultiPlayerNetwork::Update()
 
 				CMultiPlayer::GetActiveNetwork()->SetNetworkState(eNetworkState::GAMESTATE_RESTARTING);
 				CMultiPlayer::Reconnect(false);
-				// CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->DeleteAll();
+				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->DeleteAll();
 
 				if (CAudio::GetAudioStream())
 				{
