@@ -1,3 +1,8 @@
+#include "../../RenderWare/rphanim.h"
+#include "../../Animation/CAnimBlendClumpData.h"
+#include "../../Animation/BoneNode_c.h"
+#include "../../Enums/eBoneTag.h"
+
 #include "CPlayerPed.h"
 #include "CPed.h"
 #include "CPlayerPedSlot.h"
@@ -25,6 +30,32 @@
 #include <mach-o/dyld.h>
 #include <unistd.h>
 #include <strings.h>
+
+char DanceStyleLibs[4][16] = { "WOP", "GFUNK", "RUNNINGMAN", "STRIP" };
+char DanceIdleLoops[4][16] = { "DANCE_LOOP", "DANCE_LOOP", "DANCE_LOOP", "STR_Loop_B" };
+char szDanceAnimNamesFemale[16][16] =
+{
+    "DANCE_G1","DANCE_G2","DANCE_G3","DANCE_G4",
+    "DANCE_G5","DANCE_G6","DANCE_G7","DANCE_G8",
+    "DANCE_G9","DANCE_G10","DANCE_G11","DANCE_G12",
+    "DANCE_G13","DANCE_G14","DANCE_G15","DANCE_G16"
+};
+
+char szDanceAnimNamesMale[16][16] =
+{
+    "DANCE_B1","DANCE_B2","DANCE_B3","DANCE_B4",
+    "DANCE_B5","DANCE_B6","DANCE_B7","DANCE_B8",
+    "DANCE_B9","DANCE_B10","DANCE_B11","DANCE_B12",
+    "DANCE_B13","DANCE_B14","DANCE_B15","DANCE_B16"
+};
+
+char szStripAnims[16][16] =
+{
+    "strip_A","strip_B","strip_C","strip_D",
+    "strip_E","strip_F","strip_G","STR_A2B",
+    "STR_B2A","STR_B2C","STR_C1","STR_C2",
+    "STR_C2B","STR_A2B","STR_B2C","STR_C2"
+};
 
 bool CPlayerPed::m_bRebuildPlayer = true;
 uint32_t m_dwJumpTickCounter = 0;
@@ -174,10 +205,10 @@ CPlayerPed::~CPlayerPed()
 	// 	CPlayerPed::DeleteAllAccessories(true);
 	// }
 
-	// if (CPlayerPed::GetStuff())
-	// {
-	// 	CPlayerPed::DropStuff();
-	// }
+	if (CPlayerPed::GetStuff())
+	{
+		CPlayerPed::DropStuff();
+	}
 
     if (CPlayerPed::IsInVehicle())
 	{
@@ -1497,4 +1528,737 @@ void CPlayerPed::RemoveWeaponWhenEnteringVehicle()
     }
 
     reinterpret_cast<void (*)(CPedGta*, int)>(SA_ADDR(0x2434F8) + _dyld_get_image_vmaddr_slide(0))(GetPed(), 0);
+}
+
+void CPlayerPed::ProcessCuffedControl()
+{
+    if (!CPlayerPed::VerifyInstance() || !CPlayerPed::IsCuffed()) {
+        return;
+    }
+
+    int iWeaponID = 0;
+
+    if (CScripting::ScriptCommand(&get_actor_armed_weapon, m_dwGTAId, &iWeaponID))
+    {
+        if (iWeaponID)
+        {
+            CPlayerPed::SetArmedWeapon(0);
+        }
+    }
+}
+
+void CPlayerPed::ProcessCuffed()
+{
+    if (!CPlayerPed::VerifyInstance() || !CPlayerPed::IsCuffed()) {
+        return;
+    }
+
+    if (CCommon::IsGameEntityArePlaceable(m_pEntity)) {
+        return;
+    }
+
+    int boneIds[] = {
+        eBoneTag::BONE_L_UPPER_ARM,
+        eBoneTag::BONE_L_FORE_ARM,
+        eBoneTag::BONE_L_HAND,
+        eBoneTag::BONE_R_UPPER_ARM,
+        eBoneTag::BONE_R_FORE_ARM,
+        eBoneTag::BONE_R_HAND
+    };
+
+    float rotations[][3] = {
+        {26.57374382019f, 61.337575733622f, 59.206573486328f},  // L_UPPER_ARM
+        {27.843754291534f, 15.3639249801636f, 46.40625f},       // L_FORE_ARM
+        {-81.018516340527f, 342.87482380867f, 326.11833715439f}, // L_HAND
+        {338.839179039f, 53.49357098341f, 298.45233917236f},    // R_UPPER_ARM
+        {307.68748283386f, 22.110015869141f, 313.59375f},       // R_FORE_ARM
+        {96.047592163086f, 357.88313293457f, 56.739406585693f}  // R_HAND
+    };
+
+    if (GetPed()->nModelIndex != 0)
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            CAnimBlendClumpData** clumpDataPtr = CCommon::GetClumpData(GetPed()->m_pRwClump);
+            if (!clumpDataPtr || !*clumpDataPtr) {
+                return;
+            }
+
+            CAnimBlendClumpData* clumpData = *clumpDataPtr;
+            AnimBlendFrameData* frameData = clumpData->GetFrameDataByNodeId(boneIds[i]);
+            if (frameData)
+            {
+                CQuaternion* tempOrientation = &frameData->GetFrameOrientation();
+                RtQuat* boneOrientation = reinterpret_cast<RtQuat*>(tempOrientation);
+                RwV3d angles = {rotations[i][0], rotations[i][2], rotations[i][1]};
+                BoneNode_c::EulerToQuat(&angles, boneOrientation);
+                GetPed()->nEntityFlags.m_bDontUpdateHierarchy = false;
+            }
+        }
+    }
+
+    CEntity::UpdateRpHAnim(reinterpret_cast<CPedGta*>(GetPed()));
+}
+
+void CPlayerPed::ToggleCuffed(bool cuff)
+{
+    if (!CPlayerPed::VerifyInstance() || !IsAdded()) {
+        return;
+    }
+
+    CPlayerPed::m_bCuffedState = cuff;
+    CPlayerPed::m_bSprintControl = cuff != 0;
+}
+
+void CPlayerPed::ProcessCarryControl()
+{
+    if (!CPlayerPed::VerifyInstance() || !CPlayerPed::IsCarry()) {
+        return;
+    }
+
+    int iWeaponID = 0;
+
+    if (CScripting::ScriptCommand(&get_actor_armed_weapon, m_dwGTAId, &iWeaponID))
+    {
+        if (iWeaponID)
+        {
+            CPlayerPed::SetArmedWeapon(0);
+        }
+    }
+}
+
+void CPlayerPed::ProcessCarry()
+{
+    if (!CPlayerPed::VerifyInstance() || !CPlayerPed::IsCarry()) {
+        return;
+    }
+
+    if (CCommon::IsGameEntityArePlaceable(m_pEntity)) {
+        return;
+    }
+
+    RpClump* pRwClump = GetPed()->m_pRwClump;
+    if (pRwClump)
+    {
+        RpHAnimHierarchy* hierarchy = CCommon::GetAnimHierarchyFromSkinClump(reinterpret_cast<uintptr_t*>(pRwClump));
+
+        if (hierarchy && hierarchy->currentAnim)
+        {
+            RtAnimInterpolator* interpolator = hierarchy->currentAnim;
+            int nNodeSize = interpolator->currentInterpKeyFrameSize;
+            uint8_t* pQuatBase = reinterpret_cast<uint8_t*>(interpolator + 1);
+
+            auto SetBoneQuat = [&](int nIndex, float x, float y, float z, float w) {
+                float* pDest = reinterpret_cast<float*>(pQuatBase + (nIndex * nNodeSize));
+                pDest[0] = x; pDest[1] = y; pDest[2] = z; pDest[3] = w;
+            };
+
+            // แขนซ้าย (L_ARM) Dump มาจาก SAMP PC ตรงกันแบบ 100%
+            SetBoneQuat(9, -0.6432f, -0.0740f, -0.7482f, -0.1446f); // Shoulder L (Tag 31)
+            SetBoneQuat(10, -0.1306f, 0.5489f, -0.1104f, 0.8182f); // L_UPPER (Tag 32)
+            SetBoneQuat(11, 0.0000f, 0.0000f, -0.6211f, 0.7837f);  // L_FORE (Tag 33)
+            SetBoneQuat(12, -0.9869f, -0.0742f, 0.0269f, -0.1409f); // L_HAND (Tag 34)
+            SetBoneQuat(13, -0.0002f, -0.0000f, 0.1695f, 0.9855f); // L_Finger (Tag 35)
+            SetBoneQuat(14, 0.0000f, 0.0000f, 0.1162f, 0.9932f);  // L_Finger1 (Tag 36)
+
+            // แขนขวา (R_ARM) Dump มาจาก SAMP PC ตรงกันแบบ 100%
+            SetBoneQuat(15, 0.6473f, 0.0884f, -0.7404f, -0.1580f); // Shoulder R (Tag 21)
+            SetBoneQuat(16, 0.1783f, -0.5777f, -0.0679f, 0.7936f);  // R_UPPER (Tag 22)
+            SetBoneQuat(17, 0.0000f, 0.0000f, -0.5709f, 0.8210f);  // R_FORE (Tag 23)
+            SetBoneQuat(18, -0.9629f, -0.0369f, -0.0142f, 0.2669f); // R_HAND (Tag 24)
+            SetBoneQuat(19, 0.0002f, 0.0000f, 0.1695f, 0.9855f);  // R_Finger (Tag 25)
+            SetBoneQuat(20, 0.0000f, 0.0000f, 0.1162f, 0.9932f);  // R_Finger1 (Tag 26)
+        }
+    }
+
+    CEntity::UpdateRpHAnim(reinterpret_cast<CPedGta*>(GetPed()));
+}
+
+void CPlayerPed::ToggleCarry(bool carry)
+{
+    if (!CPlayerPed::VerifyInstance() || !IsAdded()) {
+        return;
+    }
+
+    CPlayerPed::m_bCarryState = carry;
+    if (CPlayerPed::m_bCarryState)
+    {
+        CPlayerPed::m_bJumpControl = true;
+        CPlayerPed::m_bCrouchControl = true;
+        CPlayerPed::m_bSprintControl = true;
+    }
+    else
+    {
+        CPlayerPed::m_bJumpControl = false;
+        CPlayerPed::m_bCrouchControl = false;
+        CPlayerPed::m_bSprintControl = false;
+    }
+}
+
+void CPlayerPed::StartPissing()
+{
+    if (!CPlayerPed::VerifyInstance() || CPlayerPed::IsInVehicle() || !IsAdded()) {
+        return;
+    }
+
+    if (!CPlayerPed::IsPissing())
+    {
+        CPlayerPed::ApplyAnimation(OBFUSCATE("PISS_LOOP"), OBFUSCATE("PAULNMAC"), 4.0f, 1, 0, 0, 0, -1);
+
+        const auto petrolcan = OBFUSCATE("PETROLCAN");
+        CScripting::ScriptCommand(&attach_particle_to_actor2, static_cast<const char*>(petrolcan), m_dwGTAId, 0.0f, 0.58f, -0.08f, 0.0f, 0.01f, 0.0f, 1, &m_dwPissParticlesHandle);
+        CScripting::ScriptCommand(&make_particle_visible, m_dwPissParticlesHandle);
+
+        CPlayerPed::m_bPissingState = true;
+    }
+}
+
+void CPlayerPed::StopPissing()
+{
+    if (!CPlayerPed::VerifyInstance() || !IsAdded()) {
+        return;
+    }
+
+    if (CPlayerPed::IsPissing())
+    {
+        if (CPlayerPed::m_dwPissParticlesHandle)
+        {
+            CScripting::ScriptCommand(&destroy_particle, m_dwPissParticlesHandle);
+            CPlayerPed::m_dwPissParticlesHandle = 0;
+        }
+
+        CMatrix mat;
+        GetMatrix(&mat);
+        TeleportTo(mat.pos.x, mat.pos.y, mat.pos.z);
+
+        CPlayerPed::m_bPissingState = false;
+    }
+}
+
+void CPlayerPed::ToggleCellphone(int enable)
+{
+    if (!CPlayerPed::VerifyInstance() || !IsAdded()) {
+        return;
+    }
+
+    CPlayerPed::m_iCellPhoneEnabled = enable;
+    CScripting::ScriptCommand(&toggle_actor_cellphone, m_dwGTAId, enable);
+}
+
+void CPlayerPed::HandsUp()
+{
+    if (!CPlayerPed::VerifyInstance() || !IsAdded()) {
+        return;
+    }
+
+    CScripting::ScriptCommand(&actor_task_handsup, m_dwGTAId, -2);
+}
+
+bool CPlayerPed::HasHandsUp()
+{
+    if (!CPlayerPed::VerifyInstance() || !IsAdded()) {
+        return false;
+    }
+
+    CTask* taskMgr = GetPed()->pPedIntelligence->m_taskManager.m_tasks[ePrimaryTasks::TASK_PRIMARY_PRIMARY];
+    if (!taskMgr) {
+        return false;
+    }
+
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x10AF0C), "\x88\x1C\x00\xB0\x08\xE1\x02\x91\x08\x41\x00\x91\xA8\x02\x00\xF9", 16, "__text");
+    uintptr_t taskVtbl = *reinterpret_cast<uintptr_t*>(taskMgr);
+    if (verified && taskVtbl == SA_ADDR(0x49B0C8) + _dyld_get_image_vmaddr_slide(0))
+    {
+        return true; // CTaskSimpleHandsUp vtable ของ iOS
+    }
+
+    return false;
+}
+
+void CPlayerPed::ApplyCommandTask(const char* a2, CEntityGta* a4, int a5, int a6, CVector* a7, char a8, float a9, int a10, int a11, char a12)
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x2D1F94), "\xFF\x43\x02\xD1\xEB\x2B\x01\x6D\xE9\x23\x02\x6D\xFC\x6F\x03\xA9", 16, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x11F108), "\x40\x37\x00\xB0\x00\x80\x1A\x91", 8, "__text");
+    if (!verified) {
+        return;
+    }
+
+    // IKChainManager_c::LookAt
+    const auto slide = _dyld_get_image_vmaddr_slide(0);
+    reinterpret_cast<void (*)(uintptr_t, const char*, CPedGta*, CEntityGta*, int, int, CVector*, uint8_t, float, int, int, uint8_t)>(SA_ADDR(0x2D1F94) + slide)(SA_ADDR(0x8086A0) + slide, a2, GetPed(), a4, a5, a6, a7, a8, a9, a10, a11, a12);
+}
+
+void CPlayerPed::SetDrunkLevel(uint32_t dwLevel)
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    if (dwLevel > 50000)
+    {
+        dwLevel = 50000;
+    }
+
+    CPlayerPed::m_stuffData.dwDrunkLevel = dwLevel;
+}
+
+void CPlayerPed::ProcessDrunk()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    int iDrunkLevel = CPlayerPed::GetDrunkLevel();
+    if (iDrunkLevel == 0) {
+        CScripting::ScriptCommand(&set_player_drunk_visuals, 0, 0);
+        return;
+    }
+
+    if (!CPlayerPed::m_bytePlayerNumber)
+    {
+        int iDrunkVisual = 0;
+
+        if (iDrunkLevel > 0 && iDrunkLevel <= 2000)
+        {
+            CPlayerPed::SetDrunkLevel(iDrunkLevel - 1);
+            iDrunkVisual = 0;
+        }
+        else if (iDrunkLevel > 2000)
+        {
+            iDrunkVisual = static_cast<int>(iDrunkLevel * 0.02);
+            if (iDrunkVisual <= 250)
+            {
+                if (iDrunkVisual < 5)
+                {
+                    iDrunkVisual = 0;
+                }
+            }
+            else
+            {
+                iDrunkVisual = 250;
+            }
+
+            // Vehicle
+            if (CPlayerPed::IsInVehicle() && !CPlayerPed::IsAPassenger())
+            {
+                CVehicleGta* pVehicle = CPlayerPed::GetVehicle();
+                if (pVehicle)
+                {
+                    if (!CPlayerPed::m_stuffData.dwLastUpdateTick || (CNecessary::GetTickCount() - CPlayerPed::m_stuffData.dwLastUpdateTick) > 200)
+                    {
+                        int iRandNumber = rand() % 40;
+                        float fRotation = 0.0f;
+                        if (iRandNumber >= 20)
+                        {
+                            fRotation = 0.012f;
+                            if (iDrunkLevel >= 5000)
+                            {
+                                fRotation = 0.015f;
+                            }
+
+                            if (iRandNumber <= 30)
+                            {
+                                fRotation = -0.012f;
+                                if (iDrunkLevel >= 5000)
+                                {
+                                    fRotation = -0.015f;
+                                }
+                            }
+                        }
+
+                        if (CUtil::FloatOffset(pVehicle->vecMoveSpeed.x, 0.0f) > 0.050000001f || CUtil::FloatOffset(pVehicle->vecMoveSpeed.y, 0.0f) > 0.050000001f)
+                        {
+                            pVehicle->m_vecTurnSpeed.z = fRotation + pVehicle->m_vecTurnSpeed.z;
+                        }
+
+                        CPlayerPed::m_stuffData.dwLastUpdateTick = CNecessary::GetTickCount();
+                    }
+                }
+            }
+
+            CPlayerPed::SetDrunkLevel(iDrunkLevel - 1);
+        }
+
+        CScripting::ScriptCommand(&set_player_drunk_visuals, CPlayerPed::m_bytePlayerNumber, iDrunkVisual);
+    }
+}
+
+void CPlayerPed::SetDrunkVisuals(uint32_t dwVisuals)
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    CScripting::ScriptCommand(&set_player_drunk_visuals, 0, dwVisuals);
+}
+
+void CPlayerPed::SetDrunkHandling(uint32_t dwHandling)
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    CScripting::ScriptCommand(&set_player_drunk_handling, 0, dwHandling);
+}
+
+CVehicleGta* CPlayerPed::GetVehicle()
+{
+    return (CVehicleGta*)GetPed()->pVehicle;
+}
+
+void CPlayerPed::ApplyStuff()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    if (CPlayerPed::GetStuff() && GetPed() && IsAdded())
+    {
+        PAD_KEYS *pad;
+
+        if (!CPlayerPed::m_bytePlayerNumber)
+        {
+            pad = &CPad::LocalPlayerKeys;
+        }
+        else
+        {
+            pad = &CPad::RemotePlayerKeys[CPlayerPed::m_bytePlayerNumber];
+        }
+
+        CPlayerPed::SetArmedWeapon(0);
+
+        if (!CPlayerPed::m_bytePlayerNumber && !CPlayerPed::IsPerformingCustomAnim() && pad->bKeys[ePadKeys::KEY_FIRE])
+        {
+            eStuffType stuffType = CPlayerPed::GetStuff();
+            if (stuffType == eStuffType::STUFF_TYPE_BEER || stuffType == eStuffType::STUFF_TYPE_DYN_BEER || stuffType == eStuffType::STUFF_TYPE_PINT_GLASS)
+            {
+                if (CPlayerPed::GetPedStat() == 5 || CPlayerPed::GetPedStat() == 22)
+                {
+                    CPlayerPed::ApplyAnimation(OBFUSCATE("DNK_STNDF_LOOP"), OBFUSCATE("BAR"), 4.0, 0, 0, 0, 0, -1);
+                }
+                else
+                {
+                    CPlayerPed::ApplyAnimation(OBFUSCATE("DNK_STNDM_LOOP"), OBFUSCATE("BAR"), 4.0, 0, 0, 0, 0, -1);
+                }
+
+                if (stuffType != eStuffType::STUFF_TYPE_PINT_GLASS)
+                {
+                    CPlayerPed::SetDrunkLevel(CPlayerPed::GetDrunkLevel() + 1250);
+                }
+            }
+            else if (stuffType == eStuffType::STUFF_TYPE_CIGGI)
+            {
+                CPlayerPed::ApplyAnimation(OBFUSCATE("smkcig_prtl"), OBFUSCATE("GANGS"), 700.0, 0, 0, 0, 0, 2750);
+            }
+        }
+    }
+}
+
+void CPlayerPed::GiveStuff(eStuffType type)
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    if (CPlayerPed::IsInVehicle()) {
+        return;
+    }
+
+    if (CPlayerPed::m_stuffData.dwObject) {
+        CPlayerPed::DropStuff();
+    }
+
+    CPlayerPed::SetArmedWeapon(0);
+
+    CMatrix matPlayer;
+    GetMatrix(&matPlayer);
+
+    switch (type)
+    {
+        case eStuffType::STUFF_TYPE_BEER: {
+            CScripting::ScriptCommand(&create_object, eSpecialObject::OBJECT_CJ_BEER_B_2, matPlayer.pos.x, matPlayer.pos.y, matPlayer.pos.z, &m_stuffData.dwObject);
+
+            if (CUtil::GamePool_Object_GetAt(CPlayerPed::m_stuffData.dwObject))
+            {
+                CScripting::ScriptCommand(&task_pick_up_object, m_dwGTAId, m_stuffData.dwObject, 0.05000000074505806, 0.02999999932944775, -0.300000011920929, 6, 16, "NULL", "NULL", -1);
+            }
+
+            break;
+        }
+
+        case eStuffType::STUFF_TYPE_DYN_BEER: {
+            CScripting::ScriptCommand(&create_object, eSpecialObject::OBJECT_DYN_BEER_1, matPlayer.pos.x, matPlayer.pos.y, matPlayer.pos.z, &m_stuffData.dwObject);
+
+            if (CUtil::GamePool_Object_GetAt(CPlayerPed::m_stuffData.dwObject))
+            {
+                CScripting::ScriptCommand(&task_pick_up_object, m_dwGTAId, m_stuffData.dwObject, 0.05000000074505806, 0.02999999932944775, -0.05000000074505806, 6, 16, "NULL", "NULL", -1);
+            }
+
+            break;
+        }
+
+        case eStuffType::STUFF_TYPE_PINT_GLASS: {
+            CScripting::ScriptCommand(&create_object, eSpecialObject::OBJECT_CJ_PINT_GLASS, matPlayer.pos.x, matPlayer.pos.y, matPlayer.pos.z, &m_stuffData.dwObject);
+
+            if (CUtil::GamePool_Object_GetAt(CPlayerPed::m_stuffData.dwObject))
+            {
+                CScripting::ScriptCommand(&task_pick_up_object, m_dwGTAId, m_stuffData.dwObject, 0.03999999910593033, 0.1000000014901161, -0.01999999955296516, 6, 16, "NULL", "NULL", -1);
+            }
+
+            break;
+        }
+
+        case eStuffType::STUFF_TYPE_CIGGI: {
+            CScripting::ScriptCommand(&create_object, eSpecialObject::OBJECT_CJ_CIGGY, matPlayer.pos.x, matPlayer.pos.y, matPlayer.pos.z, &m_stuffData.dwObject);
+
+            if (CUtil::GamePool_Object_GetAt(CPlayerPed::m_stuffData.dwObject))
+            {
+                CScripting::ScriptCommand(&task_pick_up_object, m_dwGTAId, m_stuffData.dwObject, 0.0, 0.0, 0.0, 6, 16, "NULL", "NULL", -1);
+            }
+
+            break;
+        }
+
+        default: {
+            break;
+        }
+    }
+
+    CPlayerPed::m_stuffData.type = type;
+}
+
+void CPlayerPed::DropStuff()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    if (CUtil::GamePool_Object_GetAt(CPlayerPed::m_stuffData.dwObject))
+    {
+        CScripting::ScriptCommand(&task_pick_up_object, m_dwGTAId, m_stuffData.dwObject, 0.0, 0.0, 0.0, 6, 16, "NULL", "NULL", 0);
+        CPlayerPed::m_stuffData.dwObject = 0;
+    }
+
+    CMatrix matPlayer;
+    GetMatrix(&matPlayer);
+    TeleportTo(matPlayer.pos.x, matPlayer.pos.y, matPlayer.pos.z);
+
+    CPlayerPed::m_stuffData.type = eStuffType::STUFF_TYPE_NONE;
+}
+
+eStuffType CPlayerPed::GetStuff()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return eStuffType::STUFF_TYPE_NONE;
+    }
+
+    return CPlayerPed::m_stuffData.type;
+}
+
+bool CPlayerPed::IsPlayingAnimation(const char* szAnimName)
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return false;
+    }
+
+    if (!szAnimName || !CNecessary::MPSTRLEN(szAnimName)) {
+        return false;
+    }
+
+    if (CScripting::ScriptCommand(&is_char_playing_anim, m_dwGTAId, szAnimName)) {
+        return true;
+    }
+
+    return false;
+}
+
+void CPlayerPed::StartDancing(int danceId)
+{
+    if (!CPlayerPed::VerifyInstance() || CPlayerPed::IsInVehicle() || !IsAdded()) {
+        return;
+    }
+
+    if (danceId < 0 || danceId > 3) {
+        return;
+    }
+
+    CPlayerPed::m_bDanceState = true;
+    CPlayerPed::m_iDanceStyle = danceId;
+
+    CPlayerPed::ApplyAnimation(DanceIdleLoops[CPlayerPed::m_iDanceStyle], DanceStyleLibs[CPlayerPed::m_iDanceStyle], 16.0f, 1, 0, 0, 0, -1);
+}
+
+void CPlayerPed::StopDancing()
+{
+    if (!CPlayerPed::VerifyInstance() || !IsAdded()) {
+        return;
+    }
+
+    CPlayerPed::m_bDanceState = false;
+    CPlayerPed::m_iDanceStyle = -1;
+
+    if (GetPed() == CUtil::GamePool_FindPlayerPed())
+    {
+        CGame::DisplayHUD(true);
+    }
+
+    CMatrix mat;
+    GetMatrix(&mat);
+    TeleportTo(mat.pos.x, mat.pos.y, mat.pos.z);
+}
+
+void CPlayerPed::ProcessDancing()
+{
+    if (!CPlayerPed::VerifyInstance() || !IsAdded() || !CPlayerPed::IsDancing() || CPlayerPed::m_bytePlayerNumber) {
+        return;
+    }
+
+    uint16_t wKeysUpDown = 0, wKeysLeftRight = 0, iExtra = 0;
+    if (!CPlayerPed::m_bytePlayerNumber)
+    {
+        wKeysUpDown = CPad::LocalPlayerKeys.wKeyUD;
+        wKeysLeftRight = CPad::LocalPlayerKeys.wKeyLR;
+        iExtra = CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_SPRINT];
+    }
+
+    if (!CPlayerPed::IsPerformingCustomAnim())
+    {
+        CPlayerPed::ApplyAnimation(DanceIdleLoops[m_iDanceStyle], DanceStyleLibs[m_iDanceStyle], 4.0f, 1, 0, 0, 0, 0);
+    }
+
+    int iNewMove = 0;
+    if (wKeysUpDown > 128 && !wKeysLeftRight && !iExtra)
+    {
+        iNewMove = 0; // UP
+    }
+    else if (wKeysUpDown < 128 && !wKeysLeftRight && !iExtra)
+    {
+        iNewMove = 1; // DOWN
+    }
+    else if (!wKeysUpDown && wKeysLeftRight < 128 && !iExtra)
+    {
+        iNewMove = 2; // LEFT
+    }
+    else if (!wKeysUpDown && wKeysLeftRight > 128 && !iExtra)
+    {
+        iNewMove = 3; // RIGHT
+    }
+    else if (wKeysUpDown > 128 && wKeysLeftRight < 128 && !iExtra)
+    {
+        iNewMove = 4; // UP-LEFT
+    }
+    else if (wKeysUpDown > 128 && wKeysLeftRight > 128 && !iExtra)
+    {
+        iNewMove = 5; // UP-RIGHT
+    }
+    else if (wKeysUpDown < 128 && wKeysLeftRight < 128 && !iExtra)
+    {
+        iNewMove = 6; // DOWN-LEFT
+    }
+    else if (wKeysUpDown < 128 && wKeysLeftRight > 128 && !iExtra)
+    {
+        iNewMove = 7; // DOWN-RIGHT
+    }
+    else if (wKeysUpDown > 128 && !wKeysLeftRight && iExtra)
+    {
+        iNewMove = 8; // UP/EX
+    }
+    else if (wKeysUpDown < 128 && !wKeysLeftRight && iExtra)
+    {
+        iNewMove = 9; // DOWN/EX
+    }
+    else if (!wKeysUpDown && wKeysLeftRight < 128 && iExtra)
+    {
+        iNewMove = 10; // LEFT/EX
+    }
+    else if (!wKeysUpDown && wKeysLeftRight > 128 && iExtra)
+    {
+        iNewMove = 11; // RIGHT/EX
+    }
+    else if (wKeysUpDown > 128 && wKeysLeftRight < 128 && iExtra)
+    {
+        iNewMove = 12; // UP-LEFT/EX
+    }
+    else if (wKeysUpDown > 128 && wKeysLeftRight > 128 && iExtra)
+    {
+        iNewMove = 13; // UP-RIGHT/EX
+    }
+    else if (wKeysUpDown < 128 && wKeysLeftRight < 128 && iExtra)
+    {
+        iNewMove = 14; // DOWN-LEFT/EX
+    }
+    else if (wKeysUpDown < 128 && wKeysLeftRight > 128 && iExtra)
+    {
+        iNewMove = 15; // DOWN-RIGHT/EX
+    }
+    else
+    {
+        return;
+    }
+
+    if (iNewMove == CPlayerPed::m_iLastDanceMove) {
+        return;
+    }
+
+    CPlayerPed::m_iLastDanceMove = iNewMove;
+
+    const char* szAnimName = CPlayerPed::GetDanceAnimForMove(iNewMove);
+    if (!szAnimName && !CNecessary::MPSTRLEN(szAnimName)) {
+        return;
+    }
+
+    CPlayerPed::ApplyAnimation(szAnimName, DanceStyleLibs[m_iDanceStyle], 4.0f, 0, 0, 0, 0, -1);
+}
+
+const char* CPlayerPed::GetDanceAnimForMove(int iMove)
+{
+    if (static_cast<int>(!CPlayerPed::m_iDanceStyle) == -1) {
+        return "";
+    }
+
+    if (CPlayerPed::m_iDanceStyle >= 0 && CPlayerPed::m_iDanceStyle <= 2)
+    {
+        if (CPlayerPed::GetPedStat() == 5 || CPlayerPed::GetPedStat() == 22)
+        {
+            return szDanceAnimNamesFemale[iMove];
+        }
+
+        return szDanceAnimNamesMale[iMove];
+    }
+    else if (CPlayerPed::m_iDanceStyle == 3)
+    {
+        return szStripAnims[iMove];
+    }
+
+    return "";
+}
+
+int CPlayerPed::GetPedStat()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return -1;
+    }
+
+    return CUtil::GamePedStatPrim(m_pPed->nModelIndex);
+}
+
+bool CPlayerPed::IsPerformingCustomAnim()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return false;
+    }
+
+    if (!IsAdded()) {
+        return false;
+    }
+
+    if (GetPed()->pPedIntelligence->m_taskManager.m_tasks[ePrimaryTasks::TASK_PRIMARY_PRIMARY])
+    {
+        return true;
+    }
+
+    return false;
 }

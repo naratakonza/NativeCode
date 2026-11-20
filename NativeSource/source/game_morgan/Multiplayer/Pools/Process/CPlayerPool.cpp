@@ -107,6 +107,32 @@ void CPlayerPool::Process()
     }
 }
 
+void CPlayerPool::ProcessAllPlayersAfterPreRender()
+{
+    if (CPlayerPool::GetLocalPlayer())
+    {
+        CPlayerPed* pPlayerPed = CPlayerPool::GetLocalPlayer()->GetPlayerPed();
+        if (pPlayerPed)
+        {
+            pPlayerPed->ProcessCarry();
+            pPlayerPed->ProcessCuffed();
+            // pPlayerPed->ProcessAccessories();
+        }
+    }
+
+    for (const auto& playerPair : CPlayerPool::m_pPlayers)
+    {
+        CRemotePlayer* pPlayer = playerPair.second;
+
+        if (pPlayer && pPlayer->GetGamePlayer())
+        {
+            pPlayer->GetGamePlayer()->ProcessCarry();
+            pPlayer->GetGamePlayer()->ProcessCuffed();
+            // pPlayer->GetGamePlayer()->ProcessAccessories();
+        }
+    }
+}
+
 void CPlayerPool::DeleteAll()
 {
     for (auto playerIter = CPlayerPool::m_pPlayers.begin(); playerIter != CPlayerPool::m_pPlayers.end();)
@@ -202,7 +228,7 @@ void CPlayerPool::UpdatePlayerInfo(int playerId, uint32_t color)
 	// 	CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("AddPlayer %d"), CPlayerPool::PlayersCount + 1);
 	// }
 
-    //CNecessary::Log(OBFUSCATE("AddPlayer %d"), CPlayerPool::PlayersCount);
+	// 	CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("AddPlayer %d"), CPlayerPool::PlayersCount + 1);
 }
 
 int CPlayerPool::GetPlayersCount()

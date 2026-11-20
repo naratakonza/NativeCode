@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Core/CVector.h"
-#include "../utils/Quat/CQuaternion.h"
+#include "../../utils/Quat/CQuaternion.h"
 
 struct RpHAnimBlendInterpFrame
 {

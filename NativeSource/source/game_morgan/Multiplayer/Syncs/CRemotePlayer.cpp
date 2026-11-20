@@ -1,6 +1,6 @@
 #include "../../../../Main.h"
 #include "CRemotePlayer.h"
-// #include "Core/CHeadMove.h"
+#include "Core/CHeadMove.h"
 #include "Core/CMarkerIcon.h"
 #include "../../CGame.h"
 #include "../../CRadar.h"
@@ -101,7 +101,7 @@ void CRemotePlayer::UpdateAllFrames()
 		CRemotePlayer::ResetSpeedAndKeysForGamePlayer();
 	}
 
-	// CRemotePlayer::ProcessGamePlayerHead();
+	CRemotePlayer::ProcessGamePlayerHead();
 
 	if ((CNecessary::GetTickCount() - CRemotePlayer::GetReceiveSyncTick()) < NETMODE_PLAYERS_UPDATE_DELAY / 2) 
 	{
@@ -482,7 +482,7 @@ void CRemotePlayer::DoOnFootFrame()
 
 	CRemotePlayer::UpdateGamePlayerRotation();
 
-	// CRemotePlayer::ProcessGamePlayerHead();
+	CRemotePlayer::ProcessGamePlayerHead();
 	CRemotePlayer::ProcessGamePlayerSpecialAction(CRemotePlayer::GetSpecialAction());
 
 	CRemotePlayer::SetRemotePassengerDriveBy(false);
@@ -637,6 +637,60 @@ void CRemotePlayer::UpdateGamePlayerWeapon(uint8_t byteCurWeapon, bool armed)
     }
 }
 
+void CRemotePlayer::ProcessGamePlayerHead()
+{
+    if (!CRemotePlayer::IsValidInstance()) {
+        return;
+    }
+
+    CPlayerPed* pGamePlayer = CRemotePlayer::GetGamePlayer();
+    if (!pGamePlayer) {
+        return;
+    }
+
+    if (!CRemotePlayer::IsGamePlayerValid(CRemotePlayer::GetRemotePlayerID(), pGamePlayer)) {
+        CNecessary::Log(OBFUSCATE("ProcessGamePlayerHead: pGamePlayer is no longer valid."));
+        return;
+    }
+
+    if (!pGamePlayer->IsAdded() || CRemotePlayer::IsRemoteNPC() || pGamePlayer->GetStuff()) {
+        return;
+    }
+
+    if (!CHeadMove::GetHeadMove()) {
+        return;
+    }
+
+    CMatrix mat;
+    pGamePlayer->GetMatrix(&mat);
+
+    if (CNecessary::GetTickCount() - CRemotePlayer::m_headData.m_dwLastHeadUpdate > 1000)
+    {
+        CAMERA_AIM* Aim = CCameraAim::GameGetRemotePlayerAim(pGamePlayer->m_bytePlayerNumber);
+
+        float lookX = Aim->f1x * 20.0f + mat.pos.x;
+        float lookY = Aim->f1y * 20.0f + mat.pos.y;
+        float lookZ = Aim->f1z * 20.0f + mat.pos.z;
+
+        CRemotePlayer::m_headData.m_vecHeadDir.x = lookX - mat.pos.x;
+        CRemotePlayer::m_headData.m_vecHeadDir.y = lookY - mat.pos.y;
+        CRemotePlayer::m_headData.m_vecHeadDir.z = lookZ - mat.pos.z;
+
+        CRemotePlayer::m_headData.m_dwLastHeadUpdate = CNecessary::GetTickCount();
+    }
+
+    if (CNecessary::GetTickCount() - CRemotePlayer::m_headData.m_dwLastHeadLook > 200)
+    {
+        CVector LookAt;
+        LookAt.x = mat.pos.x + CRemotePlayer::m_headData.m_vecHeadDir.x;
+        LookAt.y = mat.pos.y + CRemotePlayer::m_headData.m_vecHeadDir.y;
+        LookAt.z = mat.pos.z + CRemotePlayer::m_headData.m_vecHeadDir.z;
+
+        pGamePlayer->ApplyCommandTask(OBFUSCATE("FollowPedSA"), 0, 1000, -1, &LookAt, 0, 0.1f, 500, 3, 0);
+        CRemotePlayer::m_headData.m_dwLastHeadLook = CNecessary::GetTickCount();
+    }
+}
+
 void CRemotePlayer::ProcessGamePlayerSpecialAction(eSpecialAction byteSpecialAction)
 {
     if (!CRemotePlayer::IsValidInstance()) {
@@ -655,20 +709,20 @@ void CRemotePlayer::ProcessGamePlayerSpecialAction(eSpecialAction byteSpecialAct
             return;
         }
 
-        // if (pGamePlayer->IsCellphoneEnabled() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_USECELLPHONE)
-        // {
-        //     pGamePlayer->ToggleCellphone(0);
-        // }
+        if (pGamePlayer->IsCellphoneEnabled() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_USECELLPHONE)
+        {
+            pGamePlayer->ToggleCellphone(0);
+        }
 
-        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_USECELLPHONE && !pGamePlayer->IsCellphoneEnabled())
-        // {
-        //     pGamePlayer->ToggleCellphone(1);
-        // }
+        if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_USECELLPHONE && !pGamePlayer->IsCellphoneEnabled())
+        {
+            pGamePlayer->ToggleCellphone(1);
+        }
 
-        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_STOPUSECELLPHONE && pGamePlayer->IsCellphoneEnabled())
-        // {
-        //     pGamePlayer->ToggleCellphone(0);
-        // }
+        if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_STOPUSECELLPHONE && pGamePlayer->IsCellphoneEnabled())
+        {
+            pGamePlayer->ToggleCellphone(0);
+        }
         
         if (pGamePlayer->IsInJetpack() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_USEJETPACK)
         {
@@ -680,26 +734,26 @@ void CRemotePlayer::ProcessGamePlayerSpecialAction(eSpecialAction byteSpecialAct
             pGamePlayer->StartJetpack();
         }
 
-        // if (pGamePlayer->HasHandsUp() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_HANDSUP)
-        // {
-        //     pGamePlayer->LockControl(false);
-        //     pGamePlayer->ToggleControllable(true);
-        // }
+        if (pGamePlayer->HasHandsUp() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_HANDSUP)
+        {
+            pGamePlayer->LockControl(false);
+            pGamePlayer->ToggleControllable(true);
+        }
 
-        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_HANDSUP && !pGamePlayer->HasHandsUp())
-        // {
-        //     pGamePlayer->HandsUp();
-        // }
+        if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_HANDSUP && !pGamePlayer->HasHandsUp())
+        {
+            pGamePlayer->HandsUp();
+        }
 
-        // if (pGamePlayer->IsPissing() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_URINATING)
-        // {
-        //     pGamePlayer->StopPissing();
-        // }
+        if (pGamePlayer->IsPissing() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_URINATING)
+        {
+            pGamePlayer->StopPissing();
+        }
 
-        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_URINATING && !pGamePlayer->IsPissing())
-        // {
-        //     pGamePlayer->StartPissing();
-        // }
+        if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_URINATING && !pGamePlayer->IsPissing())
+        {
+            pGamePlayer->StartPissing();
+        }
 
         if (pGamePlayer->IsCrouching() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_DUCK)
         {
@@ -711,85 +765,57 @@ void CRemotePlayer::ProcessGamePlayerSpecialAction(eSpecialAction byteSpecialAct
             pGamePlayer->ApplyCrouch();
         }
 
-        // if (pGamePlayer->IsCarry() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_CARRY && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_ENTER_VEHICLE && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_EXIT_VEHICLE) 
-        // {
-        //     pGamePlayer->ToggleCarry(false);
-        // }
+        if (pGamePlayer->IsCarry() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_CARRY && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_ENTER_VEHICLE && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_EXIT_VEHICLE)
+        {
+            pGamePlayer->ToggleCarry(false);
+        }
 
-        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_CARRY && !pGamePlayer->IsCarry())
-        // {
-        //     pGamePlayer->ToggleCarry(true);
-        // }
+        if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_CARRY && !pGamePlayer->IsCarry())
+        {
+            pGamePlayer->ToggleCarry(true);
+        }
 
-        // if (pGamePlayer->IsCuffed() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_CUFFED && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_ENTER_VEHICLE && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_EXIT_VEHICLE) 
-        // {
-        //     pGamePlayer->ToggleCuffed(false);
-        // }
+        if (pGamePlayer->IsCuffed() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_CUFFED && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_ENTER_VEHICLE && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_EXIT_VEHICLE)
+        {
+            pGamePlayer->ToggleCuffed(false);
+        }
 
-        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_CUFFED && !pGamePlayer->IsCuffed())
-        // {
-        //     pGamePlayer->ToggleCuffed(true);
-        // }
+        if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_CUFFED && !pGamePlayer->IsCuffed())
+        {
+            pGamePlayer->ToggleCuffed(true);
+        }
 
-        // if (pGamePlayer->IsDancing())
-        // {
-        //     if (byteSpecialAction != eSpecialAction::SPECIAL_ACTION_DANCE1 || byteSpecialAction != eSpecialAction::SPECIAL_ACTION_DANCE2 || byteSpecialAction != eSpecialAction::SPECIAL_ACTION_DANCE3 || byteSpecialAction != eSpecialAction::SPECIAL_ACTION_DANCE4)
-        //     {
-        //         pGamePlayer->StopDancing();
-        //     }
-        // }
+        if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_BEER && pGamePlayer->GetStuff() != eStuffType::STUFF_TYPE_BEER)
+        {
+            pGamePlayer->GiveStuff(eStuffType::STUFF_TYPE_BEER);
+        }
 
-        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DANCE1 && !pGamePlayer->IsDancing())
-        // {
-        //     pGamePlayer->StartDancing(1);
-        // }
+        if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_WINE && pGamePlayer->GetStuff() != eStuffType::STUFF_TYPE_DYN_BEER)
+        {
+            pGamePlayer->GiveStuff(eStuffType::STUFF_TYPE_DYN_BEER);
+        }
 
-        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DANCE2 && !pGamePlayer->IsDancing())
-        // {
-        //     pGamePlayer->StartDancing(2);
-        // }
+        if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_SPRUNK && pGamePlayer->GetStuff() != eStuffType::STUFF_TYPE_PINT_GLASS)
+        {
+            pGamePlayer->GiveStuff(eStuffType::STUFF_TYPE_PINT_GLASS);
+        }
 
-        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DANCE3 && !pGamePlayer->IsDancing())
-        // {
-        //     pGamePlayer->StartDancing(3);
-        // }
+        if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_SMOKE_CIGGY && pGamePlayer->GetStuff() != eStuffType::STUFF_TYPE_CIGGI)
+        {
+            pGamePlayer->GiveStuff(eStuffType::STUFF_TYPE_CIGGI);
+        }
 
-        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DANCE4 && !pGamePlayer->IsDancing())
-        // {
-        //     pGamePlayer->StartDancing(4);
-        // }
-
-        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_BEER && pGamePlayer->GetStuff() != eStuffType::STUFF_TYPE_BEER)
-        // {
-        //     pGamePlayer->GiveStuff(eStuffType::STUFF_TYPE_BEER);
-        // }
-
-        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_WINE && pGamePlayer->GetStuff() != eStuffType::STUFF_TYPE_DYN_BEER)
-        // {
-        //     pGamePlayer->GiveStuff(eStuffType::STUFF_TYPE_DYN_BEER);
-        // }
-
-        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_SPRUNK && pGamePlayer->GetStuff() != eStuffType::STUFF_TYPE_PINT_GLASS)
-        // {
-        //     pGamePlayer->GiveStuff(eStuffType::STUFF_TYPE_PINT_GLASS);
-        // }
-
-        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_SMOKE_CIGGY && pGamePlayer->GetStuff() != eStuffType::STUFF_TYPE_CIGGI)
-        // {
-        //     pGamePlayer->GiveStuff(eStuffType::STUFF_TYPE_CIGGI);
-        // }
-
-        // if (pGamePlayer->GetStuff())
-        // {
-        //     if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_BEER || byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_WINE || byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_SPRUNK || byteSpecialAction == eSpecialAction::SPECIAL_ACTION_SMOKE_CIGGY)
-        //     {
-        //         pGamePlayer->ApplyStuff();
-        //     }
-        //     else
-        //     {
-        //         pGamePlayer->DropStuff();
-        //     }
-        // }
+        if (pGamePlayer->GetStuff())
+        {
+            if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_BEER || byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_WINE || byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_SPRUNK || byteSpecialAction == eSpecialAction::SPECIAL_ACTION_SMOKE_CIGGY)
+            {
+                pGamePlayer->ApplyStuff();
+            }
+            else
+            {
+                pGamePlayer->DropStuff();
+            }
+        }
 
         if (pGamePlayer->GetCurrentWeapon() != eWeaponSampId::WEAPON_PARACHUTE)
         {

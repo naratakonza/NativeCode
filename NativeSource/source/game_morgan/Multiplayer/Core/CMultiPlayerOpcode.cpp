@@ -2461,6 +2461,81 @@ void SendDeathMessage(RakNet::BitStream bsData)
     CGui::GetDeathWindow()->AddEntry(playerName.c_str(), playerColor, killerName.c_str(), killerColor, reason, fontcolor);
 }
 
+void SetPlayerDrunkLevel(RakNet::BitStream bsData)
+{
+    CNecessary::Log(OBFUSCATE("RPC: SetPlayerDrunkLevel"));
+
+    int bitsTotal =
+        bytesToBits(sizeof(int32_t));
+
+    if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+        CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerDrunkLevel"));
+        return;
+    }
+
+    int32_t dwLevel;
+
+    bsData.Read(dwLevel);
+
+    if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+    {
+        if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed())
+        {
+            CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->SetDrunkLevel(dwLevel);
+        }
+    }
+}
+
+void SetPlayerDrunkVisuals(RakNet::BitStream bsData)
+{
+    CNecessary::Log(OBFUSCATE("RPC: SetPlayerDrunkVisuals"));
+
+    int bitsTotal =
+        bytesToBits(sizeof(uint32_t));
+
+    if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+        CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerDrunkVisuals"));
+        return;
+    }
+
+    uint32_t dwVisuals;
+
+    bsData.Read(dwVisuals);
+
+    if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+    {
+        if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed())
+        {
+            CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->SetDrunkVisuals(dwVisuals);
+        }
+    }
+}
+
+void SetPlayerDrunkHandling(RakNet::BitStream bsData)
+{
+    CNecessary::Log(OBFUSCATE("RPC: SetPlayerDrunkHandling"));
+
+    int bitsTotal =
+        bytesToBits(sizeof(uint32_t));
+
+    if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+        CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerDrunkHandling"));
+        return;
+    }
+
+    uint32_t dwHandling;
+
+    bsData.Read(dwHandling);
+
+    if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+    {
+        if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed())
+        {
+            CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->SetDrunkHandling(dwHandling);
+        }
+    }
+}
+
 bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 {
     if (rpcid >= 255) {
@@ -3108,20 +3183,20 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 			break;
 		}
 
-		// case RPC_SetPlayerDrunkLevel: {
-		//     SetPlayerDrunkLevel(*bsData);
-		//     break;
-		// }
+        case RPC_SetPlayerDrunkLevel: {
+            SetPlayerDrunkLevel(*bsData);
+            break;
+        }
 
-		// case RPC_SetPlayerDrunkVisuals: {
-		//     SetPlayerDrunkVisuals(*bsData);
-		//     break;
-		// }
+        case RPC_SetPlayerDrunkVisuals: {
+            SetPlayerDrunkVisuals(*bsData);
+            break;
+        }
 
-		// case RPC_SetPlayerDrunkHandling: {
-		//     SetPlayerDrunkHandling(*bsData);
-		//     break;
-		// }
+        case RPC_SetPlayerDrunkHandling: {
+            SetPlayerDrunkHandling(*bsData);
+            break;
+        }
 
 		// case RPC_EnableStuntBonus: {
 		//     EnableStuntBonus(*bsData);

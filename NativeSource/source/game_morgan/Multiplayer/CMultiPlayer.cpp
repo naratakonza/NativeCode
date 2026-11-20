@@ -1,5 +1,6 @@
 #include "../../../Main.h"
 #include "Syncs/Core/CCheckPoint.h"
+#include "Syncs/Core/CHeadMove.h"
 #include "CMultiPlayer.h"
 #include "CServer.h"
 #include "Audio/CAudio.h"
@@ -226,6 +227,7 @@ void CMultiPlayer::SetThread(eThreadType type)
 			CPatches::SetPatches(ePatchType::PATCH_TYPE_MENU);
 			CHooks::SetHooking(eHookType::HOOK_TYPE_START);
             CPlayerTags::SetWeaponTag(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("WeaponTag")));
+            CHeadMove::SetHeadMove(CSetting::GetConfig()->GetBoolValue(OBFUSCATE("Headmove")));
 			CWidgets::SetAlpha(CSetting::GetConfig()->GetIntValue(OBFUSCATE("WidgetAlpha")));
 			CRadar::SetAlpha(CSetting::GetConfig()->GetIntValue(OBFUSCATE("RadarAlpha")));
 			CHud::SetAlpha(CSetting::GetConfig()->GetIntValue(OBFUSCATE("HudAlpha")));

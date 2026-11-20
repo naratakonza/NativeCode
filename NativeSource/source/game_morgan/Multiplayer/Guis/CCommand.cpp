@@ -1,5 +1,6 @@
 #include "../../../../Main.h"
 #include "CCommand.h"
+#include "../Syncs/Core/CHeadMove.h"
 #include "../../Base/CWidgets.h"
 #include "../../Base/Graphics/CRealTimeShadowManager.h"
 #include "CGui.h"
@@ -26,6 +27,7 @@ void CCommand::Initialise()
 
     CCommand::Add(OBFUSCATE("/apr"), CCommand::SetAspectRatio);
     CCommand::Add(OBFUSCATE("/fpslimit"), CCommand::SetFramerateLimit);
+    CCommand::Add(OBFUSCATE("/headmove"), CCommand::SetHeadMove);
     CCommand::Add(OBFUSCATE("/fov"), CCommand::SetFov);
     CCommand::Add(OBFUSCATE("/sens"), CCommand::SetSensitivity);
     CCommand::Add(OBFUSCATE("/aimsens"), CCommand::SetAimWeaponSensitivity);
@@ -174,6 +176,26 @@ void CCommand::SetFramerateLimit(const std::vector<std::string>& args)
     else
     {
         CGui::GetChat()->AddDebugMessage(2, OBFUSCATE("Usage: /fpslimit <value>"));
+    }
+}
+
+void CCommand::SetHeadMove(const std::vector<std::string>&)
+{
+    if (!CSetting::GetConfig() || !CGui::GetChat()) {
+        return;
+    }
+
+    if (!CHeadMove::GetHeadMove())
+    {
+        CHeadMove::SetHeadMove(true);
+        CSetting::GetConfig()->WriteBoolValue(OBFUSCATE("Headmove"), true);
+        CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> Head movements enabled"));
+    }
+    else
+    {
+        CHeadMove::SetHeadMove(false);
+        CSetting::GetConfig()->WriteBoolValue(OBFUSCATE("Headmove"), false);
+        CGui::GetChat()->AddInfoMessage(OBFUSCATE("-> Head movements disabled"));
     }
 }
 
@@ -557,6 +579,24 @@ void CCommand::SetWeaponTag(const std::vector<std::string>& /*args*/)
     }
 }
 
+void CCommand::TestDeathWindow(const std::vector<std::string>& /*args*/)
+{
+    if (!CGui::GetDeathWindow()) {
+        return;
+    }
+
+    uint32_t fontcolor = 0xFFFFFFFF;
+
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("Pooper333")), -1, std::string(OBFUSCATE("Pooper")), -1, 1, fontcolor);
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("Pooper")), -1, std::string(OBFUSCATE("Pooper")), -1, 5, fontcolor);
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("Pooper")), -1, std::string(OBFUSCATE("Pooper")), -1, 15, fontcolor);
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("Pooper")), -1, std::string(OBFUSCATE("Pooper")), -1, 14, fontcolor);
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("Pooper")), -1, std::string(OBFUSCATE("Pooper")), -1, 2, fontcolor);
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE(" ")), -1, std::string(OBFUSCATE("PooperPooperPooper0001")), -1, 5, fontcolor);
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE(" ")), -1, std::string(OBFUSCATE("Pooper")), -1, static_cast<uint8_t>(-1), fontcolor);
+    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("PooperPooperPooper0001")), -1, std::string(OBFUSCATE("Pooper")), -1, 0, fontcolor);
+}
+
 void CCommand::SetAudioMessages(const std::vector<std::string>&)
 {
     static bool bAudioMessages = false;
@@ -677,22 +717,4 @@ void CCommand::Reconnect(const std::vector<std::string>&)
 void CCommand::QuitGame(const std::vector<std::string>&)
 {
     ExitGame();
-}
-
-void CCommand::TestDeathWindow(const std::vector<std::string>& /*args*/)
-{
-    if (!CGui::GetDeathWindow()) {
-        return;
-    }
-
-    uint32_t fontcolor = 0xFFFFFFFF;
-
-    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("Pooper333")), -1, std::string(OBFUSCATE("Pooper")), -1, 1, fontcolor);
-    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("Pooper")), -1, std::string(OBFUSCATE("Pooper")), -1, 5, fontcolor);
-    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("Pooper")), -1, std::string(OBFUSCATE("Pooper")), -1, 15, fontcolor);
-    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("Pooper")), -1, std::string(OBFUSCATE("Pooper")), -1, 14, fontcolor);
-    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("Pooper")), -1, std::string(OBFUSCATE("Pooper")), -1, 2, fontcolor);
-    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE(" ")), -1, std::string(OBFUSCATE("PooperPooperPooper0001")), -1, 5, fontcolor);
-    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE(" ")), -1, std::string(OBFUSCATE("Pooper")), -1, static_cast<uint8_t>(-1), fontcolor);
-    CGui::GetDeathWindow()->AddEntry(std::string(OBFUSCATE("PooperPooperPooper0001")), -1, std::string(OBFUSCATE("Pooper")), -1, 0, fontcolor);
 }

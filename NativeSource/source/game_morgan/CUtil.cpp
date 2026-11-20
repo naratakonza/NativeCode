@@ -1,5 +1,6 @@
 #include "CUtil.h"
 #include "CFont.h"
+#include "Models/CModelInfo.h"
 #include "CWorld.h"
 #include "CPools.h"
 #include "Entity/Ped/CPedGta.h"
@@ -607,4 +608,15 @@ uintptr_t CUtil::FindFistTarget(CPedGta* pPlayerPed)
     }
 
     return bestTarget;
+}
+
+int CUtil::GamePedStatPrim(int model_id)
+{
+    static const bool verified = CMemory::HasMappedInstruction(SA_ADDR(0x23CE1C), "\x88\x5A\x80\xB9") && CMemory::HasMappedInstruction(SA_ADDR(0x23CE34), "\x68\x96\x03\xF9");
+    if (!verified) {
+        return -1;
+    }
+
+    CBaseModelInfo* pModelInfo = CModelInfo::GetModelInfo(model_id);
+    return pModelInfo ? static_cast<int>(pModelInfo->AsPedModelInfoPtr()->m_defaultPedStats) : -1;
 }

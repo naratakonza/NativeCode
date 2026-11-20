@@ -123,7 +123,7 @@ public:
 	};
 
 	int GetVehicleSeatID();
-	void ApplyCommandTask(char* a2, int a4, int a5, int a6, CVector* a7, char a8, float a9, int a10, int a11, char a12);
+	void ApplyCommandTask(const char* a2, CEntityGta* a4, int a5, int a6, CVector* a7, char a8, float a9, int a10, int a11, char a12);
 	uint8_t FindDeathReasonAndResponsiblePlayer(uint16_t *nPlayer);
 
 	void AddAccessory(ATTACHED_OBJECT_INFO* pInfo, int iSlot);
@@ -238,7 +238,7 @@ public:
 	void StartDancing(int danceId);
 	void StopDancing();
 	void ProcessDancing();
-	char* GetDanceAnimForMove(int iMove);
+	const char* GetDanceAnimForMove(int iMove);
 	
 	bool IsDancing() {
 		return CPlayerPed::m_bDanceState;
@@ -273,11 +273,11 @@ public:
 	uint32_t	m_dwParachuteObject;
 
 	bool		m_bPissingState;
-	uint32_t	m_dwPissParticlesHandle;
+	uint32_t	m_dwPissParticlesHandle = 0;
 
 	bool		m_bDanceState;
 	int			m_iDanceStyle;
-	int			m_iLastDanceMove;
+	int			m_iLastDanceMove = -1;
 	
 	bool 		m_bCuffedState;
 	bool		m_bCarryState;

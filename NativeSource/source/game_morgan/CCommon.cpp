@@ -306,3 +306,24 @@ void* CCommon::GetNextTaskFromTask(void* task)
 
     return reinterpret_cast<void* (*)(void*)>(*reinterpret_cast<uintptr_t*>(pVTableTask + 0x18))(task); // ดึง offset vtable จาก _ZNK11CTaskSimple10GetSubTaskEv ; CTaskSimple::GetSubTask(void) ของ CTaskSimpleRunNamedAnim
 }
+
+RpHAnimHierarchy* CCommon::GetAnimHierarchyFromSkinClump(uintptr_t* pClump)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x319738), "\xFF\x83\x00\xD1\xFD\x7B\x01\xA9\xFD\x43\x00\x91", 12, "__text");
+    if (!verified || !pClump) {
+        return nullptr;
+    }
+
+    return reinterpret_cast<RpHAnimHierarchy* (*)(uintptr_t*)>(SA_ADDR(0x319738) + _dyld_get_image_vmaddr_slide(0))(pClump);
+}
+
+CAnimBlendClumpData** CCommon::GetClumpData(RpClump* clump)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x41AAC), "\xA8\x32\x00\x90\x08\x11\x0B\x91\x08\x01\x80\xB9\x13\x68\x68\xF8", 16, "__text");
+    if (!verified || !clump) {
+        return nullptr;
+    }
+
+    RwInt32 ClumpOffset = *reinterpret_cast<RwInt32*>(SA_ADDR(0x6952C4) + _dyld_get_image_vmaddr_slide(0));
+    return reinterpret_cast<CAnimBlendClumpData**>(reinterpret_cast<uint8_t*>(clump) + ClumpOffset);
+}

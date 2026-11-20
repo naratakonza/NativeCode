@@ -15,6 +15,7 @@ class CUtil
 public:
     static bool LIB_PointerGetCoordinates(int device, int* x, int* y, float* pressure);
     static CPedGta* GamePool_FindPlayerPed();
+    static int GamePedStatPrim(int model_id);
     static CPedGta* GamePool_Ped_GetAt(int iID);
     static CPhysicalGta* GamePool_Object_GetAt(int iID);
     static void RpAnimBlendClumpUpdateAnimations(uintptr_t pClump, float fTimeStep, int bOnScreen);

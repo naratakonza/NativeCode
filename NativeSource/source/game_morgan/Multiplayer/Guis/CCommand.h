@@ -21,6 +21,7 @@ private:
     static void QuitGame(const std::vector<std::string>& args);
     static void SetAspectRatio(const std::vector<std::string>& args);
     static void SetFramerateLimit(const std::vector<std::string>& args);
+    static void SetHeadMove(const std::vector<std::string>& args);
     static void SetFov(const std::vector<std::string>& args);
     static void SetSensitivity(const std::vector<std::string>& args);
     static void SetAimWeaponSensitivity(const std::vector<std::string>& args);

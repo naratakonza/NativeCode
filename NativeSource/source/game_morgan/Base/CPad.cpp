@@ -651,15 +651,15 @@ extern "C" __attribute__((visibility("default"))) uint32_t CPad_MeleeAttackJustD
 		if (CMultiPlayer::GetActiveNetwork())
 		{
 			// เดียวมาทำภายหลัง
-			// if (CGame::GetPlayer()->IsPissing() || CGame::GetPlayer()->HasHandsUp() || CGame::GetPlayer()->IsDancing())
-			// {
-			// 	if (CTouchInterface::IsReleased(1, 0, 1))
-			// 	{
-			// 		CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK] = true;
-			// 	}
+			if (CGame::GetPlayer()->IsPissing() || CGame::GetPlayer()->HasHandsUp() || CGame::GetPlayer()->IsDancing())
+			{
+				if (CTouchInterface::IsReleased(1, 0, 1))
+				{
+					CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK] = true;
+				}
 
-			// 	return 0;
-			// }
+				return 0;
+			}
 
 			// if (CGui::GetObjectEdit())
 			// {
@@ -1028,32 +1028,23 @@ extern "C" __attribute__((visibility("default"))) void CPed_ProcessControl_hook(
 		CPlayerPed* pPlayer = CGame::GetPlayer();
 		if (pPlayer)
 		{
-			// เดียวมาทำภายหลัง
 			if (!pPlayer->IsInVehicle() && !pPlayer->IsInJetpack())
 			{
-				// if (pPlayer->IsPissing() || pPlayer->HasHandsUp() || pPlayer->IsDancing())
-				// {
-				// 	if (CTouchInterface::IsReleased(1, 0, 1))
-				// 	{
-				// 		CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK] = true;
-				// 	}
+				if (pPlayer->IsPissing() || pPlayer->HasHandsUp() || pPlayer->IsDancing())
+				{
+					if (CTouchInterface::IsReleased(1, 0, 1))
+					{
+						CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK] = true;
+					}
+				}
 
-				// 	// if (pPlayer->IsDancing())
-				// 	// {
-				// 	// 	if (CTouchInterface::IsReleased(13, 0, 1))
-				// 	// 	{
-				// 	// 		CPad::LocalPlayerKeys.wKeyUD = 255;
-				// 	// 	}
-				// 	// }
-				// }
-
-				// if (pPlayer->GetStuff() != eStuffType::STUFF_TYPE_NONE && !pPlayer->IsPlayingAnimation(OBFUSCATE("DNK_STNDF_LOOP")) && !pPlayer->IsPlayingAnimation(OBFUSCATE("DNK_STNDM_LOOP")) && !pPlayer->IsPlayingAnimation(OBFUSCATE("smkcig_prtl")) && !CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] && JumpJustDown_VAR == 0)
-				// {
-				// 	if (CTouchInterface::IsReleased(1, 0, 1))
-				// 	{
-				// 		CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = true;
-				// 	}
-				// }
+				if (pPlayer->GetStuff() != eStuffType::STUFF_TYPE_NONE && !pPlayer->IsPlayingAnimation(OBFUSCATE("DNK_STNDF_LOOP")) && !pPlayer->IsPlayingAnimation(OBFUSCATE("DNK_STNDM_LOOP")) && !pPlayer->IsPlayingAnimation(OBFUSCATE("smkcig_prtl")) && !CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] && JumpJustDown_VAR == 0)
+				{
+					if (CTouchInterface::IsReleased(1, 0, 1))
+					{
+						CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = true;
+					}
+				}
 
 				if (CGame::GetPlayer()->IsInWater() && !CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] && SwimJumpJustDown_VAR == 0)
 				{

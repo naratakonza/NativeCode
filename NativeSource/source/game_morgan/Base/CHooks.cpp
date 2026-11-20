@@ -985,6 +985,20 @@ void CHooks::InstallNecessary()
     }
 }
 
+extern "C" __attribute__((visibility("default"))) void CWorld_ProcessPedsAfterPreRender_hook(void (*original)())
+{
+    original();
+
+    if (CMultiPlayer::GetActiveNetwork() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools())
+    {
+		CPlayerPool* pPlayerPool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool();
+        if (pPlayerPool)
+        {
+            pPlayerPool->ProcessAllPlayersAfterPreRender();
+        }
+    }
+}
+
 void CHooks::InstallMenu()
 {
     gameProcessHookInstalled = CMemory::HasMappedInstruction(SA_ADDR(0x151B30), "\xE9\x23\xBA\x6D") && CMemory::HasMappedInstruction(SA_ADDR(0x15A0C8), "\xCE\xF3\x0C\x94");

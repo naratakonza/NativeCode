@@ -7,6 +7,8 @@
 #include <unordered_map>
 
 class CRect;
+class CAnimBlendClumpData;
+struct RpHAnimHierarchy;
 struct RwCamera;
 struct RpLight;
 struct RwTexture;
@@ -14,6 +16,9 @@ struct RwTexture;
 class CCommon
 {
 public:
+    static RpHAnimHierarchy* GetAnimHierarchyFromSkinClump(uintptr_t* pClump);
+    static CAnimBlendClumpData** GetClumpData(RpClump* clump);
+
 	static uintptr_t GetModelInfoByID(int iModelID);
 	static bool IsGameEntityArePlaceable(CEntityGta *pEntity);
     static bool IsGameEntityRenderable(CEntityGta *pEntity);
