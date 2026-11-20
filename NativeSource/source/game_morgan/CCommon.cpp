@@ -257,6 +257,23 @@ void CCommon::DrawTextureUV(RwTexture *texture, CRect *rect, uint32_t dwColor, f
     }
 }
 
+bool CCommon::IsTaskRunNamedOrSlideToCoord(void* pTask)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x341860), "\x49\x0B\x00\x90\x29\x41\x25\x91", 8, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x3A86F8), "\x48\x08\x00\x90\x08\x41\x22\x91", 8, "__text");
+    if (!verified) {
+        return false;
+    }
+
+    uintptr_t dwVTable = *reinterpret_cast<uintptr_t*>(pTask);
+    const auto slide = _dyld_get_image_vmaddr_slide(0);
+    if (dwVTable == SA_ADDR(0x4B0890) + slide || dwVTable == SA_ADDR(0x4A9950) + slide) // CTaskSimpleSlideToCoord CTaskSimpleRunNamedAnim
+    {
+        return true;
+    }
+
+    return false;
+}
+
 int CCommon::GetTaskTypeFromTask(void* task)
 {
     static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x3764FC), "\x00\x58\x80\x52\xC0\x03\x5F\xD6", 8, "__text");
@@ -271,4 +288,21 @@ int CCommon::GetTaskTypeFromTask(void* task)
     }
 
     return reinterpret_cast<int (*)(void*)>(*reinterpret_cast<uintptr_t*>(pVTableTask + 0x28))(task);
+}
+
+void* CCommon::GetNextTaskFromTask(void* task)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0xB7420), "\x00\x00\x80\xD2\xC0\x03\x5F\xD6", 8, "__text");
+    if (!task || !verified) {
+        return nullptr;
+    }
+
+    uintptr_t pTask = reinterpret_cast<uintptr_t>(task);
+    uintptr_t pVTableTask = *reinterpret_cast<uintptr_t*>(pTask);
+    const auto slide = _dyld_get_image_vmaddr_slide(0);
+    if (pVTableTask < SA_ADDR(0x4987B0) + slide || pVTableTask > SA_ADDR(0x4B48F0) + slide) {
+        return nullptr;
+    }
+
+    return reinterpret_cast<void* (*)(void*)>(*reinterpret_cast<uintptr_t*>(pVTableTask + 0x18))(task); // ดึง offset vtable จาก _ZNK11CTaskSimple10GetSubTaskEv ; CTaskSimple::GetSubTask(void) ของ CTaskSimpleRunNamedAnim
 }

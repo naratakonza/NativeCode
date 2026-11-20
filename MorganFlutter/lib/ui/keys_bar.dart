@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'samp_chat.dart';
+import 'samp_overlay_layout.dart';
 
 class KeysBarBridge {
   static const channel = MethodChannel('flutter_keysbar');
@@ -190,8 +191,12 @@ class _SampKeysBarState extends State<SampKeysBar>
     final double gap = math.max(10.0, 12.0 * scale);
     final double panelHeight = btnHeight + 6.0 * scale;
     final double maxSafeTop = screenHeight - safe.bottom - panelHeight - gap;
-    final double topPos = math.max(
+    final double radarTop = math.max(
         safe.top + gap, widget.radarBottom * screenHeight / 1000.0 + gap);
+    final double topPos = SampOverlayLayout.isTablet(media.size)
+        ? math.max(radarTop,
+            SampOverlayLayout.tabletPanelBottom(media.size, safe) - panelHeight)
+        : radarTop;
     final double maxLeft = screenWidth - safe.right - btnWidth - 2.0 * spacing;
     final double leftPos = (widget.radarLeft * screenWidth / 1000.0)
         .clamp(safe.left, math.max(safe.left, maxLeft));

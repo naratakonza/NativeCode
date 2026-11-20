@@ -6,6 +6,7 @@
 #include "Guis/CGui.h"
 #include "../CAspectRatio.h"
 #include "../CCameraAim.h"
+#include "../Animation/CAnimation.h"
 #include "../CCameraController.h"
 #include "../CDraw.h"
 #include "../CHud.h"
@@ -87,6 +88,7 @@ void CMultiPlayer::Process()
     }
     else
     {
+		CAnimation::Initialise();
 		CRadar::ResetRadarColor();
         CMultiPlayer::SetThread(eThreadType::THREAD_TYPE_PROCESS);
 

@@ -28,6 +28,16 @@ CPedGta* CUtil::GamePool_Ped_GetAt(int iID)
     return reinterpret_cast<CPedGta* (*)(int)>(SA_ADDR(0x16DA74) + _dyld_get_image_vmaddr_slide(0))(iID);
 }
 
+CPhysicalGta* CUtil::GamePool_Object_GetAt(int iID)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x16DB4C), "\xA0\x01\xF8\x37\x28\x2E\x00\xF0\x08\xF9\x47\xF9", 12, "__text");
+    if (!verified || !pthread_main_np()) {
+        return nullptr;
+    }
+
+    return reinterpret_cast<CPhysicalGta* (*)(int)>(SA_ADDR(0x16DB4C) + _dyld_get_image_vmaddr_slide(0))(iID);
+}
+
 void CUtil::RpAnimBlendClumpUpdateAnimations(uintptr_t pClump, float fTimeStep, int bOnScreen)
 {
     static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x3FE98), "\xFF\x03\x04\xD1\xEB\x2B\x08\x6D", 8, "__text");

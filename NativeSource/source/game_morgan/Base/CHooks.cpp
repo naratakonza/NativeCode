@@ -17,6 +17,7 @@
 #include "../CPools.h"
 #include "../CPedIntelligence.h"
 #include "../CUtil.h"
+#include "../Animation/CAnimation.h"
 #include "../Tasks/TaskTypes/CTaskSimplePlayerOnFoot.h"
 #include "../Enums/eWeaponSampid.h"
 #include "../CStreaming.h"
@@ -52,6 +53,7 @@ static bool renderTitleHookInstalled = false;
 static bool clothesRebuildHookInstalled = false;
 static bool indicatorHooksInstalled = false;
 static bool cameraGyroHooksInstalled = false;
+static bool animationHooksInstalled = false;
 
 uintptr_t pSavedAimTarget = 0;
 
@@ -921,6 +923,53 @@ extern "C" __attribute__((visibility("default"))) void Process_Rocket_hook(uintp
     }
 }
 
+uintptr_t (*CAnimManager_AddAnimation)(RwObject* thiz, uint32_t dwAssocGroupId, uint32_t dwAnimationId);
+extern "C" __attribute__((visibility("default"))) uintptr_t CAnimManager_AddAnimation_hook(RwObject* thiz, uint32_t dwAssocGroupId, uint32_t dwAnimationId, uintptr_t (*original)(RwObject*, uint32_t, uint32_t))
+{
+    if (!animationHooksInstalled || !pthread_main_np() || !CMultiPlayer::IsSampActive())
+    {
+        return original(thiz, dwAssocGroupId, dwAnimationId);
+    }
+
+    CAnimManager_AddAnimation = original;
+
+    CPedGta *pLocalPed = CUtil::GamePool_FindPlayerPed();
+    if (pLocalPed && pLocalPed->m_pRwObject == thiz)
+    {
+        if (dwAssocGroupId != 160)
+        {
+            CAnimation::m_AnimGroup = dwAssocGroupId;
+            CAnimation::m_AnimId = dwAnimationId;
+        }
+    }
+
+    return CAnimManager_AddAnimation(thiz, dwAssocGroupId, dwAnimationId);
+}
+
+uintptr_t (*CAnimManager_BlendAnimation)(RwObject* thiz, uint32_t dwAssocGroupId, uint32_t dwAnimationId, float dwAnimationDelta);
+extern "C" __attribute__((visibility("default"))) uintptr_t CAnimManager_BlendAnimation_hook(RwObject* thiz, uint32_t dwAssocGroupId, uint32_t dwAnimationId, float dwAnimationDelta, uintptr_t (*original)(RwObject*, uint32_t, uint32_t, float))
+{
+    if (!animationHooksInstalled || !pthread_main_np() || !CMultiPlayer::IsSampActive())
+    {
+        return original(thiz, dwAssocGroupId, dwAnimationId, dwAnimationDelta);
+    }
+
+    CAnimManager_BlendAnimation = original;
+
+    CPedGta *pLocalPed = CUtil::GamePool_FindPlayerPed();
+    if (pLocalPed && pLocalPed->m_pRwObject == thiz)
+    {
+        if (dwAssocGroupId && dwAnimationId != 160)
+        {
+            CAnimation::m_AnimGroup = dwAssocGroupId;
+            CAnimation::m_AnimId = dwAnimationId;
+            CAnimation::m_BlendDelta = dwAnimationDelta;
+        }
+    }
+
+    return CAnimManager_BlendAnimation(thiz, dwAssocGroupId, dwAnimationId, dwAnimationDelta);
+}
+
 void CHooks::InstallNecessary()
 {
     CMemory::WriteProcessMemory(SA_ADDR(0xCE30C), (uintptr_t)"\xEA\x25\x0F\x14", 4); // กระโดดไป Pickup Update
@@ -953,6 +1002,9 @@ void CHooks::InstallMenu()
 
     // Gyro ของกล้องเล็ง M16/สไนเปอร์ และจรวด ทั้งสองสถานะของ iOS
     cameraGyroHooksInstalled = CMemory::HasMappedBytes(SA_ADDR(0x11FEB8), "\xFF\x43\x03\xD1\xED\x33\x06\x6D", 8, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x121584), "\xFF\xC3\x02\xD1\xE9\x23\x06\x6D", 8, "__text") && CMemory::HasMappedInstruction(SA_ADDR(0x11C058), "\xA5\xEE\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x11C0E4), "\x87\xEE\x0D\x94") && CMemory::HasMappedInstruction(SA_ADDR(0x11C1B0), "\x54\xEE\x0D\x94") && CMemory::HasMappedBytes(SA_ADDR(0x497AEC), "\x42\xE4\xFF\x90\x42\xE0\x3A\x91\xF0\x00\x00\xD0\x10\x06\x43\xF9\x00\x02\x1F\xD6\x43\xE4\xFF\xD0\x63\x10\x16\x91\xF0\x00\x00\xD0\x10\x0A\x43\xF9\x00\x02\x1F\xD6", 40, "__mg_gameproc");
+
+    // Animation Sync: AddAnimation / BlendAnimation แบบ group และ id ของ iOS
+    animationHooksInstalled = CMemory::HasMappedInstruction(SA_ADDR(0x42320), "\x33\x56\x11\x14") && CMemory::HasMappedInstruction(SA_ADDR(0x42700), "\x41\x55\x11\x14") && CMemory::HasMappedBytes(SA_ADDR(0x497BEC), "\x83\x00\x00\x10\xF0\x00\x00\xD0\x10\x32\x43\xF9\x00\x02\x1F\xD6\xF4\x4F\xBE\xA9\xC9\xA9\xEE\x17\x83\x00\x00\x10\xF0\x00\x00\xD0\x10\x36\x43\xF9\x00\x02\x1F\xD6\xE9\x23\xB9\x6D\xBB\xAA\xEE\x17", 48, "__mg_gameproc");
 }
 
 void CHooks::SetHooking(eHookType type)

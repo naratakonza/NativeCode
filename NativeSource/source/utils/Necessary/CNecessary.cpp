@@ -37,6 +37,50 @@ std::uint32_t CNecessary::GetTickCount()
     return static_cast<uint32_t>(tv.tv_sec * 1000 + tv.tv_usec / 1000);
 }
 
+bool CNecessary::IsBadReadPtr(const void* pointer, std::size_t size)
+{
+    if (!pointer || size == 0)
+    {
+        return true;
+    }
+
+    const auto address = reinterpret_cast<vm_address_t>(pointer);
+    if (address < 0x10000 || (address & 3) != 0)
+    {
+        return true;
+    }
+
+    vm_address_t region = address;
+    vm_size_t length = 0;
+    vm_region_basic_info_data_64_t info{};
+    mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
+    mach_port_t object = MACH_PORT_NULL;
+    const kern_return_t result = vm_region_64(mach_task_self(), &region, &length, VM_REGION_BASIC_INFO_64, reinterpret_cast<vm_region_info_t>(&info), &count, &object);
+    if (MACH_PORT_VALID(object))
+    {
+        mach_port_deallocate(mach_task_self(), object);
+    }
+
+    constexpr vm_prot_t required = VM_PROT_READ;
+    return result != KERN_SUCCESS || (info.protection & required) != required || region > address || length < size || address - region > length - size;
+}
+
+bool CNecessary::IsValidUserPointer(const void* pointer, std::size_t size)
+{
+    if (!pointer)
+    {
+        return false;
+    }
+
+    const uintptr_t address = reinterpret_cast<uintptr_t>(pointer);
+    if (address < 0x10000 || address > 0x0000FFFFFFFFFFFFULL || (address & 3) != 0)
+    {
+        return false;
+    }
+
+    return !CNecessary::IsBadReadPtr(pointer, size);
+}
+
 bool CNecessary::IsBadWritePtr(const void* pointer, std::size_t size)
 {
     if (!pointer || size == 0) {
@@ -255,4 +299,23 @@ bool CNecessary::IsValidName(const char* name)
     }
 
     return false;
+}
+
+void CNecessary::UpperCaseString(char *str)
+{
+    char *ptr = str;
+    if (*str)
+    {
+        do
+        {
+            char ch = *ptr;
+            if (ch > 96 && ch < 123)
+            {
+                ch -= 32;
+            }
+            
+            *ptr = ch;
+        }
+        while (*++ptr);
+    }
 }

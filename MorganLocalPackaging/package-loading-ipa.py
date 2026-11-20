@@ -87,7 +87,7 @@ def snapshot_header(binary):
     raise ValueError("Missing Dart isolate snapshot data")
 
 
-def package(baseline, digest, launcher, module, output, render_title=False, timer_pause=False, cd_stream_fix=False, radar_blips=False, img_slots=False, img_read_fix=False, camera_size=False, cdraw=False, thunder_main=False, stock_player_weapon=False, clothes_rebuild=False, world_player_slots=False, cj_walk=False, physical=False, gyro=False, stats=False, widget_player_info=False, spawn_fade=False, player_ped_ctor=False, gun_movement=False, ambient_audio=False, hud=False, aim_patches=False, texture_load_fix=False, *, bass_sdk=None, widgets=False, pad_process_control=False, shadow_style=False, weapon_camera_radar=False, radar_gang_zones=False, crash_fix=False, texture_database=False, raster_alpha=False, world_player_slot_reuse=False, font_current_string=False, ped_method_hooks=False, ped_camera_streaming=False, radar_player_colours=False, disable_random_vehicles=False, country_rifle=False, pickup=False, indicator=False, gyro_camera=False, weapon_sync=False, weapon_skill=False):
+def package(baseline, digest, launcher, module, output, render_title=False, timer_pause=False, cd_stream_fix=False, radar_blips=False, img_slots=False, img_read_fix=False, camera_size=False, cdraw=False, thunder_main=False, stock_player_weapon=False, clothes_rebuild=False, world_player_slots=False, cj_walk=False, physical=False, gyro=False, stats=False, widget_player_info=False, spawn_fade=False, player_ped_ctor=False, gun_movement=False, ambient_audio=False, hud=False, aim_patches=False, texture_load_fix=False, *, bass_sdk=None, widgets=False, pad_process_control=False, shadow_style=False, weapon_camera_radar=False, radar_gang_zones=False, crash_fix=False, texture_database=False, raster_alpha=False, world_player_slot_reuse=False, font_current_string=False, ped_method_hooks=False, ped_camera_streaming=False, radar_player_colours=False, disable_random_vehicles=False, country_rifle=False, pickup=False, indicator=False, gyro_camera=False, weapon_sync=False, weapon_skill=False, animation_sync=False, crash_fix_extended=False):
     assert not output.exists(), output
     assert sha256(baseline.read_bytes()).hexdigest() == digest, "Unexpected baseline IPA"
     launcher_files = verified_framework(launcher, "MorganLauncher.framework")
@@ -454,6 +454,22 @@ def package(baseline, digest, launcher, module, output, render_title=False, time
                 source = replacement_files.get(executable, original.read(executable))
                 replacement_files[executable] = patch_weapon_skill(source)
 
+            if animation_sync:
+                from patch_animation_sync import patch_animation_sync, SYMBOLS
+
+                assert all(symbol + b"\0" in launcher_data for symbol in SYMBOLS), "Launcher lacks animation sync hooks"
+                executable = APP + "gtasa"
+                source = replacement_files.get(executable, original.read(executable))
+                replacement_files[executable] = patch_animation_sync(source)
+
+            if crash_fix_extended:
+                from patch_crash_fix_extended import patch_crash_fix_extended, SYMBOLS
+
+                assert all(symbol + b"\0" in launcher_data for symbol in SYMBOLS), "Launcher lacks extended crash-fix hooks"
+                executable = APP + "gtasa"
+                source = replacement_files.get(executable, original.read(executable))
+                replacement_files[executable] = patch_crash_fix_extended(source)
+
             with ZipFile(temporary, "x") as ipa:
                 ipa.comment = original.comment
                 for member in original.infolist():
@@ -538,6 +554,8 @@ if __name__ == "__main__":
     parser.add_argument("--gyro-camera", action="store_true", help="Bind iOS first-person and rocket camera gyro hooks on the verified Pickup/Indicator baseline.")
     parser.add_argument("--weapon-sync", action="store_true", help="Bind CPad weapon input, TaskUseGun and OnFoot weapon processing on verified baselines.")
     parser.add_argument("--weapon-skill", action="store_true", help="Use remote weapon skills while rendering weapons on the verified Indicator/Gyro/WeaponSync executable.")
+    parser.add_argument("--animation-sync", action="store_true", help="Bind group/id AddAnimation and BlendAnimation on the verified WeaponSkill executable.")
+    parser.add_argument("--crash-fix-extended", action="store_true", help="Bind thirteen Thunder crash fixes and expand the iOS matrix pool to 10000 nodes.")
     arguments = parser.parse_args()
     if arguments.shadow_style and not arguments.pad_process_control:
         parser.error("--shadow-style requires --pad-process-control")
@@ -562,4 +580,4 @@ if __name__ == "__main__":
     if arguments.clothes_rebuild and (arguments.render_title or arguments.cd_stream_fix or arguments.img_slots or arguments.img_read_fix or arguments.camera_size or arguments.cdraw or arguments.thunder_main):
         parser.error("--clothes-rebuild expects the Sensitivity IPA with the earlier patches already present")
     package(arguments.baseline, arguments.baseline_sha256, arguments.launcher_tar, arguments.flutter_tar, arguments.output,
-            arguments.render_title, arguments.timer_pause, arguments.cd_stream_fix, arguments.radar_blips, arguments.img_slots, arguments.img_read_fix, arguments.camera_size, arguments.cdraw, arguments.thunder_main, arguments.stock_player_weapon, arguments.clothes_rebuild, arguments.world_player_slots, arguments.cj_walk, arguments.physical, arguments.gyro, arguments.stats, arguments.widget_player_info, arguments.spawn_fade, arguments.player_ped_ctor, arguments.gun_movement, arguments.ambient_audio, arguments.hud, arguments.aim_patches, arguments.texture_load_fix, bass_sdk=arguments.bass_sdk, widgets=arguments.widgets, pad_process_control=arguments.pad_process_control, shadow_style=arguments.shadow_style, weapon_camera_radar=arguments.weapon_camera_radar, radar_gang_zones=arguments.radar_gang_zones, crash_fix=arguments.crash_fix, texture_database=arguments.texture_database, raster_alpha=arguments.raster_alpha, world_player_slot_reuse=arguments.world_player_slot_reuse, font_current_string=arguments.font_current_string, ped_method_hooks=arguments.ped_method_hooks, ped_camera_streaming=arguments.ped_camera_streaming, radar_player_colours=arguments.radar_player_colours, disable_random_vehicles=arguments.disable_random_vehicles, country_rifle=arguments.country_rifle, pickup=arguments.pickup, indicator=arguments.indicator, gyro_camera=arguments.gyro_camera, weapon_sync=arguments.weapon_sync, weapon_skill=arguments.weapon_skill)
+            arguments.render_title, arguments.timer_pause, arguments.cd_stream_fix, arguments.radar_blips, arguments.img_slots, arguments.img_read_fix, arguments.camera_size, arguments.cdraw, arguments.thunder_main, arguments.stock_player_weapon, arguments.clothes_rebuild, arguments.world_player_slots, arguments.cj_walk, arguments.physical, arguments.gyro, arguments.stats, arguments.widget_player_info, arguments.spawn_fade, arguments.player_ped_ctor, arguments.gun_movement, arguments.ambient_audio, arguments.hud, arguments.aim_patches, arguments.texture_load_fix, bass_sdk=arguments.bass_sdk, widgets=arguments.widgets, pad_process_control=arguments.pad_process_control, shadow_style=arguments.shadow_style, weapon_camera_radar=arguments.weapon_camera_radar, radar_gang_zones=arguments.radar_gang_zones, crash_fix=arguments.crash_fix, texture_database=arguments.texture_database, raster_alpha=arguments.raster_alpha, world_player_slot_reuse=arguments.world_player_slot_reuse, font_current_string=arguments.font_current_string, ped_method_hooks=arguments.ped_method_hooks, ped_camera_streaming=arguments.ped_camera_streaming, radar_player_colours=arguments.radar_player_colours, disable_random_vehicles=arguments.disable_random_vehicles, country_rifle=arguments.country_rifle, pickup=arguments.pickup, indicator=arguments.indicator, gyro_camera=arguments.gyro_camera, weapon_sync=arguments.weapon_sync, weapon_skill=arguments.weapon_skill, animation_sync=arguments.animation_sync, crash_fix_extended=arguments.crash_fix_extended)

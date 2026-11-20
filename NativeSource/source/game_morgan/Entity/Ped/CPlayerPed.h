@@ -92,7 +92,7 @@ public:
 	void ToggleControllable(bool bToggle);
 	void ToggleControllableWithoutLock(bool bToggle);
 
-	void ApplyAnimation(char *szAnimName, char *szAnimFile, float fT, int opt1, int opt2, int opt3, int opt4, int iUnk);
+	void ApplyAnimation(const char *szAnimName, const char *szAnimFile, float fT, int opt1, int opt2, int opt3, int opt4, int iUnk);
 	void ClearAnimations();
 	void RemoveFromVehicleAndPutAt(float fX, float fY, float fZ);
 	uint8_t GetExtendedKeys();

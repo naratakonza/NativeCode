@@ -12,6 +12,8 @@
 #include "../../CWeapon.h"
 #include "../../Base/CPad.h"
 #include "../../Animation/CAnimManager.h"
+#include "../../Animation/CAnimation.h"
+#include "../../Enums/eSpecialObject.h"
 #include "../../Enums/eSpecialVehicle.h"
 #include "../../Enums/eWeaponSampid.h"
 #include "../../Scripts/CScripting.h"
@@ -22,6 +24,7 @@
 
 #include <mach-o/dyld.h>
 #include <unistd.h>
+#include <strings.h>
 
 bool CPlayerPed::m_bRebuildPlayer = true;
 uint32_t m_dwJumpTickCounter = 0;
@@ -163,9 +166,9 @@ CPlayerPed::~CPlayerPed()
         return;
     }
 
-    // เดียวมาทำต่อภายหลัง
-	// CPlayerPed::DestroyParachute();
+	CPlayerPed::DestroyParachute();
 
+    // เดียวมาทำต่อภายหลัง
 	// if (CPlayerPed::HasAccessory())
 	// {
 	// 	CPlayerPed::DeleteAllAccessories(true);
@@ -950,6 +953,30 @@ bool CPlayerPed::IsInJetpack()
     return task->vtable == SA_ADDR(0x4B17B8) + _dyld_get_image_vmaddr_slide(0);
 }
 
+uint8_t CPlayerPed::IsEnteringVehicle()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return 0;
+    }
+
+    if (GetPed() && GetPed()->pPedIntelligence && GetPed()->pPedIntelligence->m_taskManager.m_tasks[ePrimaryTasks::TASK_PRIMARY_PRIMARY])
+    {
+        int iType = CCommon::GetTaskTypeFromTask(reinterpret_cast<uintptr_t*>(GetPed()->pPedIntelligence->m_taskManager.m_tasks[ePrimaryTasks::TASK_PRIMARY_PRIMARY]));
+
+        if (iType == 700 || iType == 712)
+        {
+            return 2;
+        }
+        
+        if (iType == 701 || iType == 713)
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 bool CPlayerPed::IsExitingVehicle()
 {
     if (!CPlayerPed::VerifyInstance())
@@ -1066,7 +1093,7 @@ void CPlayerPed::ExtinguishFire()
     }
 }
 
-void CPlayerPed::ApplyAnimation(char *szAnimName, char *szAnimFile, float fT, int opt1, int opt2, int opt3, int opt4, int iUnk)
+void CPlayerPed::ApplyAnimation(const char *szAnimName, const char *szAnimFile, float fT, int opt1, int opt2, int opt3, int opt4, int iUnk)
 {
     // CNecessary::Log(OBFUSCATE("ApplyAnimation: %s %s %.2f %d %d %d %d %d"), szAnimName, szAnimFile, fT, opt1, opt2, opt3, opt4, iUnk);
 
@@ -1119,4 +1146,345 @@ void CPlayerPed::ClearAnimations()
 	// TeleportTo(mat.pos.x, mat.pos.y, mat.pos.z);
 
 	CScripting::ScriptCommand(&disembark_instantly_actor, m_dwGTAId);
+}
+
+void* CPlayerPed::GetNamedAnimationTask()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return nullptr;
+    }
+
+    void* taskMgr = GetPed()->pPedIntelligence->m_taskManager.m_tasks[ePrimaryTasks::TASK_PRIMARY_PRIMARY];
+    if (!taskMgr) {
+        return nullptr;
+    }
+    
+    if (CCommon::GetTaskTypeFromTask(taskMgr) == 401 || CCommon::GetTaskTypeFromTask(taskMgr) == 934) {
+        return taskMgr;
+    }
+
+    taskMgr = CCommon::GetNextTaskFromTask(taskMgr);
+    if (!taskMgr) {
+        return nullptr;
+    }
+
+    while (CCommon::GetTaskTypeFromTask(taskMgr) != 401 && CCommon::GetTaskTypeFromTask(taskMgr) != 934)
+    {
+        taskMgr = CCommon::GetNextTaskFromTask(taskMgr);
+        if (!taskMgr) {
+            return nullptr;
+        }
+    }
+
+    if (taskMgr && (CCommon::GetTaskTypeFromTask(taskMgr) == 401 || CCommon::GetTaskTypeFromTask(taskMgr) == 934)) {
+        return taskMgr;
+    }
+
+    return nullptr;
+}
+
+int32_t CPlayerPed::GetBlendedAnimationsIndex()
+{
+    if (!GetPed() || CCommon::IsGameEntityArePlaceable(m_pEntity) || !GetPed()->m_pRwObject) {
+        return 0;
+    }
+
+    // แก้ไขบัค สำหรับ Mobile อย่างเดียว เพราะเวลาใช้อาวุธพวกนี้แล้ว มันยังส่งค่า -1 มาอยู่ (Sync ภาพตรงพวก WEAPON_SPRAYCAN, WEAPON_FIREEXTINGUISHER, WEAPON_FLAMETHROWER)
+    uint8_t currentWeapon = CPlayerPed::GetCurrentWeapon();
+    if (currentWeapon == eWeaponSampId::WEAPON_SPRAYCAN || currentWeapon == eWeaponSampId::WEAPON_FIREEXTINGUISHER || currentWeapon == eWeaponSampId::WEAPON_FLAMETHROWER)
+    {
+        if (CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE])
+        {
+            uint16_t animId = (currentWeapon == eWeaponSampId::WEAPON_FIREEXTINGUISHER) ? 1168 : 1167;
+            int32_t upperBits = (-32760 | 0xFFFF8000) << 16;
+            return animId | upperBits;
+        }
+    }
+
+    void* pAnimTask = CPlayerPed::GetNamedAnimationTask();
+    if (pAnimTask)
+    {
+        return CAnimation::GetIndexFromTask(pAnimTask);
+    }
+
+    int32_t animHash = CAnimation::GetAnimationKey(CAnimation::m_AnimGroup, CAnimation::m_AnimId);
+    int32_t animIndex = CAnimation::GetAnimationIndexFromKey(animHash);
+
+    uint8_t blendByte = static_cast<uint8_t>(CAnimation::m_BlendDelta);
+    int32_t upperBits = (blendByte | 0xFFFF8000) << 16;
+
+    return animIndex | upperBits;
+}
+
+void CPlayerPed::PlayAnimationByIndex(uint32_t dwAnimation)
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    if (CCommon::IsGameEntityArePlaceable(m_pEntity)) {
+        return;
+    }
+
+    uint16_t animIndex = static_cast<uint16_t>(dwAnimation & 0xFFFF);
+    bool bLoop = (dwAnimation & 0x2000000) != 0;
+    bool bLockX = (dwAnimation & 0x4000000) != 0;
+    bool bFreeze = (dwAnimation & 0x8000000) != 0;
+    bool bBlend = ((dwAnimation >> 24) & 1) != 0;
+
+    float fFramedelta = static_cast<float>((dwAnimation >> 16) & 0xFF);
+
+    int32_t nTimeMode = 0;
+    uint8_t nTypeMode = (dwAnimation >> 28) & 3;
+    switch (nTypeMode)
+    {
+        case 1: {
+            nTimeMode = -1;
+            break;
+        }
+
+        case 2: {
+            nTimeMode = 1;
+            break;
+        }
+
+        default: {
+            nTimeMode = 0;
+            break;
+        }
+    }
+
+    const char* animationData = CAnimation::RetrieveAnimationByIndex(animIndex - 1);
+    if (!animationData) {
+        return;
+    }
+
+    char szLibrary[32] = { 0 };
+    char szAnimName[32] = { 0 };
+
+    const char* pColon = strchr(animationData, ':');
+    if (pColon)
+    {
+        size_t nLibLen = pColon - animationData;
+        if (nLibLen < sizeof(szLibrary))
+        {
+            strncpy(szLibrary, animationData, nLibLen);
+            szLibrary[nLibLen] = '\0';
+        }
+
+        strncpy(szAnimName, pColon + 1, sizeof(szAnimName) - 1);
+
+        CPlayerPed::ApplyAnimation(szAnimName, szLibrary, fFramedelta, bBlend, bLoop, bLockX, bFreeze, nTimeMode);
+
+        if (!strcmp((const char*)szLibrary, OBFUSCATE("PARACHUTE")))
+        {
+            CPlayerPed::ProcessParachuteEvent((const char*)szAnimName);
+        }
+    }
+}
+
+void* CPlayerPed::IsPerformingCarryTask()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return nullptr;
+    }
+
+    void* taskMgr = GetPed()->pPedIntelligence->m_taskManager.m_tasks[ePrimaryTasks::TASK_PRIMARY_PRIMARY];
+    if (!taskMgr) {
+        return nullptr;
+    }
+
+    int taskType = CCommon::GetTaskTypeFromTask(taskMgr);
+    if (taskType == 401 || taskType == 934) {
+        return taskMgr;
+    }
+
+    taskMgr = CCommon::GetNextTaskFromTask(taskMgr);
+    while (taskMgr)
+    {
+        taskType = CCommon::GetTaskTypeFromTask(taskMgr);
+        if (taskType == 401 || taskType == 934) {
+            return taskMgr;
+        }
+
+        taskMgr = CCommon::GetNextTaskFromTask(taskMgr);
+    }
+
+    return nullptr;
+}
+
+bool CPlayerPed::OpenParachute()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return false;
+    }
+
+    if (!CPlayerPed::m_dwParachuteObject)
+    {
+        CMatrix mat;
+        GetMatrix(&mat);
+        CScripting::ScriptCommand(&create_object, eSpecialObject::OBJECT_PARACHUTE, mat.pos.x, mat.pos.y, mat.pos.z, &m_dwParachuteObject);
+
+        if (!CUtil::GamePool_Object_GetAt(CPlayerPed::m_dwParachuteObject))
+        {
+            CPlayerPed::m_dwParachuteObject = 0;
+            return false;
+        }
+
+        const auto paraOpen = OBFUSCATE("PARA_OPEN_O");
+        const auto paraType = OBFUSCATE("PARACHUTE");
+
+        CScripting::ScriptCommand(&attach_object_to_actor, CPlayerPed::m_dwParachuteObject, m_dwGTAId, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+        CScripting::ScriptCommand(&set_object_visible, CPlayerPed::m_dwParachuteObject, 0);
+        CScripting::ScriptCommand(&set_object_scale, CPlayerPed::m_dwParachuteObject, 0.0f);
+        CScripting::ScriptCommand(&apply_object_animation, CPlayerPed::m_dwParachuteObject, static_cast<const char*>(paraOpen), static_cast<const char*>(paraType), 1000.0f, false, true);
+        CScripting::ScriptCommand(&set_object_visible, CPlayerPed::m_dwParachuteObject, 1);
+        CScripting::ScriptCommand(&set_object_scale, CPlayerPed::m_dwParachuteObject, 1.0f);
+    }
+
+    return true;
+}
+
+void CPlayerPed::DestroyParachute()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    if (CPlayerPed::m_dwParachuteObject)
+    {
+        CScripting::ScriptCommand(&disassociate_object, CPlayerPed::m_dwParachuteObject, 0.0, 0.0, 0.0, 0);
+        CScripting::ScriptCommand(&destroy_object_with_fade, CPlayerPed::m_dwParachuteObject);
+        CPlayerPed::m_dwParachuteObject = 0;
+    }
+}
+
+void CPlayerPed::ProcessParachuteEvent(const char* szAnimName)
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    if (!szAnimName || !CNecessary::MPSTRLEN(szAnimName)) {
+        return;
+    }
+
+    if (CPlayerPed::GetCurrentWeapon() == eWeaponSampId::WEAPON_PARACHUTE)
+    {
+        const auto paraType = OBFUSCATE("PARACHUTE");
+
+        if (!strcasecmp(szAnimName, OBFUSCATE("PARA_OPEN")))
+        {
+            if (CPlayerPed::OpenParachute())
+            {
+                CMatrix matPos;
+                GetMatrix(&matPos);
+
+                CPedGta* pPed = CUtil::GamePool_FindPlayerPed();
+                if (pPed)
+                {
+                    CVector playerPos;
+                    playerPos.x = pPed->mat->pos.x;
+                    playerPos.y = pPed->mat->pos.y;
+                    playerPos.z = pPed->mat->pos.z;
+
+                    CVector soundPos;
+                    soundPos.x = playerPos.x + (matPos.pos.x - playerPos.x) * 0.1f;
+                    soundPos.y = playerPos.y + (matPos.pos.y - playerPos.y) * 0.1f;
+                    soundPos.z = playerPos.z + (matPos.pos.z - playerPos.z) * 0.1f;
+                    CScripting::ScriptCommand(&play_sound, soundPos.x, soundPos.y, soundPos.z, 1039);
+                }
+            }
+        }
+        else if (!strcasecmp(szAnimName, OBFUSCATE("PARA_DECEL")))
+        {
+            if (CPlayerPed::OpenParachute())
+            {
+                const auto paraDecel = OBFUSCATE("PARA_DECEL_O");
+
+                CScripting::ScriptCommand(&apply_object_animation, CPlayerPed::m_dwParachuteObject, static_cast<const char*>(paraDecel), static_cast<const char*>(paraType), 1.0f, true, true);
+            }
+        }
+        else if (!strcasecmp(szAnimName, OBFUSCATE("PARA_FLOAT")))
+        {
+            if (CPlayerPed::OpenParachute())
+            {
+                const auto paraFloat = OBFUSCATE("PARA_FLOAT_O");
+
+                CScripting::ScriptCommand(&apply_object_animation, CPlayerPed::m_dwParachuteObject, static_cast<const char*>(paraFloat), static_cast<const char*>(paraType), 1.0f, true, true);
+            }
+        }
+        else if (!strcasecmp(szAnimName, OBFUSCATE("PARA_STEERR")))
+        {
+            if (CPlayerPed::OpenParachute())
+            {
+                const auto paraSteerr = OBFUSCATE("PARA_STEERR_O");
+
+                CScripting::ScriptCommand(&apply_object_animation, CPlayerPed::m_dwParachuteObject, static_cast<const char*>(paraSteerr), static_cast<const char*>(paraType), 1.0f, true, true);
+            }
+        }
+        else if (!strcasecmp(szAnimName, OBFUSCATE("PARA_STEERL")))
+        {
+            if (CPlayerPed::OpenParachute())
+            {
+                const auto paraSteerl = OBFUSCATE("PARA_STEERL_O");
+
+                CScripting::ScriptCommand(&apply_object_animation, CPlayerPed::m_dwParachuteObject, static_cast<const char*>(paraSteerl), static_cast<const char*>(paraType), 1.0f, true, true);
+            }
+        }
+        else if (!strcasecmp(szAnimName, OBFUSCATE("PARA_LAND_WATER")))
+        {
+            if (CPlayerPed::OpenParachute())
+            {
+                const auto paraLandWater = OBFUSCATE("PARA_LAND_WATER_O");
+
+                CScripting::ScriptCommand(&apply_object_animation, CPlayerPed::m_dwParachuteObject, static_cast<const char*>(paraLandWater), static_cast<const char*>(paraType), 1.0f, false, true);
+            }
+        }
+    }
+}
+
+void CPlayerPed::ApplyCrouch()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    if (!(GetPed()->bIsDucking))
+    {
+        if (!CPlayerPed::IsCrouching())
+        {
+            if (GetPed()->pPedIntelligence)
+            {
+                CPedIntelligence::SetTaskDuckSecondary(GetPed()->pPedIntelligence, 0);
+            }
+        }
+    }
+}
+
+void CPlayerPed::ResetCrouch()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    GetPed()->bIsDucking = 0;
+    if (GetPed()->pPedIntelligence)
+    {
+        CPedIntelligence::ClearTaskDuckSecondary(GetPed()->pPedIntelligence);
+    }
+}
+
+bool CPlayerPed::IsCrouching()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return false;
+    }
+
+    if (!CUtil::GamePool_Ped_GetAt(m_dwGTAId))
+    {
+        return false;
+    }
+
+    return GetPed()->bIsDucking;
 }

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 
+import 'samp_overlay_layout.dart';
+
 class SampChat extends StatefulWidget {
   final int maxMessages;
   final bool showTimestamp;
@@ -257,10 +259,21 @@ class SampChatState extends State<SampChat> with SingleTickerProviderStateMixin 
     }
     final double chatWidth = math.min(isLandscape ? screenWidth * 0.6 : screenWidth * 0.9,
         screenWidth - safe.right - 4 - leftPos);
-    final double top = safe.top + 4.0 * scale;
     final double inputHeight = chatInputstatus ? 40.0 * scale : 0;
+    final double preferredMessageHeight =
+        (isLandscape ? 175.0 : 190.0) * scale;
+    final screenSize = Size(screenWidth, screenHeight);
+    double top = safe.top + 4.0 * scale;
+    if (SampOverlayLayout.isTablet(screenSize)) {
+      final panelBottom = math.min(
+        SampOverlayLayout.tabletPanelBottom(screenSize, safe),
+        screenHeight - bottom,
+      );
+      // เลื่อนทั้งกล่องบน iPad โดยคงความสูงและขนาดข้อความเดิม.
+      top = math.max(top, panelBottom - preferredMessageHeight - inputHeight);
+    }
     final double messageHeight = math.max(0.0, math.min(
-      (isLandscape ? 175.0 : 190.0) * scale,
+      preferredMessageHeight,
       screenHeight - top - bottom - inputHeight,
     ));
     if (chatWidth < 48 || (messageHeight <= 0 && !chatInputstatus)) {

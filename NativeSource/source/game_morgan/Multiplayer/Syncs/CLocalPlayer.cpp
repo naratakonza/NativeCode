@@ -44,7 +44,7 @@ CLocalPlayer::CLocalPlayer()
 	CLocalPlayer::m_headData.m_dwLastHeadLook = CNecessary::GetTickCount();
 
 	CLocalPlayer::ResetData();
-	// CLocalPlayer::ApplySpecialAction(eSpecialAction::SPECIAL_ACTION_NONE);
+	CLocalPlayer::ApplySpecialAction(eSpecialAction::SPECIAL_ACTION_NONE);
 
 	CLocalPlayer::SetLocalScore(0);
 	CLocalPlayer::SetLocalPing(0);
@@ -67,7 +67,7 @@ CLocalPlayer::~CLocalPlayer()
 {
     CNecessary::Log(OBFUSCATE("CLocalPlayer Uninitialise"));
 
-	// CLocalPlayer::ApplySpecialAction(eSpecialAction::SPECIAL_ACTION_NONE);
+	CLocalPlayer::ApplySpecialAction(eSpecialAction::SPECIAL_ACTION_NONE);
 	CLocalPlayer::ResetData();
 	CLocalPlayer::m_pPlayerPed = nullptr;
 }
@@ -138,7 +138,7 @@ bool CLocalPlayer::Process()
         // CLocalPlayer::GetPlayerPed()->ProcessDrunk();
 		CLocalPlayer::GetPlayerPed()->ResetPlayerTimeLastEaten();
 
-		// CLocalPlayer::ProcessAnimation();
+		CLocalPlayer::ProcessAnimation();
 
 		// CLocalPlayer::HandleVehicleEntryTimeout(dwThisTick);
 
@@ -147,7 +147,7 @@ bool CLocalPlayer::Process()
         CLocalPlayer::HandleInteriorChanging();
         CLocalPlayer::UpdateWeapons();
 		// CLocalPlayer::UpdateCameraTarget();
-		// CLocalPlayer::SendStats(dwThisTick);
+		CLocalPlayer::SendStats(dwThisTick);
 
         if (CLocalPlayer::IsSpectating())
 		{
@@ -340,6 +340,26 @@ void CLocalPlayer::DisplayZone(uint32_t dwThisTick)
 	}
 }
 
+void CLocalPlayer::SendStats(uint32_t dwThisTick)
+{
+	if ((dwThisTick - CLocalPlayer::m_dwLastStatsUpdateTick) > 1000)
+	{
+		int playerMoney = CGame::GetPlayerMoney();
+		int drunkLevel = CLocalPlayer::GetPlayerPed()->GetDrunkLevel();
+
+		if (CMultiPlayer::GetActiveNetwork())
+		{
+			RakNet::BitStream bsStats;
+			bsStats.Write(static_cast<uint8_t>(ID_STATS_UPDATE));
+			bsStats.Write(playerMoney);
+			bsStats.Write(drunkLevel);
+			CMultiPlayer::GetActiveNetwork()->GetRakClient()->Send(&bsStats, HIGH_PRIORITY, UNRELIABLE, 0);
+		}
+
+		CLocalPlayer::m_dwLastStatsUpdateTick = dwThisTick;
+	}
+}
+
 void CLocalPlayer::UpdateWeapons()
 {
     if (!CLocalPlayer::GetPlayerPed()) {
@@ -456,7 +476,7 @@ void CLocalPlayer::HandleDead()
 	// 	CLocalPlayer::m_LastVehicle = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetVehiclePool()->FindIDFromGtaPtr((CVehicleGta*)CLocalPlayer::GetPlayerPed()->GetVehicle());
 	// }
 
-	// CLocalPlayer::GetPlayerPed()->ExtinguishFire();
+	CLocalPlayer::GetPlayerPed()->ExtinguishFire();
 	// CLocalPlayer::SendWastedNotification();
 
 	CLocalPlayer::m_bIsActive = false;
@@ -600,7 +620,7 @@ bool CLocalPlayer::Spawn()
 	CLocalPlayer::GetPlayerPed()->ClearAllWeapons();
 	CLocalPlayer::GetPlayerPed()->ResetDamageEntity();
 
-	// CLocalPlayer::ApplySpecialAction(eSpecialAction::SPECIAL_ACTION_NONE);
+	CLocalPlayer::ApplySpecialAction(eSpecialAction::SPECIAL_ACTION_NONE);
 
 	// CLocalPlayer::m_surfData.bIsActive = false;
 	// CLocalPlayer::m_surfData.vecPosition.x = 0.0;
@@ -792,6 +812,23 @@ void CLocalPlayer::ProcessOnFoot(uint32_t dwThisTick)
 	CLocalPlayer::m_bPassengerDriveByMode = false;
 }
 
+void CLocalPlayer::ProcessAnimation()
+{
+    if (!CLocalPlayer::GetPlayerPed()) {
+        return;
+    }
+
+    if (CLocalPlayer::GetPlayerPed()->GetBlendedAnimationsIndex())
+    {
+        CLocalPlayer::m_dwAnimationValue = CLocalPlayer::GetPlayerPed()->GetBlendedAnimationsIndex();
+        CLocalPlayer::m_bAnimationReset = false;
+    }
+    else if (CLocalPlayer::m_dwAnimationValue && CLocalPlayer::m_bAnimationReset)
+    {
+        CLocalPlayer::m_dwAnimationValue = 0;
+    }
+}
+
 void CLocalPlayer::SendOnFootFullSyncData()
 {
 	ONFOOT_SYNC_DATA ofSync;
@@ -829,17 +866,7 @@ void CLocalPlayer::SendOnFootFullSyncData()
 
 	ofSync.byteCurrentWeapon ^= (ofSync.byteCurrentWeapon ^ CLocalPlayer::GetPlayerPed()->GetCurrentWeapon()) & 0x3F;
 
-    // เดียวมาทำต่อไอสัส
-	// if (CLocalPlayer::GetPlayerPed()->IsCrouching()) 
-	// {
-	// 	ofSync.byteSpecialAction = eSpecialAction::SPECIAL_ACTION_DUCK;
-	// }
-	// else 
-	// {
-	// 	ofSync.byteSpecialAction = CLocalPlayer::GetSpecialAction();
-	// }
-
-    ofSync.byteSpecialAction = eSpecialAction::SPECIAL_ACTION_NONE;
+	ofSync.byteSpecialAction = CLocalPlayer::GetSpecialAction();
 
 	ofSync.vecMoveSpeed.x = vecMoveSpeed.x;
 	ofSync.vecMoveSpeed.y = vecMoveSpeed.y;
@@ -880,6 +907,301 @@ void CLocalPlayer::SendOnFootFullSyncData()
 		CMultiPlayer::GetActiveNetwork()->GetRakClient()->Send(&bsPlayerSync, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0);
 		memcpy(&m_OnFootData, &ofSync, sizeof(ONFOOT_SYNC_DATA));
 	}
+}
+
+void CLocalPlayer::ApplySpecialAction(uint8_t byteSpecialAction)
+{
+    switch (byteSpecialAction)
+    {
+        case eSpecialAction::SPECIAL_ACTION_NONE: {
+            // if (CLocalPlayer::GetPlayerPed()->IsCellphoneEnabled())
+            // {
+            //     CLocalPlayer::GetPlayerPed()->ToggleCellphone(0);
+            // }
+
+            if (CLocalPlayer::GetPlayerPed()->IsInJetpack())
+            {
+                CLocalPlayer::GetPlayerPed()->StopJetpack();
+            }
+
+            // if (CLocalPlayer::GetPlayerPed()->HasHandsUp())
+            // {
+            //     CLocalPlayer::GetPlayerPed()->LockControl(false);
+            //     CLocalPlayer::GetPlayerPed()->ToggleControllable(true);
+            // }
+
+            // if (CLocalPlayer::GetPlayerPed()->IsPissing())
+            // {
+            //     CLocalPlayer::GetPlayerPed()->StopPissing();
+            // }
+
+            // if (CLocalPlayer::GetPlayerPed()->IsCarry())
+            // {
+            //     CLocalPlayer::GetPlayerPed()->ToggleCarry(false);
+            // }
+
+            // if (CLocalPlayer::GetPlayerPed()->IsCuffed())
+            // {
+            //     CLocalPlayer::GetPlayerPed()->ToggleCuffed(false);
+            // }
+
+            // if (CLocalPlayer::GetPlayerPed()->IsDancing())
+            // {
+            //     CLocalPlayer::GetPlayerPed()->StopDancing();
+            // }
+
+            // if (CLocalPlayer::GetPlayerPed()->GetStuff())
+            // {
+            //     CLocalPlayer::GetPlayerPed()->DropStuff();
+            // }
+
+            break;
+        }
+
+        // case eSpecialAction::SPECIAL_ACTION_USECELLPHONE: {
+        //     if (!CLocalPlayer::GetPlayerPed()->IsInVehicle())
+        //     {
+        //         if (!CLocalPlayer::GetPlayerPed()->IsCellphoneEnabled())
+        //         {
+        //             CLocalPlayer::GetPlayerPed()->ToggleCellphone(1);
+        //         }
+        //     }
+        //
+        //     break;
+        // }
+
+        // case eSpecialAction::SPECIAL_ACTION_STOPUSECELLPHONE: {
+        //     if (CLocalPlayer::GetPlayerPed()->IsCellphoneEnabled())
+        //     {
+        //         CLocalPlayer::GetPlayerPed()->ToggleCellphone(0);
+        //     }
+        //
+        //     break;
+        // }
+
+        case eSpecialAction::SPECIAL_ACTION_USEJETPACK: {
+            if (!CLocalPlayer::GetPlayerPed()->IsInJetpack())
+            {
+                CLocalPlayer::GetPlayerPed()->StartJetpack();
+            }
+
+            break;
+        }
+
+        // case eSpecialAction::SPECIAL_ACTION_HANDSUP: {
+        //     if (!CLocalPlayer::GetPlayerPed()->HasHandsUp())
+        //     {
+        //         CLocalPlayer::GetPlayerPed()->HandsUp();
+        //     }
+        //
+        //     break;
+        // }
+
+        // case eSpecialAction::SPECIAL_ACTION_URINATING: {
+        //     if (!CLocalPlayer::GetPlayerPed()->IsInVehicle())
+        //     {
+        //         if (!CLocalPlayer::GetPlayerPed()->IsPissing())
+        //         {
+        //             CLocalPlayer::GetPlayerPed()->StartPissing();
+        //         }
+        //     }
+        //
+        //     break;
+        // }
+
+        // case eSpecialAction::SPECIAL_ACTION_CARRY: {
+        //     if (!CLocalPlayer::GetPlayerPed()->IsCarry())
+        //     {
+        //         CLocalPlayer::GetPlayerPed()->ToggleCarry(true);
+        //     }
+        //
+        //     break;
+        // }
+
+        // case eSpecialAction::SPECIAL_ACTION_CUFFED: {
+        //     if (!CLocalPlayer::GetPlayerPed()->IsCuffed())
+        //     {
+        //         CLocalPlayer::GetPlayerPed()->ToggleCuffed(true);
+        //     }
+        //
+        //     break;
+        // }
+
+        // case eSpecialAction::SPECIAL_ACTION_DANCE1: {
+        //     if (!CLocalPlayer::GetPlayerPed()->IsDancing())
+        //     {
+        //         CLocalPlayer::GetPlayerPed()->StartDancing(1);
+        //     }
+        //
+        //     break;
+        // }
+
+        // case eSpecialAction::SPECIAL_ACTION_DANCE2: {
+        //     if (!CLocalPlayer::GetPlayerPed()->IsDancing())
+        //     {
+        //         CLocalPlayer::GetPlayerPed()->StartDancing(2);
+        //     }
+        //
+        //     break;
+        // }
+
+        // case eSpecialAction::SPECIAL_ACTION_DANCE3: {
+        //     if (!CLocalPlayer::GetPlayerPed()->IsDancing())
+        //     {
+        //         CLocalPlayer::GetPlayerPed()->StartDancing(3);
+        //     }
+        //
+        //     break;
+        // }
+
+        // case eSpecialAction::SPECIAL_ACTION_DANCE4: {
+        //     if (!CLocalPlayer::GetPlayerPed()->IsDancing())
+        //     {
+        //         CLocalPlayer::GetPlayerPed()->StartDancing(4);
+        //     }
+        //
+        //     break;
+        // }
+
+        // case eSpecialAction::SPECIAL_ACTION_DRINK_BEER: {
+        //     if (!CLocalPlayer::GetPlayerPed()->IsInVehicle())
+        //     {
+        //         CLocalPlayer::GetPlayerPed()->GiveStuff(eStuffType::STUFF_TYPE_BEER);
+        //     }
+        //
+        //     break;
+        // }
+
+        // case eSpecialAction::SPECIAL_ACTION_SMOKE_CIGGY: {
+        //     if (!CLocalPlayer::GetPlayerPed()->IsInVehicle())
+        //     {
+        //         CLocalPlayer::GetPlayerPed()->GiveStuff(eStuffType::STUFF_TYPE_CIGGI);
+        //     }
+        //
+        //     break;
+        // }
+
+        // case eSpecialAction::SPECIAL_ACTION_DRINK_WINE: {
+        //     if (!CLocalPlayer::GetPlayerPed()->IsInVehicle())
+        //     {
+        //         CLocalPlayer::GetPlayerPed()->GiveStuff(eStuffType::STUFF_TYPE_DYN_BEER);
+        //     }
+        //
+        //     break;
+        // }
+
+        // case eSpecialAction::SPECIAL_ACTION_DRINK_SPRUNK: {
+        //     if (!CLocalPlayer::GetPlayerPed()->IsInVehicle())
+        //     {
+        //         CLocalPlayer::GetPlayerPed()->GiveStuff(eStuffType::STUFF_TYPE_PINT_GLASS);
+        //     }
+        //
+        //     break;
+        // }
+
+        default: {
+            return;
+        }
+    }
+}
+
+uint8_t CLocalPlayer::GetSpecialAction()
+{
+    if (CLocalPlayer::GetPlayerPed()->IsInJetpack())
+    {
+        return eSpecialAction::SPECIAL_ACTION_USEJETPACK;
+    }
+
+    // if (CLocalPlayer::GetPlayerPed()->IsDancing())
+    // {
+    //     switch (CLocalPlayer::GetPlayerPed()->m_iDanceStyle)
+    //     {
+    //         case 0: {
+    //             return eSpecialAction::SPECIAL_ACTION_DANCE1;
+    //         }
+    //
+    //         case 1: {
+    //             return eSpecialAction::SPECIAL_ACTION_DANCE2;
+    //         }
+    //
+    //         case 2: {
+    //             return eSpecialAction::SPECIAL_ACTION_DANCE3;
+    //         }
+    //
+    //         case 3: {
+    //             return eSpecialAction::SPECIAL_ACTION_DANCE4;
+    //         }
+    //
+    //         default: {
+    //             break;
+    //         }
+    //     }
+    // }
+
+    // if (CLocalPlayer::GetPlayerPed()->HasHandsUp())
+    // {
+    //     return eSpecialAction::SPECIAL_ACTION_HANDSUP;
+    // }
+
+    // if (CLocalPlayer::GetPlayerPed()->IsCellphoneEnabled())
+    // {
+    //     return eSpecialAction::SPECIAL_ACTION_USECELLPHONE;
+    // }
+
+    // if (CLocalPlayer::GetPlayerPed()->IsPissing())
+    // {
+    //     return eSpecialAction::SPECIAL_ACTION_URINATING;
+    // }
+
+    if (CLocalPlayer::GetPlayerPed()->IsCrouching())
+    {
+        return eSpecialAction::SPECIAL_ACTION_DUCK;
+    }
+
+    if (CLocalPlayer::GetPlayerPed()->IsEnteringVehicle())
+    {
+        return eSpecialAction::SPECIAL_ACTION_ENTER_VEHICLE;
+    }
+
+    if (CLocalPlayer::GetPlayerPed()->IsExitingVehicle())
+    {
+        return eSpecialAction::SPECIAL_ACTION_EXIT_VEHICLE;
+    }
+
+    // if (CLocalPlayer::GetPlayerPed()->GetStuff())
+    // {
+    //     if (CLocalPlayer::GetPlayerPed()->GetStuff() == eStuffType::STUFF_TYPE_BEER)
+    //     {
+    //         return eSpecialAction::SPECIAL_ACTION_DRINK_BEER;
+    //     }
+    //
+    //     if (CLocalPlayer::GetPlayerPed()->GetStuff() == eStuffType::STUFF_TYPE_DYN_BEER)
+    //     {
+    //         return eSpecialAction::SPECIAL_ACTION_DRINK_WINE;
+    //     }
+    //
+    //     if (CLocalPlayer::GetPlayerPed()->GetStuff() == eStuffType::STUFF_TYPE_PINT_GLASS)
+    //     {
+    //         return eSpecialAction::SPECIAL_ACTION_DRINK_SPRUNK;
+    //     }
+    //
+    //     if (CLocalPlayer::GetPlayerPed()->GetStuff() == eStuffType::STUFF_TYPE_CIGGI)
+    //     {
+    //         return eSpecialAction::SPECIAL_ACTION_SMOKE_CIGGY;
+    //     }
+    // }
+
+    // if (CLocalPlayer::GetPlayerPed()->IsCuffed())
+    // {
+    //     return eSpecialAction::SPECIAL_ACTION_CUFFED;
+    // }
+
+    // if (CLocalPlayer::GetPlayerPed()->IsCarry())
+    // {
+    //     return eSpecialAction::SPECIAL_ACTION_CARRY;
+    // }
+
+    return eSpecialAction::SPECIAL_ACTION_NONE;
 }
 
 void CLocalPlayer::SetLocalTeam(uint8_t byteTeam)

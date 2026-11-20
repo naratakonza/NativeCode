@@ -872,23 +872,15 @@ class _SampDialogState extends State<SampDialog> with SingleTickerProviderStateM
   }
 
   Widget _buildButtons(double scale) {
-    int style = widget.data['style'] ?? 0;
-    String inputText = _getInputText(style);
-    int sendItem = (style == 5 && selectedIndex > 0) ? selectedIndex - 1 : selectedIndex;
-
     return Row(
       children: [
         Expanded(
-          child: _btn(widget.data['button1']?.toString() ?? "", scale, () {
-            DialogBridge.sendResponse(widget.data, 1, sendItem, inputText);
-          }),
+          child: _btn(widget.data['button1']?.toString() ?? "", scale, _handleEnter),
         ),
         if (widget.data['button2'] != null && widget.data['button2'] != "") ...[
           SizedBox(width: 8 * scale),
           Expanded(
-            child: _btn(widget.data['button2']?.toString() ?? "", scale, () {
-              DialogBridge.sendResponse(widget.data, 0, sendItem, inputText);
-            },
+            child: _btn(widget.data['button2']?.toString() ?? "", scale, _handleEscape,
             isButton2: true,
             ),
           ),

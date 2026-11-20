@@ -1029,40 +1029,40 @@ extern "C" __attribute__((visibility("default"))) void CPed_ProcessControl_hook(
 		if (pPlayer)
 		{
 			// เดียวมาทำภายหลัง
-			// if (!pPlayer->IsInVehicle() && !pPlayer->IsInJetpack())
-			// {
-			// 	if (pPlayer->IsPissing() || pPlayer->HasHandsUp() || pPlayer->IsDancing())
-			// 	{
-			// 		if (CTouchInterface::IsReleased(1, 0, 1))
-			// 		{
-			// 			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK] = true;
-			// 		}
+			if (!pPlayer->IsInVehicle() && !pPlayer->IsInJetpack())
+			{
+				// if (pPlayer->IsPissing() || pPlayer->HasHandsUp() || pPlayer->IsDancing())
+				// {
+				// 	if (CTouchInterface::IsReleased(1, 0, 1))
+				// 	{
+				// 		CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_SECONDARY_ATTACK] = true;
+				// 	}
 
-			// 		// if (pPlayer->IsDancing())
-			// 		// {
-			// 		// 	if (CTouchInterface::IsReleased(13, 0, 1))
-			// 		// 	{
-			// 		// 		CPad::LocalPlayerKeys.wKeyUD = 255;
-			// 		// 	}
-			// 		// }
-			// 	}
+				// 	// if (pPlayer->IsDancing())
+				// 	// {
+				// 	// 	if (CTouchInterface::IsReleased(13, 0, 1))
+				// 	// 	{
+				// 	// 		CPad::LocalPlayerKeys.wKeyUD = 255;
+				// 	// 	}
+				// 	// }
+				// }
 
-			// 	if (pPlayer->GetStuff() != eStuffType::STUFF_TYPE_NONE && !pPlayer->IsPlayingAnimation(OBFUSCATE("DNK_STNDF_LOOP")) && !pPlayer->IsPlayingAnimation(OBFUSCATE("DNK_STNDM_LOOP")) && !pPlayer->IsPlayingAnimation(OBFUSCATE("smkcig_prtl")) && !CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] && JumpJustDown_VAR == 0)
-			// 	{
-			// 		if (CTouchInterface::IsReleased(1, 0, 1))
-			// 		{
-			// 			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = true;
-			// 		}
-			// 	}
+				// if (pPlayer->GetStuff() != eStuffType::STUFF_TYPE_NONE && !pPlayer->IsPlayingAnimation(OBFUSCATE("DNK_STNDF_LOOP")) && !pPlayer->IsPlayingAnimation(OBFUSCATE("DNK_STNDM_LOOP")) && !pPlayer->IsPlayingAnimation(OBFUSCATE("smkcig_prtl")) && !CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] && JumpJustDown_VAR == 0)
+				// {
+				// 	if (CTouchInterface::IsReleased(1, 0, 1))
+				// 	{
+				// 		CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = true;
+				// 	}
+				// }
 
-			// 	if (CGame::GetPlayer()->IsInWater() && !CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] && SwimJumpJustDown_VAR == 0)
-			// 	{
-			// 		if (CTouchInterface::IsReleased(1, 0, 1))
-			// 		{
-			// 			CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = true;
-			// 		}
-			// 	}
-			// }
+				if (CGame::GetPlayer()->IsInWater() && !CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_JUMP] && SwimJumpJustDown_VAR == 0)
+				{
+					if (CTouchInterface::IsReleased(1, 0, 1))
+					{
+						CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = true;
+					}
+				}
+			}
 			
 			// if (!pPlayer->IsInVehicle() && !pPlayer->IsDead())
 			// {
@@ -1412,7 +1412,7 @@ void CPad::Initialise()
 
     taskUseGunHookInstalled = CMemory::InstallMethodHook(SA_ADDR(0x4A9CB0), reinterpret_cast<uintptr_t>(CPad_TaskUseGun_hook));
 
-    // สลับ WeaponSkill ของผู้เล่นอื่นเฉพาะตอนวาดอาวุธ ตาม Thunder
+    // สลับ WeaponSkill ของผู้เล่นอื่นเฉพาะตอนวาดอาวุธ
     weaponSkillHookInstalled = CMemory::HasMappedInstruction(SA_ADDR(0x316D3C), "\xA7\x03\x06\x94") && CMemory::HasMappedBytes(SA_ADDR(0x23E7A0), "\xE9\x23\xBC\x6D\xF6\x57\x01\xA9", 8, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x2438E0), "\xE9\x23\xBC\x6D\xF6\x57\x01\xA9", 8, "__text");
 
     // สำหรับ ONFOOT

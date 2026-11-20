@@ -2036,6 +2036,27 @@ void ToggleSelectTextDraw(RakNet::BitStream bsData)
 	}
 }
 
+void SetPlayerSpecialAction(RakNet::BitStream bsData)
+{
+	CNecessary::Log(OBFUSCATE("RPC: SetPlayerSpecialAction"));
+
+	if (bsData.GetNumberOfUnreadBits() < 8) {
+		CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerSpecialAction"));
+		return;
+	}
+
+	uint8_t byteSpecialAction;
+	bsData.Read(byteSpecialAction);
+
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) 
+	{
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()) 
+		{
+			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->ApplySpecialAction(byteSpecialAction);
+		}
+	}
+}
+
 void CreatePickup(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: CreatePickup"));
@@ -3027,10 +3048,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_SetPlayerSpecialAction: {
-		//     SetPlayerSpecialAction(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerSpecialAction: {
+		    SetPlayerSpecialAction(*bsData);
+		    break;
+		}
 
 		case RPC_CreatePickup: {
 		    CreatePickup(*bsData);

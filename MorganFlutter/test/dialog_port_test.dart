@@ -15,6 +15,43 @@ Future<void> send(WidgetTester tester, String name, [Object? args]) {
 }
 
 void main() {
+  for (final style in [1, 3]) {
+    for (final response in [1, 0]) {
+      testWidgets('style $style button $response sends latest text without keyboard Done', (tester) async {
+        final outbound = <MethodCall>[];
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          DialogBridge.channel,
+          (call) async { outbound.add(call); return true; },
+        );
+        DialogBridge.init();
+        await tester.pumpWidget(const MaterialApp(home: SampDialogOverlay()));
+        await send(tester, 'showDialog', {
+          'id': 20, 'sequence': 30, 'style': style,
+          'title': 'กรอกข้อมูล', 'content': 'ทดสอบ',
+          'button1': 'ยืนยัน', 'button2': 'ยกเลิก',
+        });
+        await send(tester, 'setDialogVisible', true);
+        await tester.pumpAndSettle();
+        final field = find.byType(TextField);
+        await tester.enterText(field, 'ข้อความก่อนแก้');
+        await tester.pump();
+        await tester.enterText(field, 'ข้อความล่าสุด');
+        await tester.pump();
+        expect(tester.widget<TextField>(field).controller!.text, 'ข้อความล่าสุด');
+        expect(tester.widget<TextField>(field).focusNode!.hasFocus, isTrue);
+        await tester.tap(find.text(response == 1 ? 'ยืนยัน' : 'ยกเลิก', findRichText: true));
+        await tester.pump();
+        expect(outbound.last.method, 'dialogResponse');
+        expect(outbound.last.arguments, {
+          'id': 20, 'sequence': 30, 'response': response,
+          'listitem': -1, 'input': 'ข้อความล่าสุด',
+        });
+        await send(tester, 'hideDialog');
+        await tester.pumpAndSettle();
+      });
+    }
+  }
+
   testWidgets('preserves the input over pause, fits the iOS keyboard and responds', (tester) async {
     await tester.binding.setSurfaceSize(const Size(667, 375));
     addTearDown(() => tester.binding.setSurfaceSize(null));

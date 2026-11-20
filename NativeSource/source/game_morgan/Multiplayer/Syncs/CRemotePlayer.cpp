@@ -409,7 +409,7 @@ void CRemotePlayer::DoOnFootSync()
 		}
 	}
 
-	// CRemotePlayer::ProcessGamePlayerAnimation();
+	CRemotePlayer::ProcessGamePlayerAnimation();
 	
 	// CRemotePlayer::SetGameVehicle(nullptr);
 }
@@ -483,7 +483,7 @@ void CRemotePlayer::DoOnFootFrame()
 	CRemotePlayer::UpdateGamePlayerRotation();
 
 	// CRemotePlayer::ProcessGamePlayerHead();
-	// CRemotePlayer::ProcessGamePlayerSpecialAction(CRemotePlayer::GetSpecialAction());
+	CRemotePlayer::ProcessGamePlayerSpecialAction(CRemotePlayer::GetSpecialAction());
 
 	CRemotePlayer::SetRemotePassengerDriveBy(false);
 
@@ -633,6 +633,206 @@ void CRemotePlayer::UpdateGamePlayerWeapon(uint8_t byteCurWeapon, bool armed)
         {
             pGamePlayer->GiveWeapon(byteCurWeapon, 9999);
             pGamePlayer->SetArmedWeapon(byteCurWeapon, armed);
+        }
+    }
+}
+
+void CRemotePlayer::ProcessGamePlayerSpecialAction(eSpecialAction byteSpecialAction)
+{
+    if (!CRemotePlayer::IsValidInstance()) {
+        return;
+    }
+
+    CPlayerPed* pGamePlayer = CRemotePlayer::GetGamePlayer();
+    if (pGamePlayer) 
+    {
+        if (!CRemotePlayer::IsGamePlayerValid(CRemotePlayer::GetRemotePlayerID(), pGamePlayer)) {
+            CNecessary::Log(OBFUSCATE("ProcessGamePlayerSpecialAction: pGamePlayer is no longer valid."));
+            return;
+        }
+
+        if (!pGamePlayer->IsAdded()) {
+            return;
+        }
+
+        // if (pGamePlayer->IsCellphoneEnabled() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_USECELLPHONE)
+        // {
+        //     pGamePlayer->ToggleCellphone(0);
+        // }
+
+        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_USECELLPHONE && !pGamePlayer->IsCellphoneEnabled())
+        // {
+        //     pGamePlayer->ToggleCellphone(1);
+        // }
+
+        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_STOPUSECELLPHONE && pGamePlayer->IsCellphoneEnabled())
+        // {
+        //     pGamePlayer->ToggleCellphone(0);
+        // }
+        
+        if (pGamePlayer->IsInJetpack() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_USEJETPACK)
+        {
+            pGamePlayer->StopJetpack();
+        }
+
+        if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_USEJETPACK && !pGamePlayer->IsInJetpack())
+        {
+            pGamePlayer->StartJetpack();
+        }
+
+        // if (pGamePlayer->HasHandsUp() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_HANDSUP)
+        // {
+        //     pGamePlayer->LockControl(false);
+        //     pGamePlayer->ToggleControllable(true);
+        // }
+
+        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_HANDSUP && !pGamePlayer->HasHandsUp())
+        // {
+        //     pGamePlayer->HandsUp();
+        // }
+
+        // if (pGamePlayer->IsPissing() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_URINATING)
+        // {
+        //     pGamePlayer->StopPissing();
+        // }
+
+        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_URINATING && !pGamePlayer->IsPissing())
+        // {
+        //     pGamePlayer->StartPissing();
+        // }
+
+        if (pGamePlayer->IsCrouching() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_DUCK)
+        {
+            pGamePlayer->ResetCrouch();
+        }
+
+        if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DUCK && !pGamePlayer->IsCrouching())
+        {
+            pGamePlayer->ApplyCrouch();
+        }
+
+        // if (pGamePlayer->IsCarry() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_CARRY && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_ENTER_VEHICLE && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_EXIT_VEHICLE) 
+        // {
+        //     pGamePlayer->ToggleCarry(false);
+        // }
+
+        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_CARRY && !pGamePlayer->IsCarry())
+        // {
+        //     pGamePlayer->ToggleCarry(true);
+        // }
+
+        // if (pGamePlayer->IsCuffed() && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_CUFFED && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_ENTER_VEHICLE && byteSpecialAction != eSpecialAction::SPECIAL_ACTION_EXIT_VEHICLE) 
+        // {
+        //     pGamePlayer->ToggleCuffed(false);
+        // }
+
+        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_CUFFED && !pGamePlayer->IsCuffed())
+        // {
+        //     pGamePlayer->ToggleCuffed(true);
+        // }
+
+        // if (pGamePlayer->IsDancing())
+        // {
+        //     if (byteSpecialAction != eSpecialAction::SPECIAL_ACTION_DANCE1 || byteSpecialAction != eSpecialAction::SPECIAL_ACTION_DANCE2 || byteSpecialAction != eSpecialAction::SPECIAL_ACTION_DANCE3 || byteSpecialAction != eSpecialAction::SPECIAL_ACTION_DANCE4)
+        //     {
+        //         pGamePlayer->StopDancing();
+        //     }
+        // }
+
+        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DANCE1 && !pGamePlayer->IsDancing())
+        // {
+        //     pGamePlayer->StartDancing(1);
+        // }
+
+        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DANCE2 && !pGamePlayer->IsDancing())
+        // {
+        //     pGamePlayer->StartDancing(2);
+        // }
+
+        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DANCE3 && !pGamePlayer->IsDancing())
+        // {
+        //     pGamePlayer->StartDancing(3);
+        // }
+
+        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DANCE4 && !pGamePlayer->IsDancing())
+        // {
+        //     pGamePlayer->StartDancing(4);
+        // }
+
+        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_BEER && pGamePlayer->GetStuff() != eStuffType::STUFF_TYPE_BEER)
+        // {
+        //     pGamePlayer->GiveStuff(eStuffType::STUFF_TYPE_BEER);
+        // }
+
+        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_WINE && pGamePlayer->GetStuff() != eStuffType::STUFF_TYPE_DYN_BEER)
+        // {
+        //     pGamePlayer->GiveStuff(eStuffType::STUFF_TYPE_DYN_BEER);
+        // }
+
+        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_SPRUNK && pGamePlayer->GetStuff() != eStuffType::STUFF_TYPE_PINT_GLASS)
+        // {
+        //     pGamePlayer->GiveStuff(eStuffType::STUFF_TYPE_PINT_GLASS);
+        // }
+
+        // if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_SMOKE_CIGGY && pGamePlayer->GetStuff() != eStuffType::STUFF_TYPE_CIGGI)
+        // {
+        //     pGamePlayer->GiveStuff(eStuffType::STUFF_TYPE_CIGGI);
+        // }
+
+        // if (pGamePlayer->GetStuff())
+        // {
+        //     if (byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_BEER || byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_WINE || byteSpecialAction == eSpecialAction::SPECIAL_ACTION_DRINK_SPRUNK || byteSpecialAction == eSpecialAction::SPECIAL_ACTION_SMOKE_CIGGY)
+        //     {
+        //         pGamePlayer->ApplyStuff();
+        //     }
+        //     else
+        //     {
+        //         pGamePlayer->DropStuff();
+        //     }
+        // }
+
+        if (pGamePlayer->GetCurrentWeapon() != eWeaponSampId::WEAPON_PARACHUTE)
+        {
+            pGamePlayer->DestroyParachute();
+        }
+    }
+}
+
+void CRemotePlayer::ProcessGamePlayerAnimation()
+{
+    if (!CRemotePlayer::IsValidInstance()) {
+        return;
+    }
+
+    CPlayerPed* pGamePlayer = CRemotePlayer::GetGamePlayer();
+    if (pGamePlayer) 
+    {
+        if (!CRemotePlayer::IsGamePlayerValid(CRemotePlayer::GetRemotePlayerID(), pGamePlayer)) {
+            CNecessary::Log(OBFUSCATE("ProcessGamePlayerAnimation: pGamePlayer is no longer valid."));
+            return;
+        }
+
+        int32_t nAnimValue = CRemotePlayer::m_ofSyncData.dwAnimation;
+        if (CRemotePlayer::GetAnimPlayingIndex() != nAnimValue)
+        {
+            if (nAnimValue != 0)
+            {
+                pGamePlayer->PlayAnimationByIndex(nAnimValue);
+            }
+
+            if (nAnimValue == 0 && CRemotePlayer::GetAnimPlayingIndex() == SYNC_ANIM_VEND_EAT_P)
+            {
+                pGamePlayer->ApplyAnimation(OBFUSCATE("VEND_EAT_P"), OBFUSCATE("VENDING"), 4.0, 0, 0, 0, 0, -1);
+                CRemotePlayer::m_ofSyncData.dwAnimation = eInvalidId::INVALID_ID;
+            }
+
+            CRemotePlayer::SetPlayingAnimIndex(CRemotePlayer::m_ofSyncData.dwAnimation);
+            CRemotePlayer::SetPerformingCustomAnimation(false);
+        }
+
+        if (!CRemotePlayer::IsPerformingCustomAnimation() && nAnimValue == 0 && pGamePlayer->IsPerformingCarryTask())
+        {
+            pGamePlayer->ApplyAnimation(OBFUSCATE("crry_prtial"), OBFUSCATE("CARRY"), 4.0f, 0, 0, 0, 0, 0);
         }
     }
 }
