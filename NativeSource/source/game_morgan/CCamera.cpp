@@ -1,5 +1,9 @@
 #include "../../Main.h"
 #include "CCamera.h"
+#include "CUtil.h"
+#include "CGame.h"
+#include "Entity/CEntity.h"
+#include "Multiplayer/CMultiPlayer.h"
 #include "Scripts/CScripting.h"
 
 #include <mach-o/dyld.h>
@@ -17,7 +21,7 @@ CCamera::CCamera()
     {
         m_matPos = reinterpret_cast<CMatrix*>(SA_ADDR(0x72CF08 + 0x970) + _dyld_get_image_vmaddr_slide(0)); // TheCamera->m_mCameraMatrix
     }
-	
+
 	m_pAttachedTo = nullptr;
 }
 
@@ -128,4 +132,47 @@ void CCamera::TakeControl(CCamera* thiz, CEntityGta* NewTarget, eCamMode CamMode
     }
 
     reinterpret_cast<void (*)(CCamera*, CEntityGta*, int16_t, int16_t, int)>(SA_ADDR(0x13A924) + _dyld_get_image_vmaddr_slide(0))(thiz, NewTarget, static_cast<int16_t>(CamMode), static_cast<int16_t>(CamSwitchStyle), WhoIsTakingControl);
+}
+
+void CCamera::Attach(CEntity* pEntity)
+{
+    m_pAttachedTo = pEntity;
+
+    if (pEntity)
+    {
+        CMatrix mat;
+        pEntity->GetMatrix(&mat);
+
+        if (CUtil::IsValidPosition(&mat.pos))
+        {
+            CCamera::InterpolateCameraPos(&mat.pos, &mat.pos, 100.0f, 1);
+        }
+    }
+}
+
+void CCamera::Update()
+{
+    if (m_pAttachedTo && m_pAttachedTo->m_pEntity)
+    {
+        CMatrix mat;
+        m_pAttachedTo->GetMatrix(&mat);
+
+        if (CUtil::IsValidPosition(&mat.pos))
+        {
+            CCamera::InterpolateCameraPos(&mat.pos, &mat.pos, 100.0f, 1);
+        }
+    }
+}
+
+extern "C" __attribute__((visibility("default"))) void CCamera_Process_hook(uintptr_t thiz, void (*original)(uintptr_t))
+{
+    if (CMultiPlayer::GetActiveNetwork())
+    {
+        if (CGame::GetCamera())
+        {
+            CGame::GetCamera()->Update();
+        }
+    }
+
+    original(thiz);
 }

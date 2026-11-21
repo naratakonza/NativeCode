@@ -61,6 +61,8 @@ CFontRender::CFontRender()
     }
 
     m_pFont = io.FontDefault;
+    m_pWebdingsFont = CFontRender::LoadFont(OBFUSCATE("georgia.ttf"), atlasFontSize);
+    if (!m_pWebdingsFont) m_pWebdingsFont = m_pFont;
     m_pFontGTAWeap = CFontRender::LoadFont(OBFUSCATE("gtaweap3.ttf"), atlasFontSize);
     m_pSampFont = CFontRender::LoadFont(OBFUSCATE("sampaux3.ttf"), atlasFontSize * 25.0f / 30.0f);
     if (!m_pFontGTAWeap) m_pFontGTAWeap = m_pFont;
@@ -274,7 +276,7 @@ ImFont* CFontRender::LoadFont(const char* font, float fontsize, const ImWchar* r
         CNecessary::Log(OBFUSCATE("CFontRender | Font open failed: %s (error %d)"), path, result.error.value());
         return nullptr;
     }
-    
+
     if (std::fseek(result.file.get(), 0, SEEK_END) != 0) {
         return nullptr;
     }
@@ -611,4 +613,106 @@ void CFontRender::RenderTextDeathMessage(ImVec2& posCur, ImU32 col, bool bOutlin
     }
 
     ImGui::GetBackgroundDrawList()->AddText(font == nullptr ? GetFont() : font, font_size == 0.0f ? GetFontSize() : font_size, posCur, col, text_begin, text_end);
+}
+
+ImVec2 CFontRender::CalcTextSizeWithoutTags(const float font_size, const char* szStr)
+{
+    if (!szStr) {
+        return ImVec2(0, 0);
+    }
+
+    std::string strNonColored;
+    const char* p = szStr;
+    const char* end = szStr + strlen(szStr);
+    char c;
+
+    while ((c = *p++))
+    {
+        if (c == '{')
+        {
+            ImVec4 tempColor;
+            if (end - p >= 7 && *(p + 6) == '}' && CGui::GetFontRender()->ProcessInlineHexColor(p, p + 6, tempColor))
+            {
+                p += 7;
+                continue;
+            }
+            else if (end - p >= 9 && *(p + 8) == '}' && CGui::GetFontRender()->ProcessInlineHexColor(p, p + 8, tempColor))
+            {
+                p += 9;
+                continue;
+            }
+        }
+
+        strNonColored += c;
+    }
+
+    return CGui::GetFontRender()->GetFont()->CalcTextSizeA(font_size, FLT_MAX, 0.0f, strNonColored.c_str());
+}
+
+void CFontRender::TextWithColors(ImFont *font, const float font_size, uint8_t outline, ImVec2 pos, ImColor col, const char* szStr)
+{
+    char tempStr[4096] = { '\0' };
+
+    ImVec2 vecPos = pos;
+
+    strncpy(tempStr, szStr, sizeof(tempStr) - 1);
+    tempStr[sizeof(tempStr) - 1] = '\0';
+
+    bool pushedColorStyle = false;
+    const char* textStart = tempStr;
+    const char* textCur = tempStr;
+
+    while (textCur < (tempStr + sizeof(tempStr)) && *textCur != '\0')
+    {
+        if (*textCur == '{')
+        {
+            if (textCur != textStart)
+            {
+                CGui::GetFontRender()->RenderTextMethod(vecPos, col, outline, textStart, textCur, font_size, font, true);
+
+                vecPos.x += font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, textStart, textCur).x;
+            }
+
+            const char* colorStart = textCur + 1;
+            do
+            {
+                ++textCur;
+            } while (*textCur != '\0' && *textCur != '}');
+
+            if (pushedColorStyle) {
+                pushedColorStyle = false;
+            }
+
+            ImVec4 textColor;
+            if (CGui::GetFontRender()->ProcessInlineHexColor(colorStart, textCur, textColor))
+            {
+                col = textColor;
+                pushedColorStyle = true;
+            }
+
+            textStart = textCur + 1;
+        }
+        else if (*textCur == '\n')
+        {
+
+            CGui::GetFontRender()->RenderTextMethod(vecPos, col, outline, textStart, textCur, font_size, font, true);
+
+            vecPos.x = pos.x;
+            vecPos.y += font_size;
+            textStart = textCur + 1;
+        }
+
+        ++textCur;
+    }
+
+    if (textCur != textStart)
+    {
+        CGui::GetFontRender()->RenderTextMethod(vecPos, col, outline, textStart, textCur, font_size, font, true);
+
+        vecPos.x += font->CalcTextSizeA(font_size, FLT_MAX, 0.0f, textStart, textCur).x;
+    }
+    else
+    {
+        vecPos.y += font_size;
+    }
 }

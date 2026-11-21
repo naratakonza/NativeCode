@@ -16,6 +16,15 @@ struct RwTexture;
 class CCommon
 {
 public:
+    static void ProjectMatrix(CVector* vecOut, CMatrix* mat, CVector *vecPos);
+    static uintptr_t GetColModelByID(int iModel);
+    static float ModelInfoGetColSphereRadius(int iModelID);
+    static bool ModelInfoGetColSphereVecCenter(int iModelID, CVector *vec);
+    static void SetModelFlags(uint32_t modelIndex);
+    static uint8_t GetModelFlags(uint32_t modelIndex);
+    static void RenderClumpOrAtomic(uintptr_t rwObject);
+    static bool FrustumTestSphere(CVector* pPosition, float fRadius);
+    static bool SphereCastVsEntity(uintptr_t CColSphere1, uintptr_t CColSphere2, CEntityGta* pEntity, bool bTrue);
     static RpHAnimHierarchy* GetAnimHierarchyFromSkinClump(uintptr_t* pClump);
     static CAnimBlendClumpData** GetClumpData(RpClump* clump);
 

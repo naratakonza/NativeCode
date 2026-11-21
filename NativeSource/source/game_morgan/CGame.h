@@ -4,6 +4,7 @@
 #include "CRect.h"
 #include "Entity/Ped/CPlayerPed.h"
 #include "Multiplayer/Snapshot/CModelSnapshot.h"
+#include "Multiplayer/Materials/CMaterialTextGenerator.h"
 
 class CGame
 {
@@ -11,6 +12,7 @@ public:
 	static CCamera* m_pGameCamera;
 	static CPlayerPed* m_pGamePlayer;
     static CModelSnapshot* m_pModelSnapshot;
+    static CMaterialTextGenerator* m_pMaterialTextGenerator;
 
 public:
     static void Initialize();
@@ -52,6 +54,11 @@ public:
 		if (!m_pGamePlayer) m_pGamePlayer = new CPlayerPed();
 		return m_pGamePlayer;
 	};
+
+	static CMaterialTextGenerator* GetMaterialTextGenerator() {
+        if (!m_pMaterialTextGenerator) m_pMaterialTextGenerator = new CMaterialTextGenerator();
+        return m_pMaterialTextGenerator;
+    };
 
 	static CModelSnapshot* GetModelSnapshot() {
 		if (!m_pModelSnapshot) m_pModelSnapshot = new CModelSnapshot();

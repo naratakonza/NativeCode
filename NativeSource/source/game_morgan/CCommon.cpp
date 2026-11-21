@@ -252,7 +252,7 @@ void CCommon::DrawTextureUV(RwTexture *texture, CRect *rect, uint32_t dwColor, f
         {
             RwRenderStateSet(rwRENDERSTATETEXTUREFILTER, reinterpret_cast<void*>(rwFILTERLINEAR));
         }
-        
+
         CSprite2d::Draw(texture, rect, dwColor, uv);
     }
 }
@@ -326,4 +326,144 @@ CAnimBlendClumpData** CCommon::GetClumpData(RpClump* clump)
 
     RwInt32 ClumpOffset = *reinterpret_cast<RwInt32*>(SA_ADDR(0x6952C4) + _dyld_get_image_vmaddr_slide(0));
     return reinterpret_cast<CAnimBlendClumpData**>(reinterpret_cast<uint8_t*>(clump) + ClumpOffset);
+}
+
+void CCommon::ProjectMatrix(CVector* vecOut, CMatrix* mat, CVector *vecPos)
+{
+    vecOut->x = mat->at.x * vecPos->z + mat->up.x * vecPos->y + mat->right.x * vecPos->x + mat->pos.x;
+    vecOut->y = mat->at.y * vecPos->z + mat->up.y * vecPos->y + mat->right.y * vecPos->x + mat->pos.y;
+    vecOut->z = mat->at.z * vecPos->z + mat->up.z * vecPos->y + mat->right.z * vecPos->x + mat->pos.z;
+}
+
+uintptr_t CCommon::GetColModelByID(int iModel)
+{
+    uintptr_t modelInfo = CCommon::GetModelInfoByID(iModel);
+    if (!modelInfo) {
+        return 0;
+    }
+
+    return *reinterpret_cast<uintptr_t*>(modelInfo + 0x30);
+}
+
+float CCommon::ModelInfoGetColSphereRadius(int iModelID)
+{
+    uintptr_t modelInfo = CCommon::GetModelInfoByID(iModelID);
+    if (modelInfo)
+    {
+        uintptr_t colModel = *reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(modelInfo) + 0x30);
+        if (colModel != 0)
+        {
+            return *reinterpret_cast<float*>(colModel + 0x24);
+        }
+    }
+
+    return 0.0f;
+}
+
+bool CCommon::ModelInfoGetColSphereVecCenter(int iModelID, CVector *vec)
+{
+    uintptr_t modelInfo = CCommon::GetModelInfoByID(iModelID);
+    if (modelInfo)
+    {
+        uintptr_t colModel = *reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(modelInfo) + 0x30);
+        if (colModel != 0)
+        {
+            CVector* v = reinterpret_cast<CVector*>(colModel + 0x18);
+
+            vec->x = v->x;
+            vec->y = v->y;
+            vec->z = v->z;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void CCommon::SetModelFlags(uint32_t modelIndex)
+{
+    uintptr_t modelInfo = CCommon::GetModelInfoByID(modelIndex);
+    if (!modelInfo) {
+        return;
+    }
+
+    *reinterpret_cast<uint8_t*>(modelInfo + 0x2C) &= ~1u; // modelInfo->m_flags (ใน CBaseModelInfo)
+}
+
+uint8_t CCommon::GetModelFlags(uint32_t modelIndex)
+{
+    uintptr_t modelInfo = CCommon::GetModelInfoByID(modelIndex);
+    if (!modelInfo) {
+        return 0;
+    }
+
+    return *reinterpret_cast<uint8_t*>(modelInfo + 0x2C); // modelInfo->m_flags (ใน CBaseModelInfo)
+}
+
+void CCommon::RenderClumpOrAtomic(uintptr_t rwObject)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x2C31E0), "\xF6\x57\xBD\xA9\xF4\x4F\x01\xA9", 8, "__text");
+    if (!verified) {
+        return;
+    }
+
+    if (rwObject)
+    {
+        if (*reinterpret_cast<uint8_t*>(rwObject) == 1)
+        {
+            reinterpret_cast<void (*)(uintptr_t)>(*reinterpret_cast<uintptr_t*>(rwObject + 0x70))(rwObject); // rwObject->renderCallBack (Class RpAtomic)
+        }
+        else if (*reinterpret_cast<uint8_t*>(rwObject) == 2)
+        {
+            // rpClumpRender
+            reinterpret_cast<void (*)(uintptr_t)>(SA_ADDR(0x2C31E0) + _dyld_get_image_vmaddr_slide(0))(rwObject);
+        }
+    }
+}
+
+bool CCommon::FrustumTestSphere(CVector* pPosition, float fRadius)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x2AB024), "\x20\x08\x40\x2D\x01\x0C\x58\x2D", 8, "__text");
+    if (!verified) {
+        return false;
+    }
+
+    RwSphere sphere;
+    sphere.center.x = pPosition->x;
+    sphere.center.y = pPosition->y;
+    sphere.center.z = pPosition->z;
+    sphere.radius = fRadius;
+
+    RwCamera* Camera = CCommon::GetRenderWareCamera(); // Scene->m_pRwCamera
+    if (Camera)
+    {
+        return reinterpret_cast<int (*)(RwCamera*, RwSphere*)>(SA_ADDR(0x2AB024) + _dyld_get_image_vmaddr_slide(0))(Camera, &sphere) != 0;
+    }
+
+    return false;
+}
+
+bool CCommon::SphereCastVsEntity(uintptr_t CColSphere1, uintptr_t CColSphere2, CEntityGta* pEntity, bool bTrue)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x8F508), "\xFF\x03\x06\xD1\xFC\x6F\x12\xA9", 8, "__text");
+    if (!verified) {
+        return false;
+    }
+
+    uintptr_t dwSavedgpColCache = 0;
+    if (bTrue)
+    {
+        dwSavedgpColCache = *(uintptr_t*)(SA_ADDR(0x6A70B0) + _dyld_get_image_vmaddr_slide(0));
+        *(uintptr_t*)(SA_ADDR(0x6A70B0) + _dyld_get_image_vmaddr_slide(0)) = 0;
+    }
+
+    // CCollision::SphereCastVsEntity
+    bool bSphereCastVsEntity = reinterpret_cast<bool (*)(uintptr_t, uintptr_t, CEntityGta*)>(SA_ADDR(0x8F508) + _dyld_get_image_vmaddr_slide(0))(CColSphere1, CColSphere2, pEntity);
+
+    if (bTrue)
+    {
+        *(uintptr_t*)(SA_ADDR(0x6A70B0) + _dyld_get_image_vmaddr_slide(0)) = dwSavedgpColCache;
+    }
+
+    return bSphereCastVsEntity;
 }

@@ -7,7 +7,7 @@
 #include "Process/CGangZonePool.h"
 #include "Process/CTextLabelPool.h"
 #include "Process/CPickupPool.h"
-// #include "Process/CObjectPool.h"
+#include "Process/CObjectPool.h"
 // #include "Process/CMenuPool.h"
 
 class CNetGamePool
@@ -19,7 +19,7 @@ class CNetGamePool
 	CGangZonePool* m_pGangZonePool;
 	CTextLabelPool* m_pTextLabelPool;
 	CPickupPool* m_pPickupPool;
-	// CObjectPool* m_pObjectPool;
+	CObjectPool* m_pObjectPool;
 	// CMenuPool* m_pMenuPool;
 
 	[[maybe_unused]] int iVehiclePoolProcessFlag = 0;
@@ -59,9 +59,9 @@ public:
 		return CNetGamePool::m_pPickupPool;
 	};
 
-	// CObjectPool* GetObjectPool() {
-	// 	return CNetGamePool::m_pObjectPool;
-	// };
+	CObjectPool* GetObjectPool() {
+		return CNetGamePool::m_pObjectPool;
+	};
 
 	// CMenuPool* GetMenuPool() {
 	// 	return CNetGamePool::m_pMenuPool;

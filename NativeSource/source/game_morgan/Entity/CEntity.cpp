@@ -542,3 +542,47 @@ void CEntity::UpdateRpHAnim(CEntityGta* thiz)
         reinterpret_cast<void (*)(CEntityGta*)>(SA_ADDR(0x143204) + _dyld_get_image_vmaddr_slide(0))(thiz);
     }
 }
+
+void CEntity::ClearStaticWaitingForCollision()
+{
+    if (m_pEntity)
+    {
+        m_pEntity->m_nEntityFlags &= ~8u;
+    }
+}
+
+bool CEntity::IsEntityIgnored()
+{
+    if (!m_pEntity) {
+        return false;
+    }
+
+    // pIgnoreEntity
+    return ((uintptr_t)m_pEntity == SA_ADDR(0x741E28) + _dyld_get_image_vmaddr_slide(0));
+}
+
+bool CEntity::TestSphereCastVsEntity(uintptr_t CColSphere1, uintptr_t CColSphere2, bool bTrue)
+{
+    if (m_pEntity && !CCommon::IsGameEntityArePlaceable(m_pEntity) && CCommon::ModelInfoGetColSphereRadius(m_pEntity->nModelIndex) > 0.0)
+    {
+        if (bTrue)
+        {
+            return CCommon::SphereCastVsEntity(CColSphere1, CColSphere2, m_pEntity, false);
+        }
+        else
+        {
+            return CCommon::SphereCastVsEntity(CColSphere1, CColSphere2, m_pEntity, true);
+        }
+    }
+
+    return 0;
+}
+
+bool CEntity::IsRenderable()
+{
+    if (!m_pEntity) {
+        return false;
+    }
+
+    return (m_pEntity->vtable != SA_ADDR(0x49BD50) + _dyld_get_image_vmaddr_slide(0) && GetRWObject());
+}

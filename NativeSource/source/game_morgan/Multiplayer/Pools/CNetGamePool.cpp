@@ -12,11 +12,11 @@ CNetGamePool::CNetGamePool()
     CNetGamePool::m_pGangZonePool = new CGangZonePool();
     CNetGamePool::m_pTextLabelPool = new CTextLabelPool();
     CNetGamePool::m_pPickupPool = new CPickupPool();
-    // CNetGamePool::m_pObjectPool = new CObjectPool();
+    CNetGamePool::m_pObjectPool = new CObjectPool();
     // CNetGamePool::m_pMenuPool = new CMenuPool();
 
-    // if (CGui::GetChat()) 
-    // {      
+    // if (CGui::GetChat())
+    // {
     //     CGui::GetChat()->AddDebugMessage(0, OBFUSCATE("CNetGamePool Initialise"));
     // }
 }
@@ -32,7 +32,7 @@ CNetGamePool::~CNetGamePool()
     SAFE_DELETE(CNetGamePool::m_pGangZonePool);
     SAFE_DELETE(CNetGamePool::m_pTextLabelPool);
     SAFE_DELETE(CNetGamePool::m_pPickupPool);
-    // SAFE_DELETE(CNetGamePool::m_pObjectPool);
+    SAFE_DELETE(CNetGamePool::m_pObjectPool);
     // SAFE_DELETE(CNetGamePool::m_pMenuPool);
 }
 
@@ -75,13 +75,13 @@ void CNetGamePool::DeleteAll()
 
     // CNetGamePool::m_pVehiclePool = new CVehiclePool();
 
-    // // Object
-    // if (CNetGamePool::GetObjectPool())
-    // {
-    //     SAFE_DELETE(CNetGamePool::m_pObjectPool);
-    // }
+    // Object
+    if (CNetGamePool::GetObjectPool())
+    {
+        SAFE_DELETE(CNetGamePool::m_pObjectPool);
+    }
 
-    // CNetGamePool::m_pObjectPool = new CObjectPool();
+    CNetGamePool::m_pObjectPool = new CObjectPool();
 
     // Pickup
     if (CNetGamePool::GetPickupPool())

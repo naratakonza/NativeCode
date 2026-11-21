@@ -17,6 +17,9 @@
 #include "../CPools.h"
 #include "../CPedIntelligence.h"
 #include "../CUtil.h"
+#include "../CCommon.h"
+#include "../Entity/Object/CObject.h"
+#include "Optimize/CGtaObjectCache.h"
 #include "../CBuildingRemove.h"
 #include "../Animation/CAnimation.h"
 #include "../Tasks/TaskTypes/CTaskSimplePlayerOnFoot.h"
@@ -198,7 +201,7 @@ extern "C" __attribute__((visibility("default"))) bool LoadFullTexture_hook(void
 
         end = std::min(end, static_cast<std::int64_t>(fileStart) + fileLength);
     }
-    
+
     if (end < position || readSize > static_cast<std::uint64_t>(end - position)) {
         return false;
     }
@@ -288,6 +291,17 @@ extern "C" __attribute__((visibility("default"))) void CGame_Process_hook(void (
             }
         }
     }
+
+    CGtaObjectCache::Update();
+
+    if (pthread_main_np() && CMultiPlayer::IsSampInit() && CMultiPlayer::GetActiveNetwork())
+    {
+        if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetObjectPool())
+        {
+            CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetObjectPool()->Process();
+            CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetObjectPool()->ProcessMaterialText();
+        }
+    }
 }
 
 extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (*EndFrame2D)())
@@ -329,7 +343,7 @@ extern "C" __attribute__((visibility("default"))) void Render2dStuff_hook(void (
 				return;
 			}
 
-            if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()) 
+            if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool())
 			{
 				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->Draw();
 			}
@@ -999,6 +1013,145 @@ extern "C" __attribute__((visibility("default"))) void CWorld_ProcessPedsAfterPr
         if (pPlayerPool)
         {
             pPlayerPool->ProcessAllPlayersAfterPreRender();
+        }
+    }
+}
+
+extern "C" __attribute__((visibility("default"))) void CObject_Render_hook(CEntityGta* thiz, void (*original)(CEntityGta*))
+{
+    bool bRestoredFields = false;
+    uint8_t oldType = 0;
+    uint32_t oldFlags = 0;
+    int16_t oldModelIndex = eInvalidId::INVALID_ID;
+    uint8_t oldColor1 = 0, oldColor2 = 0, oldColor3 = 0, oldColor4 = 0;
+    uintptr_t oldRemap = 0;
+
+    if (thiz && thiz->m_pRwObject)
+    {
+        if (!CCommon::IsGameEntityArePlaceable(thiz))
+        {
+            if (thiz->m_pRwObject->type == rpCLUMP)
+            {
+                RpClump* pClump = reinterpret_cast<RpClump*>(thiz->m_pRwObject);
+                CUtil::RpClumpForAllAtomics(pClump, CObject::FixObjectLightingCB, nullptr);
+            }
+            else if (thiz->m_pRwObject->type == rpATOMIC)
+            {
+                RpAtomic* pAtomic = reinterpret_cast<RpAtomic*>(thiz->m_pRwObject);
+                CObject::FixObjectLightingCB(pAtomic, nullptr);
+            }
+        }
+
+        uint16_t modelIndex = thiz->nModelIndex;
+        if (modelIndex >= 1000 && modelIndex <= 1193)
+        {
+            CEntityGta* pAttachGta = nullptr;
+            CPhysicalGta* pPhysical = reinterpret_cast<CPhysicalGta*>(thiz);
+            if (pPhysical)
+            {
+                pAttachGta = pPhysical->m_pAttachToEntity;
+            }
+
+            CEntityGta* pVehicleGta = nullptr;
+            if (pAttachGta && pAttachGta->m_nType == eEntityType::ENTITY_TYPE_VEHICLE)
+            {
+                pVehicleGta = pAttachGta;
+            }
+
+            uint8_t type = *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 416);
+            uint32_t flags = *reinterpret_cast<uint32_t*>(reinterpret_cast<uintptr_t>(thiz) + 420);
+            int16_t parentModelIndex = *reinterpret_cast<int16_t*>(reinterpret_cast<uintptr_t>(thiz) + 430);
+
+            oldType = type;
+            oldFlags = flags;
+            oldModelIndex = parentModelIndex;
+            oldColor1 = *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 432);
+            oldColor2 = *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 433);
+            oldColor3 = *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 434);
+            oldColor4 = *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 435);
+            oldRemap = *reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(thiz) + 480);
+
+            // ตอนติดบนรถ เหมือนมันจะไม่บัคอยู่แล้วใน 2.11.311
+            // if (pVehicleGta)
+            // {
+            //  *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 416) = 3;
+            //  *reinterpret_cast<uint32_t*>(reinterpret_cast<uintptr_t>(thiz) + 420) = (oldFlags | 0x80) & ~0x2000000;
+            //  *reinterpret_cast<int16_t*>(reinterpret_cast<uintptr_t>(thiz) + 430) = pVehicleGta->nModelIndex;
+            //  *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 432) = pVehicleGta->m_nPrimaryColor;
+            //  *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 433) = pVehicleGta->m_nSecondaryColor;
+            //  *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 434) = pVehicleGta->m_colour3;
+            //  *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 435) = pVehicleGta->m_colour4;
+
+            //  uintptr_t remapTex = *reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(pVehicleGta) + 1872);
+            //  *reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(thiz) + 480) = remapTex;
+
+            //  bRestoredFields = true;
+            // }
+
+            if (!pVehicleGta)
+            {
+                *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 416) = 3;
+                *reinterpret_cast<uint32_t*>(reinterpret_cast<uintptr_t>(thiz) + 420) = (oldFlags | 0x80) & ~0x2000000;
+
+                if (parentModelIndex == eInvalidId::INVALID_ID)
+                {
+                    *reinterpret_cast<int16_t*>(reinterpret_cast<uintptr_t>(thiz) + 430) = 400; // Landstalker
+                }
+
+                bRestoredFields = true;
+            }
+        }
+    }
+
+    if (thiz && CMultiPlayer::IsSampActive() && !CCommon::IsGameEntityArePlaceable(thiz))
+    {
+        // CObject* pAccessory = CGtaObjectCache::FindAccessory(thiz);
+        // if (pAccessory)
+        // {
+        // pAccessory->ProcessMaterialUpdates();
+        // }
+
+        CObject* pObject = CGtaObjectCache::FindObject(thiz);
+        if (pObject)
+        {
+            pObject->ProcessMaterialUpdates();
+        }
+    }
+
+    original(thiz);
+
+    if (bRestoredFields)
+    {
+        *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 416) = oldType;
+        *reinterpret_cast<uint32_t*>(reinterpret_cast<uintptr_t>(thiz) + 420) = oldFlags;
+        *reinterpret_cast<int16_t*>(reinterpret_cast<uintptr_t>(thiz) + 430) = oldModelIndex;
+        *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 432) = oldColor1;
+        *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 433) = oldColor2;
+        *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 434) = oldColor3;
+        *reinterpret_cast<uint8_t*>(reinterpret_cast<uintptr_t>(thiz) + 435) = oldColor4;
+        *reinterpret_cast<uintptr_t*>(reinterpret_cast<uintptr_t>(thiz) + 480) = oldRemap;
+    }
+
+    if (thiz && CMultiPlayer::IsSampActive() && !CCommon::IsGameEntityArePlaceable(thiz))
+    {
+        CObject* pObject = CGtaObjectCache::FindObject(thiz);
+        if (pObject)
+        {
+            pObject->ProcessMaterialRestore();
+        }
+    }
+}
+
+extern "C" __attribute__((visibility("default"))) void CPhysical_PositionAttachedEntity_hook(CPhysicalGta* thiz, void (*original)(CPhysicalGta*))
+{
+    original(thiz);
+
+    if (CMultiPlayer::IsSampActive())
+    {
+        CObject* pObject = CGtaObjectCache::FindObject(thiz);
+        if (pObject)
+        {
+            pObject->ProcessAttachedObject();
         }
     }
 }

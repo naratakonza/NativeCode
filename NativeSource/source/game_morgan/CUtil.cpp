@@ -51,7 +51,7 @@ void CUtil::RpAnimBlendClumpUpdateAnimations(uintptr_t pClump, float fTimeStep, 
 float CUtil::DegToRad(float fDegrees)
 {
     if (fDegrees > 360.0f || fDegrees < 0.0f) return 0.0f;
-    
+
     if (fDegrees > 180.0f) return (float)(-(PI - (((fDegrees - 180.0f) * PI) / 180.0f)));
     else return (float)((fDegrees * PI) / 180.0f);
 }
@@ -633,4 +633,18 @@ void CUtil::CalculateAimVector(CVector* vec1, CVector* vec2)
     vec2->x = vec1->y * 0.0 - f3 * vec1->z;
     vec2->y = f2 * vec1->z - vec1->x * 0.0;
     vec2->z = f3 * vec1->x - f2 * vec1->y;
+}
+
+bool CUtil::IsValidPosition(const CVector* vec)
+{
+    if (!vec) {
+        return false;
+    }
+
+    return vec->x < 20000.0f && vec->x > -20000.0f && vec->y < 20000.0f && vec->y > -20000.0f && vec->z < 100000.0f && vec->z > -10000.0f;
+}
+
+RpClump* CUtil::RpClumpForAllAtomics(RpClump* clump, RpAtomicCallBack callback, void* data)
+{
+    return ::RpClumpForAllAtomics(clump, callback, data);
 }

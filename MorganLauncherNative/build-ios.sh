@@ -98,6 +98,7 @@ for source in \
     "$multiplayer/Pools/CNetGamePool.cpp" "$multiplayer/Pools/Process/CPlayerPool.cpp" "$multiplayer/Syncs/CRemotePlayer.cpp" \
     "$multiplayer/Syncs/Core/CHeadMove.cpp" "$multiplayer/Syncs/Core/CMarkerIcon.cpp" "$multiplayer/Syncs/Core/CCheckPoint.cpp" "$multiplayer/Pools/Process/CMapIconPool.cpp" \
     "$multiplayer/Guis/Gps/CGPSMarker.cpp" "$multiplayer/Guis/Gps/CGPSNavigator.cpp" "$native/source/game_morgan/CSprite.cpp" \
+    "$native/source/game_morgan/Entity/Object/CObject.cpp" "$multiplayer/Pools/Process/CObjectPool.cpp" "$native/source/game_morgan/Base/Optimize/CGtaObjectCache.cpp" "$multiplayer/Materials/CMaterialTextGenerator.cpp" \
     "$multiplayer/Snapshot/CModelSnapshot.cpp" \
     "$multiplayer/Syncs/CLocalPlayer.cpp" \
     "$multiplayer/Audio/CAudio.cpp" \
@@ -168,6 +169,7 @@ xcrun --sdk iphoneos clang++ -target arm64-apple-ios16.0 -isysroot "$sdk" -dynam
     "$out/fileio-objects/CNetGamePool.o" "$out/fileio-objects/CPlayerPool.o" "$out/fileio-objects/CRemotePlayer.o" \
     "$out/fileio-objects/CHeadMove.o" "$out/fileio-objects/CMarkerIcon.o" "$out/fileio-objects/CCheckPoint.o" "$out/fileio-objects/CMapIconPool.o" \
     "$out/fileio-objects/CGPSMarker.o" "$out/fileio-objects/CGPSNavigator.o" "$out/fileio-objects/CSprite.o" \
+    "$out/fileio-objects/CObject.o" "$out/fileio-objects/CObjectPool.o" "$out/fileio-objects/CGtaObjectCache.o" "$out/fileio-objects/CMaterialTextGenerator.o" \
     "$out/fileio-objects/CModelSnapshot.o" \
     "$out/fileio-objects/CLocalPlayer.o" \
     "$out/fileio-objects/CAudio.o" \

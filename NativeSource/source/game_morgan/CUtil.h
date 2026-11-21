@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "RenderWare/RenderWare.h"
 #include <string>
 
 class CMatrix;
@@ -13,6 +14,8 @@ struct CPhysicalGta;
 class CUtil
 {
 public:
+    static bool IsValidPosition(const CVector* vec);
+    static RpClump* RpClumpForAllAtomics(RpClump* clump, RpAtomicCallBack callback, void* data);
     static bool LIB_PointerGetCoordinates(int device, int* x, int* y, float* pressure);
     static CPedGta* GamePool_FindPlayerPed();
     static int GamePedStatPrim(int model_id);

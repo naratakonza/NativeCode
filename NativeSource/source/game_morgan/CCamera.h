@@ -33,13 +33,13 @@ public:
 	void InterpolateCameraPos(CVector *posFrom, CVector *posTo, int time, uint8_t mode);
 	void InterpolateCameraLookAt(CVector *posFrom, CVector *posTo, int time, uint8_t mode);
 
-	// void Attach(CEntity* pEntity);
+	void Attach(CEntity* pEntity);
 
 	CEntity* GetAttach() {
 		return m_pAttachedTo;
 	};
 
-	// void Update();
+	void Update();
 	static void LerpFOV(float from, float to, float time, bool bSetSmoothEnds);
 
 private:

@@ -8,6 +8,7 @@
 #include "../Guis/CGui.h"
 #include "../Pools/Process/CMapIconPool.h"
 #include "../../CGame.h"
+#include "../../Entity/Object/CObject.h"
 #include "../../CBuildingRemove.h"
 #include "../../CClock.h"
 #include "../../CTimer.h"
@@ -18,7 +19,7 @@
 #include "../Audio/CAudio.h"
 #include "../Texts/CGameText.h"
 
-int bytesToBits(int bytes) 
+int bytesToBits(int bytes)
 {
 	return bytes * 8;
 }
@@ -57,13 +58,13 @@ void InitGame(RakNet::BitStream bsInitGame)
 	CMultiPlayer::GetActiveNetwork()->m_bNameTagLOS = true;
 	bsInitGame.ReadCompressed(CMultiPlayer::GetActiveNetwork()->m_bManualVehicleEngineAndLight);		// native ManualVehicleEngineAndLights(); +
 	bsInitGame.Read(CMultiPlayer::GetActiveNetwork()->m_iSpawnsAvailable);								// +
-	bsInitGame.Read(MyPlayerID);																		// 
+	bsInitGame.Read(MyPlayerID);																		//
 	bsInitGame.ReadCompressed(CMultiPlayer::GetActiveNetwork()->m_bShowPlayerTags);						// native ShowNameTags(show); +
 	bsInitGame.Read(CMultiPlayer::GetActiveNetwork()->m_iShowPlayerMarkers);							// native ShowPlayerMarkers(mode); +
 	bsInitGame.Read(CMultiPlayer::GetActiveNetwork()->m_byteWorldTime);									// native SetWorldTime(hour); +
 	bsInitGame.Read(CMultiPlayer::GetActiveNetwork()->m_byteWeather);									// native SetWeather(weatherid); +
 	bsInitGame.Read(CMultiPlayer::GetActiveNetwork()->m_fGravity);										// native SetGravity(Float:gravity); +
-	bsInitGame.ReadCompressed(bLanMode);																// 
+	bsInitGame.ReadCompressed(bLanMode);																//
 	bsInitGame.Read(CMultiPlayer::GetActiveNetwork()->m_iDeathDropMoney);								// native SetDeathDropAmount(amount); +
 	bsInitGame.ReadCompressed(CMultiPlayer::GetActiveNetwork()->m_bInstagib);							// always 0
 
@@ -129,14 +130,14 @@ void InitGame(RakNet::BitStream bsInitGame)
 
     CMultiPlayer::GetActiveNetwork()->SetNetworkState(eNetworkState::GAMESTATE_CONNECTED);
 
-	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) 
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
 	{
-		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()) 
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
 		{
 			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->SetLocalID(MyPlayerID);
 			CNecessary::Log(OBFUSCATE("LocalID : %d"), MyPlayerID);
 
-			if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsSpectating()) 
+			if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->IsSpectating())
 			{
 				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->HandleClassSelection();
 			}
@@ -402,7 +403,7 @@ void SetPlayerFacingAngle(RakNet::BitStream bsData)
 
 	bsData.Read(fAngle);
 
-	if (CGame::GetPlayer()) 
+	if (CGame::GetPlayer())
 	{
 		CGame::GetPlayer()->ForceTargetRotation(fAngle);
 	}
@@ -522,6 +523,43 @@ void InterpolateCamera(RakNet::BitStream bsData)
 	}
 }
 
+void AttachCameraToObject(RakNet::BitStream bsData)
+{
+    CNecessary::Log(OBFUSCATE("RPC: AttachCameraToObject"));
+
+    int bitsTotal =
+        bytesToBits(sizeof(uint16_t));
+
+    if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+        CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for AttachCameraToObject"));
+        return;
+    }
+
+    if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetObjectPool())
+    {
+        uint16_t wObjectId;
+
+        bsData.Read(wObjectId);
+        if (wObjectId >= eMaxItem::MAX_OBJECTS) {
+            return;
+        }
+
+        if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
+        {
+            CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->m_bSpectateProcessed = true;
+        }
+
+        CObject *pObject = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetObjectPool()->GetObject(wObjectId);
+        if (pObject)
+        {
+            if (pObject->m_pEntity)
+            {
+                CGame::GetCamera()->Attach(pObject);
+            }
+        }
+    }
+}
+
 void SpectatePlayer(RakNet::BitStream bsData)
 {
     CNecessary::Log(OBFUSCATE("RPC: SpectatePlayer"));
@@ -637,7 +675,7 @@ void ClientMessage(RakNet::BitStream bsClientMessage)
 		bsClientMessage.Read(szMsg, dwStrLen);
 		szMsg[dwStrLen] = 0;
 
-		if (CGui::GetChat()) 
+		if (CGui::GetChat())
 		{
 			CGui::GetChat()->AddClientMessage(dwColor, szMsg);
 		}
@@ -666,10 +704,10 @@ void SetPlayerColor(RakNet::BitStream bsData)
 			if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
 			{
 				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->SetPlayerColor(dwColor);
-			} 
-			else 
+			}
+			else
 			{
-				if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)) 
+				if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId))
 				{
 					CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->UpdateColorOnRadar(dwColor);
 				}
@@ -964,7 +1002,7 @@ void RequestClass(RakNet::BitStream bsRC)
 		return;
 	}
 
-    if (byteRequestOutcome) 
+    if (byteRequestOutcome)
 	{
         CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->SetSpawnInfo(&SpawnInfo);
         CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->HandleClassSelectionOutcome(true);
@@ -979,7 +1017,7 @@ void ForceSpawnSelection()
 {
 	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
 	{
-		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()) 
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
 		{
 			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->ReturnToClassSelection();
 		}
@@ -1001,7 +1039,7 @@ void SetSpawnInfo(RakNet::BitStream bsData)
 
 	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
 	{
-		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()) 
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
 		{
 			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->SetSpawnInfo(&SpawnInfo);
 		}
@@ -1082,7 +1120,7 @@ void WorldPlayerRemove(RakNet::BitStream bsData)
 
 	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
 	{
-		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)) 
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId))
 		{
 			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->RemoveGamePlayer(4);
 		}
@@ -1159,7 +1197,7 @@ void ShowActor(RakNet::BitStream bsData)
 	bsData.Read(fHealth);
 	bsData.Read(bInvulnerable);
 
-	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()) 
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool())
 	{
 		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->Add(actorId, iSkinId, vecPos, fRotation, fHealth, bInvulnerable);
 	}
@@ -1181,7 +1219,7 @@ void HideActor(RakNet::BitStream bsData)
 
 	bsData.Read(actorId);
 
-	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()) 
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool())
 	{
 		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->Delete(actorId, true);
 	}
@@ -1206,11 +1244,11 @@ void SetActorHealth(RakNet::BitStream bsData)
 	bsData.Read(actorId);
 	bsData.Read(fHealth);
 
-	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()) 
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool())
 	{
-		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActorInSlot(actorId)) 
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActorInSlot(actorId))
 		{
-			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)) 
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId))
 			{
 				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)->SetHealth(fHealth);
 			}
@@ -1237,11 +1275,11 @@ void SetActorFacingAngle(RakNet::BitStream bsData)
 	bsData.Read(actorId);
 	bsData.Read(fAngle);
 
-	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()) 
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool())
 	{
-		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActorInSlot(actorId)) 
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActorInSlot(actorId))
 		{
-			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)) 
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId))
 			{
 				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)->SetAngle(fAngle);
 			}
@@ -1268,11 +1306,11 @@ void SetActorPos(RakNet::BitStream bsData)
 	bsData.Read(actorId);
 	bsData.Read((char*)&vecPos, sizeof(VECTOR));
 
-	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()) 
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool())
 	{
-		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActorInSlot(actorId)) 
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActorInSlot(actorId))
 		{
-			if(CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)) 
+			if(CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId))
 			{
 				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)->SetPosition(vecPos);
 			}
@@ -1337,11 +1375,11 @@ void ApplyActorAnimation(RakNet::BitStream bsData)
 	bsData.Read(bFreeze);
 	bsData.Read(uiTime);
 
-	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()) 
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool())
 	{
-		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActorInSlot(actorId)) 
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActorInSlot(actorId))
 		{
-			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)) 
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId))
 			{
 				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)->ApplyAnimation(szAnimName, szAnimLib, fDelta, bLoop, bLockX, bLockY, bFreeze, uiTime);
 			}
@@ -1365,11 +1403,11 @@ void ClearActorAnimation(RakNet::BitStream bsData)
 
 	bsData.Read(actorId);
 
-	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()) 
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool())
 	{
-		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActorInSlot(actorId)) 
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActorInSlot(actorId))
 		{
-			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)) 
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId))
 			{
 				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetActorPool()->GetActor(actorId)->ClearAnimations();
 			}
@@ -1428,18 +1466,18 @@ void SetPlayerSkin(RakNet::BitStream bsData)
 		return;
 	}
 
-	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) 
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
 	{
-		if (iPlayerID == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID()) 
+		if (iPlayerID == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
 		{
-			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()) 
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed())
 			{
 				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->SetModelIndex(uiSkin);
 			}
-		} 
+		}
 		else
 		{
-			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(iPlayerID) && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(iPlayerID)->GetGamePlayer()) 
+			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(iPlayerID) && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(iPlayerID)->GetGamePlayer())
 			{
 				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(iPlayerID)->GetGamePlayer()->SetModelIndex(uiSkin);
 			}
@@ -1452,13 +1490,13 @@ void SetPlayerPosFindZ(RakNet::BitStream bsData)
 	CNecessary::Log(OBFUSCATE("RPC: SetPlayerPosFindZ"));
 
 	alignas(float) VECTOR vecPos = VECTOR();
-	if (bsData.GetNumberOfUnreadBits() >= 96) 
+	if (bsData.GetNumberOfUnreadBits() >= 96)
 	{
 		bsData.Read(vecPos.x);
 		bsData.Read(vecPos.y);
 		bsData.Read(vecPos.z);
-	} 
-	else 
+	}
+	else
 	{
 		CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetPlayerPosFindZ"));
 	}
@@ -1466,9 +1504,9 @@ void SetPlayerPosFindZ(RakNet::BitStream bsData)
 	vecPos.z = CGame::FindGroundZForCoord(vecPos.x, vecPos.y, vecPos.z);
 	vecPos.z += 1.5f;
 
-	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) 
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
 	{
-		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()) 
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed())
 		{
 			// CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->EndSurfing();
 			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->TeleportTo(vecPos.x, vecPos.y, vecPos.z);
@@ -1540,6 +1578,467 @@ void SetPlayerArmour(RakNet::BitStream bsData)
 	}
 
 	CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->SetArmour(fArm);
+}
+
+void CreateObject(RakNet::BitStream bsData)
+{
+    // CNecessary::Log(OBFUSCATE("RPC: CreateObject"));
+
+    [[maybe_unused]] int bitsTotal =
+        bytesToBits(sizeof(uint16_t)) +
+        bytesToBits(sizeof(int32_t)) +
+        bytesToBits(sizeof(CVector) * 2) +
+        bytesToBits(sizeof(float)) +
+        bytesToBits(sizeof(int16_t)) +
+        bytesToBits(sizeof(int16_t)) +
+        bytesToBits(sizeof(uint8_t));
+
+    // if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+    //  CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for CreateObject"));
+    //     return;
+    // }
+
+    uint16_t usObjectId;
+    int32_t iModelIndex;
+    CVector vecPos;
+    CVector vecRot;
+    float fDrawDistance;
+    int8_t byteNoCameraCol;
+
+    uint16_t wAttachedVehicle, wAttachedObject;
+    CVector vecAttachOffset;
+    CVector vecAttachRot;
+    int8_t cAttachSyncRot;
+
+    bsData.Read(usObjectId);
+    bsData.Read(iModelIndex);
+    bsData.Read(vecPos.x);
+    bsData.Read(vecPos.y);
+    bsData.Read(vecPos.z);
+    bsData.Read(vecRot.x);
+    bsData.Read(vecRot.y);
+    bsData.Read(vecRot.z);
+    bsData.Read(fDrawDistance);
+    bsData.Read(byteNoCameraCol);
+    bsData.Read(wAttachedVehicle);
+    bsData.Read(wAttachedObject);
+
+    if (wAttachedVehicle != eInvalidId::INVALID_VEHICLE_ID || wAttachedObject != eInvalidId::INVALID_OBJECT_ID) {
+        bsData.Read((char*)&vecAttachOffset, sizeof(CVector));
+        bsData.Read((char*)&vecAttachRot, sizeof(CVector));
+        bsData.Read(cAttachSyncRot);
+    }
+
+    uint8_t byteMaterialsCount = 0;
+    bsData.Read(byteMaterialsCount);
+
+    CObjectPool* pObjectPool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetObjectPool();
+
+    if (pObjectPool)
+    {
+        // if (CGui::GetChat())
+        // {
+        //  CGui::GetChat()->AddDebugMessage(OBFUSCATE("CreateObject : Id : %d, Model : %d, x : %2.f, y : %2.f, z : %2.f"), usObjectId, iModelIndex, vecPos.x, vecPos.y, vecPos.z);
+        // }
+
+        if (!pObjectPool->Add(usObjectId, iModelIndex, vecPos, vecRot, fDrawDistance))
+        {
+            return;
+        }
+    }
+
+    CObject* pObject = pObjectPool->GetObject(usObjectId);
+    if (!pObject) {
+        return;
+    }
+
+    if (wAttachedObject != eInvalidId::INVALID_OBJECT_ID)
+    {
+        pObject->SetAttachedToObject(wAttachedObject, vecAttachOffset, vecAttachRot, cAttachSyncRot);
+    }
+    // else if (wAttachedVehicle != eInvalidId::INVALID_VEHICLE_ID)
+    // {
+        // pObject->SetAttachedToVehicle(wAttachedVehicle, vecAttachOffset, vecAttachRot);
+    // }
+
+    if (byteMaterialsCount > 0)
+    {
+        uint8_t byteMaterialType;
+        uint8_t byteMaterialIndex;
+        uint8_t byteLength;
+        bsData.Read(byteMaterialType);
+
+        switch (byteMaterialType)
+        {
+            default: {
+                break;
+            }
+
+            case eMaterialType::MATERIAL_TYPE_TEXTURE: {
+                uint16_t wModelID;
+                std::array<char, 32 + 1> szTxdName = { 0 };
+                std::array<char, 32 + 1> szTexName = { 0 };
+                uint32_t dwColor;
+                bsData.Read(byteMaterialIndex);
+                bsData.Read(wModelID);
+                bsData.Read(byteLength);
+
+                if (byteLength >= szTxdName.size()) {
+                    return;
+                }
+
+                bsData.Read(szTxdName.data(), byteLength);
+                szTxdName[byteLength] = '\0';
+                bsData.Read(byteLength);
+
+                if (byteLength >= szTexName.size()) {
+                    return;
+                }
+
+                bsData.Read(szTexName.data(), byteLength);
+                szTexName[byteLength] = '\0';
+                bsData.Read(dwColor);
+
+                int materialModelId = (wModelID <= eMaxItem::MAX_MODELINFO) ? static_cast<int>(wModelID) : eInvalidId::INVALID_ID;
+                pObject->SetMaterial(materialModelId, byteMaterialIndex, szTxdName.data(), szTexName.data(), dwColor);
+
+                break;
+            }
+
+            case eMaterialType::MATERIAL_TYPE_TEXT: {
+                uint8_t byteMaterialSize;
+                std::array<char, 32 + 1> szFontName = { '\0' };
+                uint8_t byteFontSize;
+                uint8_t byteFontBold;
+                uint32_t dwFontColor;
+                uint32_t dwBackgroundColor;
+                uint8_t byteAlign;
+                std::array<char, 2048 + 1> szText = { '\0' };
+                bsData.Read(byteMaterialIndex);
+                bsData.Read(byteMaterialSize);
+                bsData.Read(byteLength);
+
+                if (byteLength > szFontName.size()) {
+                    return;
+                }
+
+                bsData.Read(szFontName.data(), byteLength);
+                szFontName[byteLength] = '\0';
+                bsData.Read(byteFontSize);
+                bsData.Read(byteFontBold);
+                bsData.Read(dwFontColor);
+                bsData.Read(dwBackgroundColor);
+                bsData.Read(byteAlign);
+                stringCompressor->DecodeString(szText.data(), szText.size(), &bsData);
+                pObject->SetMaterialText(byteMaterialIndex, byteMaterialSize, szFontName.data(), byteFontSize, byteFontBold, dwFontColor, dwBackgroundColor, byteAlign, szText.data());
+
+                break;
+            }
+        }
+    }
+
+    if (pObject && byteNoCameraCol)
+    {
+        pObject->m_bDontCollideWithCamera = true;
+    }
+}
+
+void SetObjectMaterial(RakNet::BitStream bsData)
+{
+    // CNecessary::Log(OBFUSCATE("RPC: SetObjectMaterial"));
+
+    int bitsTotal =
+        bytesToBits(sizeof(uint16_t)) +
+        bytesToBits(sizeof(uint8_t)) +
+        bytesToBits(sizeof(uint8_t));
+
+    if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+        CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetObjectMaterial"));
+        return;
+    }
+
+    CObjectPool* pObjectPool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetObjectPool();
+    if (!pObjectPool) {
+        return;
+    }
+
+    uint16_t wObjectId;
+    bsData.Read(wObjectId);
+    if (wObjectId >= eMaxItem::MAX_OBJECTS) {
+        return;
+    }
+
+    CObject* pObject = pObjectPool->GetObject(wObjectId);
+    if (!pObject) {
+        return;
+    }
+
+    uint8_t byteMaterialType, byteMaterialIndex;
+    bsData.Read(byteMaterialType);
+
+    uint8_t byteLength;
+
+    switch (byteMaterialType)
+    {
+        case eMaterialType::MATERIAL_TYPE_TEXTURE: {
+            uint16_t wModelID;
+            std::array<char, 32 + 1> szTxdName = { 0 };
+            std::array<char, 32 + 1> szTexName = { 0 };
+            uint32_t dwColor;
+            bsData.Read(byteMaterialIndex);
+            bsData.Read(wModelID);
+            bsData.Read(byteLength);
+
+            if (byteLength > szTxdName.size()) {
+                return;
+            }
+
+            bsData.Read(szTxdName.data(), byteLength);
+            szTxdName[byteLength] = '\0';
+            bsData.Read(byteLength);
+
+            if (byteLength > szTexName.size()) {
+                return;
+            }
+
+            bsData.Read(szTexName.data(), byteLength);
+            szTexName[byteLength] = '\0';
+            bsData.Read(dwColor);
+
+            int materialModelId = (wModelID == eInvalidId::INVALID_OBJECT_ID) ? eInvalidId::INVALID_ID : static_cast<int>(wModelID);
+            pObject->SetMaterial(materialModelId, byteMaterialIndex, szTxdName.data(), szTexName.data(), dwColor);
+
+            break;
+        }
+
+        case eMaterialType::MATERIAL_TYPE_TEXT: {
+            uint8_t byteMaterialSize;
+            std::array<char, 32 + 1> szFontName = { '\0' };
+            uint8_t byteFontSize;
+            uint8_t byteFontBold;
+            uint32_t dwFontColor;
+            uint32_t dwBackgroundColor;
+            uint8_t byteAlign;
+            std::array<char, 2048 + 1> szText = { '\0' };
+            bsData.Read(byteMaterialIndex);
+            bsData.Read(byteMaterialSize);
+            bsData.Read(byteLength);
+
+            if (byteLength > szFontName.size()) {
+                return;
+            }
+
+            bsData.Read(szFontName.data(), byteLength);
+            szFontName[byteLength] = '\0';
+            bsData.Read(byteFontSize);
+            bsData.Read(byteFontBold);
+            bsData.Read(dwFontColor);
+            bsData.Read(dwBackgroundColor);
+            bsData.Read(byteAlign);
+            stringCompressor->DecodeString(szText.data(), szText.size(), &bsData);
+            pObject->SetMaterialText(byteMaterialIndex, byteMaterialSize, szFontName.data(), byteFontSize, byteFontBold, dwFontColor, dwBackgroundColor, byteAlign, szText.data());
+
+            break;
+        }
+    }
+}
+
+void SetObjectPos(RakNet::BitStream bsData)
+{
+    CNecessary::Log(OBFUSCATE("RPC: SetObjectPos"));
+
+    int bitsTotal =
+        bytesToBits(sizeof(int16_t)) +
+        bytesToBits(sizeof(CVector));
+
+    if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+        CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetObjectPos"));
+        return;
+    }
+
+    int16_t sObjectId;
+    CVector vecPos;
+
+    bsData.Read(sObjectId);
+    bsData.Read(vecPos.x);
+    bsData.Read(vecPos.y);
+    bsData.Read(vecPos.z);
+
+    if (sObjectId < 0 || sObjectId >= eMaxItem::MAX_OBJECTS) {
+        return;
+    }
+
+    if (!CMultiPlayer::GetActiveNetwork()) {
+        return;
+    }
+
+    CObjectPool* pObjectPool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetObjectPool();
+    if (!pObjectPool) {
+        return;
+    }
+
+    CObject* pObject = pObjectPool->GetObject(sObjectId);
+    if (pObject)
+    {
+        pObject->TeleportTo(vecPos.x, vecPos.y, vecPos.z);
+    }
+}
+
+void SetObjectRotation(RakNet::BitStream bsData)
+{
+    CNecessary::Log(OBFUSCATE("RPC: SetObjectRotation"));
+
+    int bitsTotal =
+        bytesToBits(sizeof(int16_t)) +
+        bytesToBits(sizeof(CVector));
+
+    if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+        CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SetObjectRotation"));
+        return;
+    }
+
+    int16_t sObjectId;
+    CVector vecRot;
+
+    bsData.Read(sObjectId);
+    bsData.Read(vecRot.x);
+    bsData.Read(vecRot.y);
+    bsData.Read(vecRot.z);
+
+    if (sObjectId < 0 || sObjectId >= eMaxItem::MAX_OBJECTS) {
+        return;
+    }
+
+    if (!CMultiPlayer::GetActiveNetwork()) {
+        return;
+    }
+
+    CObjectPool* pObjectPool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetObjectPool();
+    if (!pObjectPool) {
+        return;
+    }
+
+    CObject* pObject = pObjectPool->GetObject(sObjectId);
+    if (pObject)
+    {
+        pObject->InstantRotate(vecRot.x, vecRot.y, vecRot.z);
+    }
+}
+
+void DestroyObject(RakNet::BitStream bsData)
+{
+    // CNecessary::Log(OBFUSCATE("RPC: DestroyObject"));
+
+    int bitsTotal = bytesToBits(sizeof(int16_t));
+    if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+        CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for DestroyObject"));
+        return;
+    }
+
+    int16_t usObjectId;
+    bsData.Read(usObjectId);
+
+    if (usObjectId < 0 || usObjectId >= eMaxItem::MAX_OBJECTS) {
+        return;
+    }
+
+    if (!CMultiPlayer::GetActiveNetwork()) {
+        return;
+    }
+
+    CObjectPool* pObjectPool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetObjectPool();
+    if (!pObjectPool) {
+        return;
+    }
+
+    if (pObjectPool->GetObjectInSlot(usObjectId))
+    {
+        pObjectPool->Delete(usObjectId);
+    }
+}
+
+void MoveObject(RakNet::BitStream bsData)
+{
+    CNecessary::Log(OBFUSCATE("RPC: MoveObject"));
+
+    int bitsTotal =
+        bytesToBits(sizeof(uint16_t)) +
+        bytesToBits(sizeof(float) * 10);
+
+    if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+        CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for MoveObject"));
+        return;
+    }
+
+    uint16_t byteObjectID;
+    float curx, cury, curz, newx, newy, newz, speed, rotx, roty, rotz;
+
+    bsData.Read(byteObjectID);
+    bsData.Read(curx);
+    bsData.Read(cury);
+    bsData.Read(curz);
+    bsData.Read(newx);
+    bsData.Read(newy);
+    bsData.Read(newz);
+    bsData.Read(speed);
+    bsData.Read(rotx);
+    bsData.Read(roty);
+    bsData.Read(rotz);
+
+    if (byteObjectID >= eMaxItem::MAX_OBJECTS) {
+        return;
+    }
+
+    if (!CMultiPlayer::GetActiveNetwork()) {
+        return;
+    }
+
+    CObjectPool* pObjectPool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetObjectPool();
+    if (!pObjectPool) {
+        return;
+    }
+
+    CObject* pObject = pObjectPool->GetObject(byteObjectID);
+    if (pObject)
+    {
+        pObject->MoveTo(newx, newy, newz, speed, rotx, roty, rotz);
+    }
+}
+
+void StopObject(RakNet::BitStream bsData)
+{
+    CNecessary::Log(OBFUSCATE("RPC: StopObject"));
+
+    int bitsTotal =
+        bytesToBits(sizeof(int16_t));
+
+    if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+        CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for StopObject"));
+        return;
+    }
+
+    int16_t sObjectId;
+
+    bsData.Read(sObjectId);
+
+    if (sObjectId < 0 || sObjectId >= eMaxItem::MAX_OBJECTS) {
+        return;
+    }
+
+    if (!CMultiPlayer::GetActiveNetwork()) {
+        return;
+    }
+
+    CObjectPool* pObjectPool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetObjectPool();
+    if (!pObjectPool) {
+        return;
+    }
+
+    CObject* pObject = pObjectPool->GetObject(sObjectId);
+    if (pObject)
+    {
+        pObject->StopMoving();
+    }
 }
 
 void TogglePlayerControllable(RakNet::BitStream bsData)
@@ -1628,9 +2127,9 @@ void ShowPlayerNameTag(RakNet::BitStream bsData)
 	bsData.Read(playerId);
 	bsData.Read(show);
 
-	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) 
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
 	{
-		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)) 
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId))
 		{
 			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->SetRemoteShowNameTag(show);
 		}
@@ -1742,7 +2241,7 @@ void ClearAnimations(RakNet::BitStream bsData)
 				pPlayerPed = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetGamePlayer();
 			}
 
-			if (pPlayerPed) 
+			if (pPlayerPed)
 			{
 				pPlayerPed->ClearAnimations();
 			}
@@ -1803,7 +2302,7 @@ void SendGameTimeUpdate(RakNet::BitStream bsData)
 	int32_t time = 0;
 
 	bsData.Read(time);
-	
+
 	CTimer::SetGameTimer(time);
 }
 
@@ -1897,7 +2396,7 @@ void UpdateScoresPingsIPs(RakNet::BitStream bsData)
 	int iBitLength = bsData.GetNumberOfBitsUsed();
 
 	for (uint16_t i = 0; i <(iBitLength / 8) / 9; i++)
-	{ 
+	{
 		bsData.Read(bytePlayerId);
 		bsData.Read(iPlayerScore);
 		bsData.Read(dwPlayerPing);
@@ -1938,7 +2437,7 @@ void RemoveBuilding(RakNet::BitStream bsData)
 void ShowTextDraw(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: ShowTextDraw"));
-	
+
 	uint16_t wTextId;
 	TEXT_DRAW_TRANSMIT TextDrawTransmit;
 	uint16_t byteTextLen;
@@ -2002,11 +2501,11 @@ void TextDrawSetString(RakNet::BitStream bsData)
 	if (CMultiPlayer::GetActiveNetwork())
 	{
 		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool())
-		{	
+		{
 			if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetTextDraw(wTextId))
 			{
 				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextDrawPool()->GetTextDraw(wTextId)->SetText(cText);
-			}		
+			}
 		}
 	}
 }
@@ -2047,7 +2546,7 @@ void Create3DTextLabel(RakNet::BitStream bsData)
 	bsData.Read(vehicleId);
 	stringCompressor->DecodeString(szBuff, sizeof(szBuff), &bsData);
 
-	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool()) 
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool())
 	{
 		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool()->Add(wLabelId, szBuff, dwColor, vecPos, fDrawDistance, byteTestLOS, playerId, vehicleId);
 	}
@@ -2069,7 +2568,7 @@ void Destroy3DTextLabel(RakNet::BitStream bsData)
 
 	bsData.Read(wLabelId);
 
-	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool()) 
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool())
 	{
 		CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetTextLabelPool()->Delete(wLabelId);
 	}
@@ -2116,9 +2615,9 @@ void SetPlayerSpecialAction(RakNet::BitStream bsData)
 	uint8_t byteSpecialAction;
 	bsData.Read(byteSpecialAction);
 
-	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) 
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
 	{
-		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()) 
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
 		{
 			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->ApplySpecialAction(byteSpecialAction);
 		}
@@ -2389,17 +2888,17 @@ void SetPlayerSkillLevel(RakNet::BitStream bsData)
 	bsData.Read(dSkillID);
 	bsData.Read(wLevel);
 
-	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()) 
+	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
 	{
 		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
 		{
 			if (playerId == CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetLocalID())
 			{
 				CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->GetPlayerPed()->SetWeaponSkill(dSkillID, wLevel);
-			} 
-			else 
+			}
+			else
 			{
-				if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(playerId)) 
+				if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(playerId))
 				{
 					CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetGamePlayer()->SetWeaponSkill(dSkillID, wLevel);
 				}
@@ -2426,7 +2925,7 @@ void DeathBroadcast(RakNet::BitStream bsData)
 
 	if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
 	{
-		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)) 
+		if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId))
 		{
 			CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->HandleWasted();
 		}
@@ -2681,10 +3180,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_AttachCameraToObject: {
-		//     AttachCameraToObject(*bsData);
-		//     break;
-		// }
+		case RPC_AttachCameraToObject: {
+		    AttachCameraToObject(*bsData);
+		    break;
+		}
 
 		case RPC_TogglePlayerSpectating: {
 		    TogglePlayerSpectating(*bsData);
@@ -3041,40 +3540,40 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_CreateObject: {
-		//     CreateObject(*bsData);
-		//     break;
-		// }
+		case RPC_CreateObject: {
+		    CreateObject(*bsData);
+		    break;
+		}
 
-		// case RPC_SetPlayerObjectMaterial: {
-		//     SetObjectMaterial(*bsData);
-		//     break;
-		// }
+		case RPC_SetPlayerObjectMaterial: {
+		    SetObjectMaterial(*bsData);
+		    break;
+		}
 
-		// case RPC_SetObjectPos: {
-		//     SetObjectPos(*bsData);
-		//     break;
-		// }
+		case RPC_SetObjectPos: {
+		    SetObjectPos(*bsData);
+		    break;
+		}
 
-		// case RPC_SetObjectRot: {
-		//     SetObjectRotation(*bsData);
-		//     break;
-		// }
+		case RPC_SetObjectRot: {
+		    SetObjectRotation(*bsData);
+		    break;
+		}
 
-		// case RPC_DestroyObject: {
-		//     DestroyObject(*bsData);
-		//     break;
-		// }
+		case RPC_DestroyObject: {
+		    DestroyObject(*bsData);
+		    break;
+		}
 
-		// case RPC_MoveObject: {
-		//     MoveObject(*bsData);
-		//     break;
-		// }
+		case RPC_MoveObject: {
+		    MoveObject(*bsData);
+		    break;
+		}
 
-		// case RPC_StopObject: {
-		//     StopObject(*bsData);
-		//     break;
-		// }
+		case RPC_StopObject: {
+		    StopObject(*bsData);
+		    break;
+		}
 
 		case RPC_TogglePlayerControllable: {
 		    TogglePlayerControllable(*bsData);

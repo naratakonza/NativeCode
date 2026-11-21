@@ -13,6 +13,7 @@
 CCamera* CGame::m_pGameCamera = (CCamera*)nullptr;
 CPlayerPed* CGame::m_pGamePlayer = nullptr;
 CModelSnapshot* CGame::m_pModelSnapshot = nullptr;
+CMaterialTextGenerator* CGame::m_pMaterialTextGenerator = nullptr;
 
 void CGame::Initialize()
 {
@@ -27,7 +28,8 @@ void CGame::Uninitialise()
 
 	SAFE_DELETE(CGame::m_pGameCamera);
     SAFE_DELETE(CGame::m_pModelSnapshot);
-    
+    SAFE_DELETE(CGame::m_pMaterialTextGenerator);
+
 	if (CGame::m_pGamePlayer)
 	{
 		CPedPointerRecorder::Record(0, 0);
@@ -68,7 +70,7 @@ void CGame::SetFramerate(std::uint8_t fps)
     }
 }
 
-uint8_t CGame::IsMenuActive() 
+uint8_t CGame::IsMenuActive()
 {
     return CTimer::IsUserPause() == 1;
 }
@@ -203,7 +205,7 @@ void CGame::MenuSwitchOff()
     reinterpret_cast<void (*)()>(SA_ADDR(0x1EC924) + _dyld_get_image_vmaddr_slide(0))();
 }
 
-void CGame::RefreshStreamingAt(CVector pos) 
+void CGame::RefreshStreamingAt(CVector pos)
 {
 	CScripting::ScriptCommand(&refresh_streaming_at, pos.x, pos.y);
 }

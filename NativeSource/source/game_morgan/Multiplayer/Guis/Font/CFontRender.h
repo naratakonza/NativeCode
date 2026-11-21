@@ -19,6 +19,8 @@ public:
 
     ImFont* GetFont() { return m_pFont; }
     ImFont* GetSampFont() { return m_pSampFont; }
+    ImGuiContext* GetContext() { return m_pContext; }
+    ImFont* GetWebdingsFont() { return m_pWebdingsFont; }
     ImFont* GetWeaponFont() { return m_pFontGTAWeap; }
     float GetFontSize() { return m_fFontSize; }
     void RenderTextDeathMessage(ImVec2& pos, ImU32 col, bool bOutline, const char* text_begin, const char* text_end = nullptr, float font_size = 0.0f, ImFont* font = nullptr, bool bOutlineUseTextColor = false);
@@ -27,6 +29,8 @@ public:
     bool ProcessInlineHexColor(const char* start, const char* end, ImVec4& color);
     bool IsColorDark(ImU32 col);
     void RenderTextMethod(ImVec2& posCur, ImU32 col, bool bOutline, const char* text_begin, const char* text_end, float font_size, ImFont* font, bool bOutlineUseTextColor);
+    void TextWithColors(ImFont* font, float font_size, uint8_t outline, ImVec2 pos, ImColor col, const char* text);
+    ImVec2 CalcTextSizeWithoutTags(float font_size, const char* text);
     void TextWithColorsW(ImFont* font, const float font_size, uint8_t outline, ImVec2 pos, ImColor col, const char* szStr);
 
 	void Render();
@@ -37,6 +41,7 @@ private:
     ImFont* m_pFont = nullptr;
     ImFont* m_pSampFont = nullptr;
     ImFont* m_pFontGTAWeap = nullptr;
+    ImFont* m_pWebdingsFont = nullptr;
     float m_fFontSize = 30.0f;
 	ImFont* LoadFont(const char* font, float fontsize, const ImWchar* ranges = nullptr);
 
