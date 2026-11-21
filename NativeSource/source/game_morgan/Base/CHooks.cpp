@@ -17,6 +17,7 @@
 #include "../CPools.h"
 #include "../CPedIntelligence.h"
 #include "../CUtil.h"
+#include "../CBuildingRemove.h"
 #include "../Animation/CAnimation.h"
 #include "../Tasks/TaskTypes/CTaskSimplePlayerOnFoot.h"
 #include "../Enums/eWeaponSampid.h"
@@ -975,14 +976,17 @@ extern "C" __attribute__((visibility("default"))) uintptr_t CAnimManager_BlendAn
     return CAnimManager_BlendAnimation(thiz, dwAssocGroupId, dwAnimationId, dwAnimationDelta);
 }
 
-void CHooks::InstallNecessary()
+extern "C" __attribute__((visibility("default"))) CEntityGta* CFileLaoder_LoadObjectInstance_hook(uintptr_t instance, const char* name, CEntityGta* (*original)(uintptr_t, const char*))
 {
-    CMemory::WriteProcessMemory(SA_ADDR(0xCE30C), (uintptr_t)"\xEA\x25\x0F\x14", 4); // กระโดดไป Pickup Update
+    CVector* vecPos = reinterpret_cast<CVector*>(instance);
+    int* iModel = reinterpret_cast<int*>(instance + 0x1C);
 
-    if (const auto error = CHook::GetThread()->InstallFileOpen())
+    if (instance && CBuildingRemove::IsNeedRemoveObject(*iModel, vecPos->x, vecPos->y, vecPos->z))
     {
-        CNecessary::Log(OBFUSCATE("Client ONLOAD failed (error %d)"), error.value());
+        *iModel = 19300;
     }
+
+    return original(instance, name);
 }
 
 extern "C" __attribute__((visibility("default"))) void CWorld_ProcessPedsAfterPreRender_hook(void (*original)())
@@ -996,6 +1000,16 @@ extern "C" __attribute__((visibility("default"))) void CWorld_ProcessPedsAfterPr
         {
             pPlayerPool->ProcessAllPlayersAfterPreRender();
         }
+    }
+}
+
+void CHooks::InstallNecessary()
+{
+    CMemory::WriteProcessMemory(SA_ADDR(0xCE30C), (uintptr_t)"\xEA\x25\x0F\x14", 4); // กระโดดไป Pickup Update
+
+    if (const auto error = CHook::GetThread()->InstallFileOpen())
+    {
+        CNecessary::Log(OBFUSCATE("Client ONLOAD failed (error %d)"), error.value());
     }
 }
 

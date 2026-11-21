@@ -1,5 +1,6 @@
 #include "../../../Main.h"
 #include "CCrashFix.h"
+#include "../RenderWare/RxOpenGLMeshInstanceData.h"
 
 extern "C" __attribute__((visibility("default"))) RwBool RpMaterialDestroy_hook(RpMaterial* material, RwBool (*original)(RpMaterial*))
 {
@@ -310,6 +311,103 @@ extern "C" __attribute__((visibility("default"))) uint64_t emu_ArraysGetID_hook(
 
     return original(vertexRef);
 }
+
+extern "C" __attribute__((visibility("default"))) void CCustomBuildingDNPipeline_CustomPipeRenderCB_hook(uintptr_t resEntry, uintptr_t object, uint8_t type, uint32_t flags, void (*original)(uintptr_t, uintptr_t, uint8_t, uint32_t))
+{
+    if (!resEntry || !CNecessary::IsValidUserPointer(reinterpret_cast<void*>(resEntry), 0x38)) {
+        return;
+    }
+
+    uint16_t size = *static_cast<uint16_t *>(reinterpret_cast<void *>(resEntry + 50));
+    if (size > 0 && size < 1000)
+    {
+        RxOpenGLMeshInstanceData* arr = reinterpret_cast<RxOpenGLMeshInstanceData *>(resEntry + 56);
+        if (!CNecessary::IsValidUserPointer(arr, static_cast<size_t>(size) * sizeof(*arr))) {
+            return;
+        }
+
+        uint32_t validFlag = flags & 0x84;
+
+        for (int i = 0; i < size; i++)
+        {
+            uintptr_t validate = arr[i].validate;
+            if (!validate) {
+                break;
+            }
+
+            if (!CNecessary::IsValidUserPointer(reinterpret_cast<void*>(validate), sizeof(uintptr_t))) {
+                return;
+            }
+
+            if (validFlag)
+            {
+                uintptr_t* validatedPointer = *reinterpret_cast<uintptr_t **>(validate);
+                if (validatedPointer)
+                {
+                    if (!CNecessary::IsValidUserPointer(validatedPointer, sizeof(uintptr_t))) {
+                        return;
+                    }
+
+                    uintptr_t raster = *validatedPointer;
+                    if (!raster || !CNecessary::IsValidUserPointer(reinterpret_cast<void*>(raster))) {
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    original(resEntry, object, type, flags);
+}
+
+extern "C" __attribute__((visibility("default"))) void rxOpenGLDefaultAllInOneRenderCB_hook(uintptr_t resEntry, uintptr_t object, uint8_t type, uint32_t flags, void (*original)(uintptr_t, uintptr_t, uint8_t, uint32_t))
+{
+    if (!resEntry || !CNecessary::IsValidUserPointer(reinterpret_cast<void*>(resEntry), 0x38)) {
+        return;
+    }
+
+    uint16_t size = *static_cast<uint16_t *>(reinterpret_cast<void *>(resEntry + 50));
+    if (size > 0 && size < 1000)
+    {
+        RxOpenGLMeshInstanceData* arr = reinterpret_cast<RxOpenGLMeshInstanceData *>(resEntry + 56);
+        if (!CNecessary::IsValidUserPointer(arr, static_cast<size_t>(size) * sizeof(*arr))) {
+            return;
+        }
+
+        uint32_t validFlag = flags & 0x84;
+
+        for (int i = 0; i < size; i++)
+        {
+            uintptr_t validate = arr[i].validate;
+            if (!validate) {
+                break;
+            }
+
+            if (!CNecessary::IsValidUserPointer(reinterpret_cast<void*>(validate), sizeof(uintptr_t))) {
+                return;
+            }
+
+            if (validFlag)
+            {
+                uintptr_t* validatedPointer = *reinterpret_cast<uintptr_t **>(validate);
+                if (validatedPointer)
+                {
+                    if (!CNecessary::IsValidUserPointer(validatedPointer, sizeof(uintptr_t))) {
+                        return;
+                    }
+
+                    uintptr_t raster = *validatedPointer;
+                    if (!raster || !CNecessary::IsValidUserPointer(reinterpret_cast<void*>(raster))) {
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    original(resEntry, object, type, flags);
+}
+
 
 void CCrashFix::Initialise()
 {

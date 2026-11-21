@@ -1,0 +1,8 @@
+#pragma once
+
+enum eMaxPool {
+    MAX_REMOVE_BUILDINGS = 1200,
+    MAX_BUILDING_POOL = 20000,
+    MAX_DUMMY_POOL = 40000,
+    MAX_OBJECT_POOL = 3000
+};

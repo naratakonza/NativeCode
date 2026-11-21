@@ -8,6 +8,7 @@
 #include "../Guis/CGui.h"
 #include "../Pools/Process/CMapIconPool.h"
 #include "../../CGame.h"
+#include "../../CBuildingRemove.h"
 #include "../../CClock.h"
 #include "../../CTimer.h"
 #include "../../CWeather.h"
@@ -1909,6 +1910,31 @@ void UpdateScoresPingsIPs(RakNet::BitStream bsData)
 	}
 }
 
+void RemoveBuilding(RakNet::BitStream bsData)
+{
+    // CNecessary::Log(OBFUSCATE("RPC: RemoveBuilding"));
+
+    int bitsTotal =
+        bytesToBits(sizeof(uint32_t)) +
+        bytesToBits(sizeof(CVector)) +
+        bytesToBits(sizeof(float));
+
+    if (bsData.GetNumberOfUnreadBits() < bitsTotal) {
+        CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for RemoveBuilding"));
+        return;
+    }
+
+    uint32_t uModelID;
+    CVector pos;
+    float fRad;
+
+    bsData.Read(uModelID);
+    bsData.Read((char*)&pos, sizeof(CVector));
+    bsData.Read(fRad);
+
+    CBuildingRemove::Add(uModelID, pos, fRad);
+}
+
 void ShowTextDraw(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: ShowTextDraw"));
@@ -3130,10 +3156,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		    break;
 		}
 
-		// case RPC_RemoveBuildingForPlayer: {
-		//     RemoveBuilding(*bsData);
-		//     break;
-		// }
+		case RPC_RemoveBuildingForPlayer: {
+		    RemoveBuilding(*bsData);
+		    break;
+		}
 
 		case RPC_ClickTextdraw: {
 		    ToggleSelectTextDraw(*bsData);
