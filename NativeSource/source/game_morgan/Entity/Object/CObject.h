@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "../CEntity.h"
 // #include "../Vehicle/CVehicle.h"
 #include "../../../utils/Quat/CQuaternion.h"
@@ -10,6 +12,8 @@
 #include "../../Enums/eMaterialSize.h"
 #include "../../Enums/eMaterialTextAlign.h"
 
+struct RpMaterial;
+struct RpGeometry;
 struct RpClumpAtomicsData;
 
 struct SavedMaterial
