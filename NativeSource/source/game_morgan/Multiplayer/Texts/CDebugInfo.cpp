@@ -141,6 +141,10 @@ void CDebugInfo::RenderTitle()
         return;
     }
 
+    if (CGui::GetScoreBoard()->GetActiveScore() /*|| (CGui::GetVoiceMenu()->GetActiveVoiceMenu() && !CVoiceMenu::m_bCustomizeMode) || (CGui::GetMainMenuScreens()->IsRadarSection() || CGui::GetMainMenuScreens()->IsAdjustableHUD()) || CGui::GetClientMenu()->GetActiveClientMenu() || CGui::GetChatMenu()->GetActiveChatMenu()*/) {
+        return;
+    }
+
     const auto now = CNecessary::GetTickCount();
     if (now - CDebugInfo::m_dwLastTitleUpdateTick > 1000)
     {

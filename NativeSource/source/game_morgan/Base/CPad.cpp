@@ -1086,21 +1086,6 @@ extern "C" __attribute__((visibility("default"))) void CPed_ProcessControl_hook(
 			// 		}
 			// 	}
 			// }
-
-			// 	eMoveState MoveState = pPed->m_eMoveState;
-			// 	if (MoveState == eMoveState::PEDMOVE_WALK || MoveState == eMoveState::PEDMOVE_JOG || MoveState == eMoveState::PEDMOVE_RUN || MoveState == eMoveState::PEDMOVE_SPRINT || MoveState == eMoveState::PEDMOVE_TURN_L || MoveState == eMoveState::PEDMOVE_TURN_R)
-			// 	{
-			// 		if (CGui::GetPlayerInteract())
-			// 		{
-			// 			CGui::GetPlayerInteract()->ResetTouch();
-			// 		}
-
-			// 		if (CGui::GetVehicleInteract())
-			// 		{
-			// 			CGui::GetVehicleInteract()->ResetTouch();
-			// 		}
-			// 	}
-			// }
 		}
 
 		CPad::SwitchOnFootContextToLocalPlayer();
@@ -1124,23 +1109,6 @@ extern "C" __attribute__((visibility("default"))) uint32_t CPad_GetWeapon_hook(u
     }
     else
     {
-        // // Quick Aim
-        // if (!CPad::m_iSaveTargetingActive && CMultiPlayer::GetActiveNetwork() && CGame::GetPlayer())
-        // {
-        //     uint8_t currentWeapon = CGame::GetPlayer()->GetCurrentWeapon();
-        //     if (currentWeapon != eWeaponSampId::WEAPON_GRENADE && currentWeapon != eWeaponSampId::WEAPON_TEARGAS && currentWeapon != eWeaponSampId::WEAPON_MOLTOV && !(currentWeapon >= eWeaponSampId::WEAPON_SATCHEL && currentWeapon < eWeaponSampId::WEAPON_FIREEXTINGUISHER))
-        //     {
-        //         if (CTouchInterface::IsTouched(0x15, 0, 1))
-        //         {
-        //             uint8_t old = CWorld::PlayerInFocus;
-        //             CWorld::PlayerInFocus = 0;
-        //             CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = 255;
-        //             CWorld::PlayerInFocus = old;
-        //             return CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE];
-        //         }
-        //     }
-        // }
-
         uint8_t old = CWorld::PlayerInFocus;
         CWorld::PlayerInFocus = CPad::m_byteCurPlayer;
         CPad::LocalPlayerKeys.bKeys[ePadKeys::KEY_FIRE] = CPad_GetWeapon(thiz, pPed, bShoulderPossible);
