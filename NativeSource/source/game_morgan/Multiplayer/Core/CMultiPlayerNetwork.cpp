@@ -294,6 +294,35 @@ void CMultiPlayerNetwork::Packet_MarkersSync(Packet *pkt)
 	}
 }
 
+void CMultiPlayerNetwork::Packet_AimSync(Packet *pkt)
+{
+    // CNecessary::Log(OBFUSCATE("Packet_AimSync"));
+
+    RakNet::BitStream bsAimSync((unsigned char*)pkt->data, pkt->length, false);
+
+    if (CMultiPlayer::GetActiveNetwork()->GetNetworkState() != eNetworkState::GAMESTATE_CONNECTED) {
+        return;
+    }
+
+    CPlayerPool* m_pPlayerPool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool();
+
+    uint8_t bytePacketID = 0;
+    uint16_t bytePlayerID;
+
+    AIM_SYNC_DATA aimSync;
+    memset(&aimSync, 0, sizeof(AIM_SYNC_DATA));
+
+    bsAimSync.Read(bytePacketID);
+    bsAimSync.Read(bytePlayerID);
+    bsAimSync.Read((char*)&aimSync, sizeof(AIM_SYNC_DATA));
+
+    CRemotePlayer *pPlayer = m_pPlayerPool->GetRemotePlayer(bytePlayerID);
+    if (pPlayer)
+    {
+        pPlayer->WriteAimSyncData(&aimSync);
+    }
+}
+
 void CMultiPlayerNetwork::Update()
 {
     // CNecessary::Log(OBFUSCATE("CMultiPlayerNetwork Update"));
@@ -430,6 +459,11 @@ void CMultiPlayerNetwork::Update()
 
 			case PacketEnumeration::ID_MARKERS_SYNC: {
                 CMultiPlayerNetwork::Packet_MarkersSync(pkt);           
+                break;
+            }
+
+			case PacketEnumeration::ID_AIM_SYNC: {
+                CMultiPlayerNetwork::Packet_AimSync(pkt);
                 break;
             }
         }

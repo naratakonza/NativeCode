@@ -309,7 +309,7 @@ void CRemotePlayer::ResetAllSync()
     memset(&m_ofSyncData, 0, sizeof(m_ofSyncData));
 	// memset(&m_icSyncData, 0, sizeof(m_icSyncData));
 	// memset(&m_psSyncData, 0, sizeof(m_psSyncData));
-	// memset(&m_aimSyncData, 0, sizeof(m_aimSyncData));
+	memset(&m_aimSyncData, 0, sizeof(m_aimSyncData));
 	// memset(&m_bulletSyncData, 0, sizeof(m_bulletSyncData));
 	// memset(&m_trailerSyncData, 0, sizeof(m_trailerSyncData));
 	// memset(&m_unoccupiedSyncData, 0, sizeof(m_unoccupiedSyncData));
@@ -824,6 +824,35 @@ void CRemotePlayer::ProcessGamePlayerSpecialAction(eSpecialAction byteSpecialAct
     }
 }
 
+void CRemotePlayer::WriteAimSyncData(AIM_SYNC_DATA* syncData)
+{
+    CPlayerPed* pGamePlayer = CRemotePlayer::GetGamePlayer();
+    if (!pGamePlayer || !pGamePlayer->VerifyInstance() || !pGamePlayer->IsAdded()) {
+        return;
+    }
+
+    // แก้ไขช่องโหว่โปรที่ทำให้ APK Crash
+    uint8_t currentWeapon = pGamePlayer->GetCurrentWeapon();
+    if (currentWeapon == eWeaponSampId::WEAPON_BOMB)
+    {
+        for (auto cam : camModes)
+        {
+            if (syncData->byteCamMode == cam)
+            {
+                if (currentWeapon != eWeaponSampId::WEAPON_SNIPER && currentWeapon != eWeaponSampId::WEAPON_ROCKETLAUNCHER && currentWeapon != eWeaponSampId::WEAPON_HEATSEEKER && currentWeapon != eWeaponSampId::WEAPON_CAMERA && currentWeapon != eWeaponSampId::WEAPON_POOLSTICK)
+                {
+                    CExceptions::Print(OBFUSCATE("UpdatePlayer"), OBFUSCATE("UpdatePlayer"));
+                    syncData->byteCamMode = 4;
+                    return;
+                }
+            }
+        }
+    }
+
+    memcpy(&m_aimSyncData, syncData, sizeof(AIM_SYNC_DATA));
+    CRemotePlayer::UpdatePlayerWeaponAim();
+}
+
 void CRemotePlayer::ProcessGamePlayerAnimation()
 {
     if (!CRemotePlayer::IsValidInstance()) {
@@ -859,6 +888,82 @@ void CRemotePlayer::ProcessGamePlayerAnimation()
         if (!CRemotePlayer::IsPerformingCustomAnimation() && nAnimValue == 0 && pGamePlayer->IsPerformingCarryTask())
         {
             pGamePlayer->ApplyAnimation(OBFUSCATE("crry_prtial"), OBFUSCATE("CARRY"), 4.0f, 0, 0, 0, 0, 0);
+        }
+    }
+}
+
+void CRemotePlayer::UpdatePlayerWeaponAim()
+{
+    if (!CRemotePlayer::IsValidInstance()) {
+        return;
+    }
+
+    CPlayerPed* pGamePlayer = CRemotePlayer::GetGamePlayer();
+    if (!pGamePlayer) {
+        return;
+    }
+
+    if (!CRemotePlayer::IsGamePlayerValid(CRemotePlayer::GetRemotePlayerID(), pGamePlayer)) {
+        CNecessary::Log(OBFUSCATE("UpdatePlayerWeaponAim: pGamePlayer is no longer valid."));
+        return;
+    }
+
+    pGamePlayer->SetCameraMode(CRemotePlayer::m_aimSyncData.byteCamMode);
+
+    CAMERA_AIM Aim;
+
+    Aim.f1x = CRemotePlayer::m_aimSyncData.vecAimf.x;
+    Aim.f1y = CRemotePlayer::m_aimSyncData.vecAimf.y;
+    Aim.f1z = CRemotePlayer::m_aimSyncData.vecAimf.z;
+
+    CVector vec1;
+    vec1.x = Aim.f1x;
+    vec1.y = Aim.f1y;
+    vec1.z = Aim.f1z;
+
+    CVector vec2;
+    vec2.x = 0.0f;
+    vec2.y = 0.0f;
+    vec2.z = 0.0f;
+
+    CUtil::CalculateAimVector(&vec1, &vec2);
+
+    Aim.f2x = vec2.x;
+    Aim.f2y = vec2.y;
+    Aim.f2z = vec2.z;
+
+    Aim.pos1x = CRemotePlayer::m_aimSyncData.vecAimPos.x;
+    Aim.pos1y = CRemotePlayer::m_aimSyncData.vecAimPos.y;
+    Aim.pos1z = CRemotePlayer::m_aimSyncData.vecAimPos.z;
+    Aim.pos2x = Aim.pos1x;
+    Aim.pos2y = Aim.pos1y;
+    Aim.pos2z = Aim.pos1z;
+
+    pGamePlayer->SetCurrentAim(&Aim);
+    pGamePlayer->SetAimZ(CRemotePlayer::m_aimSyncData.fAimZ);
+
+    float fAspect = CRemotePlayer::m_aimSyncData.byteAspectRatio * 0.0039215689;
+    float fExtZoom = (CRemotePlayer::m_aimSyncData.byteCamExtZoom & 0x3F) * 0.015873017;
+
+    pGamePlayer->SetCameraExtendedZoom(fExtZoom, fAspect);
+
+    WEAPON_SLOT_TYPE* pwstWeapon = pGamePlayer->GetCurrentWeaponSlot();
+    if (CRemotePlayer::m_aimSyncData.byteWeaponState == eSAMPWeaponState::WS_RELOADING)
+    {
+        pwstWeapon->dwState = 2; // Reloading
+    }
+    else
+    {
+        if (CRemotePlayer::m_aimSyncData.byteWeaponState != eSAMPWeaponState::WS_MORE_BULLETS)
+        {
+            pwstWeapon->dwAmmoInClip = static_cast<uint32_t>(CRemotePlayer::m_aimSyncData.byteWeaponState);
+        }
+        else
+        {
+            if (pwstWeapon->dwAmmoInClip < 2)
+            {
+                pwstWeapon->dwAmmoInClip = 2;
+            }
         }
     }
 }

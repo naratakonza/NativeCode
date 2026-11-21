@@ -88,7 +88,7 @@ private:
 	ONFOOT_SYNC_DATA		m_ofSyncData;
 	// INCAR_SYNC_DATA			m_icSyncData;
 	// PASSENGER_SYNC_DATA 	m_psSyncData;
-	// AIM_SYNC_DATA			m_aimSyncData;
+	AIM_SYNC_DATA			m_aimSyncData;
 	// BULLET_SYNC_DATA		m_bulletSyncData;
 	// TRAILER_SYNC_DATA 		m_trailerSyncData;
 	// UNOCCUPIED_SYNC_DATA 	m_unoccupiedSyncData;

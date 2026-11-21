@@ -119,3 +119,13 @@ void CCamera::LerpFOV(float from, float to, float time, bool bSetSmoothEnds)
 {
 	CScripting::ScriptCommand(&set_camera_zoom_from, from, to, static_cast<int>(time), bSetSmoothEnds);
 }
+
+void CCamera::TakeControl(CCamera* thiz, CEntityGta* NewTarget, eCamMode CamMode, eSwitchType CamSwitchStyle, int WhoIsTakingControl)
+{
+    static const bool verified = CMemory::HasMappedBytes(SA_ADDR(0x13A924), "\xF8\x5F\xBC\xA9\xF6\x57\x01\xA9", 8, "__text") && CMemory::HasMappedBytes(SA_ADDR(0x13AA2C), "\x75\xCA\x18\x79\x74\xD2\x18\x79", 8, "__text");
+    if (!verified) {
+        return;
+    }
+
+    reinterpret_cast<void (*)(CCamera*, CEntityGta*, int16_t, int16_t, int)>(SA_ADDR(0x13A924) + _dyld_get_image_vmaddr_slide(0))(thiz, NewTarget, static_cast<int16_t>(CamMode), static_cast<int16_t>(CamSwitchStyle), WhoIsTakingControl);
+}

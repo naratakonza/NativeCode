@@ -3,6 +3,8 @@
 #include "Core/CHeadMove.h"
 #include "CLocalPlayer.h"
 #include "../../CGame.h"
+#include "../../CCamera.h"
+#include "../../CCameraAim.h"
 #include "../../CRadar.h"
 #include "../../CTheZones.h"
 #include "../CMultiPlayer.h"
@@ -97,7 +99,7 @@ void CLocalPlayer::ResetData()
 	memset(&m_OnFootData, 0, sizeof(ONFOOT_SYNC_DATA));
 	// memset(&m_InCarData, 0, sizeof(INCAR_SYNC_DATA));
 	// memset(&m_PassengerData, 0, sizeof(PASSENGER_SYNC_DATA));
-	// memset(&m_aimData, 0, sizeof(AIM_SYNC_DATA));
+	memset(&m_aimData, 0, sizeof(AIM_SYNC_DATA));
 	// memset(&m_TrailerData, 0, sizeof(TRAILER_SYNC_DATA));
 	// memset(&m_UnoccupiedData, 0, sizeof(UNOCCUPIED_SYNC_DATA));
 
@@ -152,7 +154,7 @@ bool CLocalPlayer::Process()
 
         if (CLocalPlayer::IsSpectating())
 		{
-			// CLocalPlayer::ProcessSpectating();
+			CLocalPlayer::ProcessSpectating();
 			CLocalPlayer::m_bPassengerDriveByMode = false;
 		}
 		else if (CLocalPlayer::GetPlayerPed()->IsInVehicle() && !CLocalPlayer::GetPlayerPed()->IsAPassenger())
@@ -162,7 +164,7 @@ bool CLocalPlayer::Process()
 		else if (CLocalPlayer::GetPlayerPed()->GetActionTrigger() == eAction::ACTION_NORMAL || CLocalPlayer::GetPlayerPed()->GetActionTrigger() == eAction::ACTION_SCOPE)
 		{
 			CLocalPlayer::ProcessOnFoot(dwThisTick);
-			// CLocalPlayer::ProcessAimSync(dwThisTick);
+			CLocalPlayer::ProcessAimSync(dwThisTick);
 		}
 		else if (CLocalPlayer::GetPlayerPed()->IsInVehicle() && CLocalPlayer::GetPlayerPed()->IsAPassenger())
 		{
@@ -184,7 +186,7 @@ bool CLocalPlayer::Process()
 			}
 		}
 
-		// CLocalPlayer::ProcessSpectating();
+		CLocalPlayer::ProcessSpectating();
 		return true;
 	}
 
@@ -544,7 +546,7 @@ void CLocalPlayer::HandleDead()
 	// }
 
 	CLocalPlayer::GetPlayerPed()->ExtinguishFire();
-	// CLocalPlayer::SendWastedNotification();
+	CLocalPlayer::SendWastedNotification();
 
 	CLocalPlayer::m_bIsActive = false;
 	CLocalPlayer::m_bIsWasted = true;
@@ -626,6 +628,25 @@ void CLocalPlayer::EnableSpectating(bool bToggle)
 	CLocalPlayer::m_bSpectateProcessed = false;
 }
 
+void CLocalPlayer::SpectateForPlayer(uint16_t playerId)
+{
+    CNecessary::Log(OBFUSCATE("CLocalPlayer SpectateForPlayer"));
+
+    if (playerId >= eMaxItem::MAX_PLAYERS) {
+        return;
+    }
+
+    if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool() && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(playerId))
+    {
+        if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetNetworkPlayerState() != eNetworkPlayerState::PLAYER_STATE_NONE && CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(playerId)->GetNetworkPlayerState() != eNetworkPlayerState::PLAYER_STATE_WASTED)
+        {
+            CLocalPlayer::m_byteSpectateType = SPECTATE_TYPE_PLAYER;
+            CLocalPlayer::m_SpectateID = playerId;
+            CLocalPlayer::m_bSpectateProcessed = false;
+        }
+    }
+}
+
 bool CLocalPlayer::Spawn()
 {
     if (!CLocalPlayer::IsSpawnInfo()) {
@@ -675,15 +696,14 @@ bool CLocalPlayer::Spawn()
 	CLocalPlayer::GetPlayerPed()->RestartIfWastedAt(&m_SpawnInfo.vecPos, m_SpawnInfo.fRotation);
 	CLocalPlayer::GetPlayerPed()->SetModelIndex(CLocalPlayer::m_SpawnInfo.iSkin);
 
-	// ทดสอบปิดการคืน Real-time Shadow หลัง SetModelIndex()
-	// if (CRealTimeShadowManager::GetShadowStyle() == 1 && pthread_main_np() && CLocalPlayer::GetPlayerPed()->VerifyInstance())
-	// {
-	// 	CRealTimeShadow* pShadow = CLocalPlayer::GetPlayerPed()->GetPed()->m_pRealTimeShadow;
-	// 	if (pShadow && pShadow->m_pPhysical == CLocalPlayer::GetPlayerPed()->GetPed())
-	// 	{
-	// 		CRealTimeShadowManager::ReturnRealTimeShadow(nullptr, pShadow);
-	// 	}
-	// }
+	if (CRealTimeShadowManager::GetShadowStyle() == 1 && pthread_main_np() && CLocalPlayer::GetPlayerPed()->VerifyInstance())
+	{
+		CRealTimeShadow* pShadow = CLocalPlayer::GetPlayerPed()->GetPed()->m_pRealTimeShadow;
+		if (pShadow && pShadow->m_pPhysical == CLocalPlayer::GetPlayerPed()->GetPed())
+		{
+			CRealTimeShadowManager::ReturnRealTimeShadow(nullptr, pShadow);
+		}
+	}
 
 	CLocalPlayer::GetPlayerPed()->ClearAllWeapons();
 	CLocalPlayer::GetPlayerPed()->ResetDamageEntity();
@@ -906,6 +926,35 @@ void CLocalPlayer::ProcessDriver([[maybe_unused]] uint32_t dwThisTick)
     CLocalPlayer::m_bPassengerDriveByMode = false;
 }
 
+void CLocalPlayer::ProcessAimSync(uint32_t dwThisTick)
+{
+    uint16_t lrAnalog, udAnalog;
+    uint16_t wKeys = CLocalPlayer::GetPlayerPed()->GetKeys(&lrAnalog, &udAnalog, false);
+
+    bool bWannaSync = false;
+    if ((wKeys & 0x84) != 0)
+    {
+        if (CMultiPlayer::GetActiveNetwork()->m_iLagCompensation == 2)
+        {
+            bWannaSync = (dwThisTick - CLocalPlayer::m_dwLastSendAimTick) > CMultiPlayer::GetActiveNetwork()->m_iNetModeFiringSendRate;
+        }
+        else
+        {
+            bWannaSync = (dwThisTick - CLocalPlayer::m_dwLastSendAimTick) > NETMODE_AIM_SENDRATE;
+        }
+    }
+    else
+    {
+        bWannaSync = (dwThisTick - CLocalPlayer::m_dwLastSendAimTick) > NETMODE_HEADSYNC_SENDRATE;
+    }
+
+    if (bWannaSync)
+    {
+        CLocalPlayer::m_dwLastSendAimTick = dwThisTick;
+        CLocalPlayer::SendAimSyncData();
+    }
+}
+
 void CLocalPlayer::ProcessHead()
 {
     if (!CHeadMove::GetHeadMove()) {
@@ -961,6 +1010,112 @@ void CLocalPlayer::ProcessAnimation()
     {
         CLocalPlayer::m_dwAnimationValue = 0;
     }
+}
+
+void CLocalPlayer::ProcessSpectating()
+{
+    if (!CLocalPlayer::GetPlayerPed()) {
+        return;
+    }
+
+    if (!CGame::GetCamera()) {
+        return;
+    }
+
+    RakNet::BitStream bsSpectatorSync;
+    SPECTATOR_SYNC_DATA spSync;
+    CMatrix matCam;
+    CGame::GetCamera()->GetMatrix(&matCam);
+    uint16_t lrAnalog, udAnalog;
+    uint16_t wKeys = CLocalPlayer::GetPlayerPed()->GetKeys(&lrAnalog, &udAnalog);
+
+    spSync.vecPos = matCam.pos;
+    spSync.lrAnalog = lrAnalog;
+    spSync.udAnalog = udAnalog;
+    spSync.wKeys = wKeys;
+
+    if (CNecessary::GetTickCount() - CLocalPlayer::m_dwLastSendSpecTick > static_cast<uint32_t>(CLocalPlayer::GetOptimumOnFootSendRate()))
+    {
+        CLocalPlayer::m_dwLastSendSpecTick = CNecessary::GetTickCount();
+        bsSpectatorSync.Write(static_cast<uint8_t>(ID_SPECTATOR_SYNC));
+        bsSpectatorSync.Write((const char*)&spSync, sizeof(SPECTATOR_SYNC_DATA));
+        CMultiPlayer::GetActiveNetwork()->GetRakClient()->Send(&bsSpectatorSync, HIGH_PRIORITY, UNRELIABLE, 0);
+
+        if (CNecessary::GetTickCount() - CLocalPlayer::m_dwLastSendAimTick > static_cast<uint32_t>(CLocalPlayer::GetOptimumOnFootSendRate() * 2))
+        {
+            CLocalPlayer::m_dwLastSendAimTick = CNecessary::GetTickCount();
+            CLocalPlayer::SendAimSyncData();
+        }
+    }
+
+    CGame::DisplayHUD(false);
+
+    CLocalPlayer::GetPlayerPed()->SetHealth(100.0f);
+    CLocalPlayer::GetPlayerPed()->TeleportTo(spSync.vecPos.x, spSync.vecPos.y, spSync.vecPos.z + 20.0f);
+
+    if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool() /* || !CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetVehiclePool() */) {
+        return;
+    }
+
+    if (CLocalPlayer::m_byteSpectateType == SPECTATE_TYPE_PLAYER)
+    {
+        if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayerInSlot(static_cast<uint16_t>(CLocalPlayer::m_SpectateID)) || !CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(static_cast<uint16_t>(CLocalPlayer::m_SpectateID))->IsActive() || CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(static_cast<uint16_t>(CLocalPlayer::m_SpectateID))->GetNetworkPlayerState() == eNetworkPlayerState::PLAYER_STATE_WASTED)
+        {
+            CLocalPlayer::m_byteSpectateType = SPECTATE_TYPE_NONE;
+            CLocalPlayer::m_bSpectateProcessed = false;
+        }
+    }
+
+    if (CLocalPlayer::m_bSpectateProcessed) {
+        return;
+    }
+
+    if (CLocalPlayer::m_byteSpectateType == SPECTATE_TYPE_NONE)
+    {
+        CLocalPlayer::GetPlayerPed()->RemoveFromVehicleAndPutAt(0.0f, 0.0f, 10.0f);
+        CGame::GetCamera()->SetPosition(50.0f, 50.0f, 50.0f, 0.0f, 0.0f, 0.0f);
+        CGame::GetCamera()->LookAtPoint(60.0f, 60.0f, 50.0f, 2);
+        CLocalPlayer::m_bSpectateProcessed = true;
+    }
+    else if (CLocalPlayer::m_byteSpectateType == SPECTATE_TYPE_PLAYER)
+    {
+        CPlayerPed* pPlayerPed = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetRemotePlayer(CLocalPlayer::m_SpectateID)->GetGamePlayer();
+        if (pPlayerPed)
+        {
+            CCamera::TakeControl(&CCamera::TheCamera, pPlayerPed->GetPed(), static_cast<eCamMode>(CLocalPlayer::m_byteSpectateMode), eSwitchType::SWITCHTYPE_JUMPCUT, 1);
+            CLocalPlayer::m_bSpectateProcessed = true;
+        }
+    }
+    // Vehicle Spectate: ยังไม่เปิดใช้งาน
+    // else if (CLocalPlayer::m_byteSpectateType == SPECTATE_TYPE_VEHICLE)
+    // {
+        // // Vehicle
+        // CVehicle* pVehicle = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetVehiclePool()->GetVehicle(static_cast<uint16_t>(CLocalPlayer::m_SpectateID));
+        // if (pVehicle)
+        // {
+            // if (!CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetVehiclePool()->IsValidPointer(static_cast<uint16_t>(CLocalPlayer::m_SpectateID), pVehicle)) {
+                // CNecessary::Log(OBFUSCATE("ProcessSpectating: pVehicle is no longer valid."));
+                // return;
+            // }
+
+            // CCamera::TakeControl(&CCamera::TheCamera, pVehicle->GetGtaVehicle(), static_cast<eCamMode>(CLocalPlayer::m_byteSpectateMode), eSwitchType::SWITCHTYPE_JUMPCUT, 1);
+            // CLocalPlayer::m_bSpectateProcessed = true;
+        // }
+    // }
+}
+
+void CLocalPlayer::SendWastedNotification()
+{
+    RakNet::BitStream bsPlayerDeath;
+    uint8_t byteDeathReason = 0;
+    uint16_t WhoWasResponsible = eInvalidId::INVALID_PLAYER_ID;
+
+    byteDeathReason = CLocalPlayer::GetPlayerPed()->FindDeathReasonAndResponsiblePlayer(&WhoWasResponsible);
+
+    bsPlayerDeath.Write(byteDeathReason);
+    bsPlayerDeath.Write(WhoWasResponsible);
+
+    CMultiPlayer::GetActiveNetwork()->GetRakClient()->RPC(&RPC_Death, &bsPlayerDeath, HIGH_PRIORITY, RELIABLE_ORDERED, 0, false, UNASSIGNED_NETWORK_ID, nullptr); // มีปัญหา บางทีมันไม่ยอมเข้าสถานะการตาย
 }
 
 void CLocalPlayer::SendOnFootFullSyncData()
@@ -1041,6 +1196,43 @@ void CLocalPlayer::SendOnFootFullSyncData()
 		CMultiPlayer::GetActiveNetwork()->GetRakClient()->Send(&bsPlayerSync, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0);
 		memcpy(&m_OnFootData, &ofSync, sizeof(ONFOOT_SYNC_DATA));
 	}
+}
+
+void CLocalPlayer::SendAimSyncData()
+{
+    AIM_SYNC_DATA aimSync = {};
+    CAMERA_AIM* caAim = CLocalPlayer::GetPlayerPed()->GetCurrentAim();
+
+    aimSync.byteCamMode = static_cast<uint8_t>(CLocalPlayer::GetPlayerPed()->GetCameraMode());
+    aimSync.vecAimf.x = caAim->f1x;
+    aimSync.vecAimf.y = caAim->f1y;
+    aimSync.vecAimf.z = caAim->f1z;
+    aimSync.vecAimPos.x = caAim->pos1x;
+    aimSync.vecAimPos.y = caAim->pos1y;
+    aimSync.vecAimPos.z = caAim->pos1z;
+    aimSync.fAimZ = CLocalPlayer::GetPlayerPed()->GetAimZ();
+    aimSync.byteCamExtZoom = static_cast<uint8_t>(CLocalPlayer::GetPlayerPed()->GetCameraExtendedZoom() * 63.0f) & 0x3F;
+    aimSync.byteAspectRatio = static_cast<uint8_t>(CCameraAim::GameGetAspectRatio() * 255.0f);
+
+    WEAPON_SLOT_TYPE* pwstWeapon = CLocalPlayer::GetPlayerPed()->GetCurrentWeaponSlot();
+    if (pwstWeapon->dwState == 2)
+    {
+        aimSync.byteWeaponState = eSAMPWeaponState::WS_RELOADING;
+    }
+    else
+    {
+        aimSync.byteWeaponState = (pwstWeapon->dwAmmoInClip > 1) ? eSAMPWeaponState::WS_MORE_BULLETS : pwstWeapon->dwAmmoInClip;
+    }
+
+    if (CLocalPlayer::NeedsToUpdate(&m_aimData, &aimSync, sizeof(AIM_SYNC_DATA)))
+    {
+        RakNet::BitStream bsAimSync;
+        bsAimSync.Write(static_cast<uint8_t>(ID_AIM_SYNC));
+        bsAimSync.Write((char*)&aimSync, sizeof(AIM_SYNC_DATA));
+        CMultiPlayer::GetActiveNetwork()->GetRakClient()->Send(&bsAimSync, HIGH_PRIORITY, UNRELIABLE_SEQUENCED, 0);
+
+        memcpy(&m_aimData, &aimSync, sizeof(AIM_SYNC_DATA));
+    }
 }
 
 void CLocalPlayer::ApplySpecialAction(uint8_t byteSpecialAction)

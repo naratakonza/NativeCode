@@ -713,6 +713,66 @@ WEAPON_SLOT_TYPE* CPlayerPed::FindWeaponSlot(uint32_t dwWeapon)
     return nullptr;
 }
 
+void CPlayerPed::SetAimZ(float fAimZ)
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return;
+    }
+
+    if (!std::isnan(fAimZ) && fAimZ >= -100.0f && fAimZ <= 100.0f)
+    {
+        uintptr_t playerDataPtr = reinterpret_cast<uintptr_t>(GetPed()->m_pPlayerData);
+        *reinterpret_cast<float*>(playerDataPtr + 0x68) = fAimZ; // m_fLookPitch
+    }
+}
+
+float CPlayerPed::GetAimZ()
+{
+    if (!CPlayerPed::VerifyInstance()) {
+        return 0.0f;
+    }
+
+    uintptr_t playerDataPtr = reinterpret_cast<uintptr_t>(GetPed()->m_pPlayerData);
+    return *reinterpret_cast<float*>(playerDataPtr + 0x68); // m_fLookPitch
+}
+
+void CPlayerPed::SetCurrentAim(CAMERA_AIM * pAim)
+{
+    CCameraAim::GameStoreRemotePlayerAim(CPlayerPed::m_bytePlayerNumber, pAim);
+}
+
+CAMERA_AIM * CPlayerPed::GetCurrentAim()
+{
+    return CCameraAim::GameGetInternalAim();
+}
+
+void CPlayerPed::SetCameraMode(uint16_t byteCamMode)
+{
+    CCameraAim::GameSetPlayerCameraMode(byteCamMode, CPlayerPed::m_bytePlayerNumber);
+}
+
+uint8_t CPlayerPed::GetCameraMode()
+{
+    if (CPlayerPed::m_bytePlayerNumber == 0)
+    {
+        return CCameraAim::GameGetLocalPlayerCameraMode();
+    }
+    else
+    {
+        return CCameraAim::GameGetPlayerCameraMode(CPlayerPed::m_bytePlayerNumber);
+    }
+}
+
+void CPlayerPed::SetCameraExtendedZoom(float fZoom, float fAspectRation)
+{
+    CCameraAim::GameSetPlayerCameraExtZoom(CPlayerPed::m_bytePlayerNumber, fZoom, fAspectRation);
+}
+
+float CPlayerPed::GetCameraExtendedZoom()
+{
+    return CCameraAim::GameGetLocalPlayerCameraExtZoom();
+}
+
 WEAPON_SLOT_TYPE* CPlayerPed::GetCurrentWeaponSlot()
 {
 	if (GetPed())
@@ -1905,6 +1965,95 @@ void CPlayerPed::SetDrunkHandling(uint32_t dwHandling)
 CVehicleGta* CPlayerPed::GetVehicle()
 {
     return (CVehicleGta*)GetPed()->pVehicle;
+}
+
+uint8_t CPlayerPed::FindDeathReasonAndResponsiblePlayer(uint16_t *nPlayer)
+{
+    if (CCommon::IsValidGamePed(m_pPed))
+    {
+        if (CMultiPlayer::GetActiveNetwork())
+        {
+            uint16_t PlayerIDWhoKilled;
+
+            // CVehiclePool *pVehiclePool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetVehiclePool();
+            CPlayerPool *pPlayerPool = CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool();
+
+            if (/* !pVehiclePool || */ !pPlayerPool)
+            {
+                *nPlayer = eInvalidId::INVALID_PLAYER_ID;
+                return eWeaponSampId::WEAPON_UNKNOWN;
+            }
+
+            uint8_t byteDeathReason = static_cast<uint8_t>(GetPed()->LastDamagedWeaponType);
+
+            if (byteDeathReason == eWeaponSampId::WEAPON_DROWN)
+            {
+                *nPlayer = eInvalidId::INVALID_PLAYER_ID;
+                return eWeaponSampId::WEAPON_DROWN;
+            }
+
+            if (GetPed()->pLastDamageEntity)
+            {
+                if (byteDeathReason < eWeaponSampId::WEAPON_CAMERA || byteDeathReason == eWeaponSampId::WEAPON_HELIBLADES || byteDeathReason == eWeaponSampId::WEAPON_EXPLOSION)
+                {
+                    PlayerIDWhoKilled = pPlayerPool->FindRemotePlayerIDFromGtaEntity(GetPed()->pLastDamageEntity);
+                    if (PlayerIDWhoKilled != eInvalidId::INVALID_PLAYER_ID)
+                    {
+                        *nPlayer = PlayerIDWhoKilled;
+                        return byteDeathReason;
+                    }
+                    // else
+                    // {
+                        // // Vehicle
+                        // if (pVehiclePool->FindIDFromGtaPtr((CVehicleGta *)GetPed()->pLastDamageEntity) != eInvalidId::INVALID_VEHICLE_ID)
+                        // {
+                            // CVehicleGta *pGtaVehicle = (CVehicleGta *)GetPed()->pLastDamageEntity;
+                            // PlayerIDWhoKilled = pPlayerPool->FindRemotePlayerIDFromGtaPtr((CPedGta *)pGtaVehicle->pDriver);
+                            // if (PlayerIDWhoKilled != eInvalidId::INVALID_PLAYER_ID)
+                            // {
+                                // *nPlayer = PlayerIDWhoKilled;
+                                // return byteDeathReason;
+                            // }
+                        // }
+                    // }
+                }
+                // else if (byteDeathReason == eWeaponSampId::WEAPON_VEHICLE)
+                // {
+                    // // Vehicle
+                    // if (pVehiclePool->FindIDFromGtaPtr((CVehicleGta *)GetPed()->pLastDamageEntity) != eInvalidId::INVALID_VEHICLE_ID)
+                    // {
+                        // CVehicleGta *pGtaVehicle = (CVehicleGta *)GetPed()->pLastDamageEntity;
+                        // PlayerIDWhoKilled = pPlayerPool->FindRemotePlayerIDFromGtaPtr((CPedGta *)pGtaVehicle->pDriver);
+                        // if (PlayerIDWhoKilled != eInvalidId::INVALID_PLAYER_ID)
+                        // {
+                            // *nPlayer = PlayerIDWhoKilled;
+                            // return eWeaponSampId::WEAPON_VEHICLE;
+                        // }
+                    // }
+                // }
+                else if (byteDeathReason == eWeaponSampId::WEAPON_COLLISION)
+                {
+                    // Collision
+                    // if (pVehiclePool->FindIDFromGtaPtr((CVehicleGta *)GetPed()->pLastDamageEntity) != eInvalidId::INVALID_VEHICLE_ID)
+                    // {
+                        // CVehicleGta *pGtaVehicle = (CVehicleGta *)GetPed()->pLastDamageEntity;
+                        // PlayerIDWhoKilled = pPlayerPool->FindRemotePlayerIDFromGtaPtr((CPedGta *)pGtaVehicle->pDriver);
+                        // if (PlayerIDWhoKilled != eInvalidId::INVALID_PLAYER_ID)
+                        // {
+                            // *nPlayer = PlayerIDWhoKilled;
+                            // return eWeaponSampId::WEAPON_COLLISION;
+                        // }
+                    // }
+
+                    *nPlayer = eInvalidId::INVALID_PLAYER_ID;
+                    return eWeaponSampId::WEAPON_COLLISION;
+                }
+            }
+        }
+    }
+
+    *nPlayer = eInvalidId::INVALID_PLAYER_ID;
+    return eWeaponSampId::WEAPON_UNKNOWN;
 }
 
 void CPlayerPed::ApplyStuff()

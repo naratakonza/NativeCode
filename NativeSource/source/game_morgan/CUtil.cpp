@@ -620,3 +620,17 @@ int CUtil::GamePedStatPrim(int model_id)
     CBaseModelInfo* pModelInfo = CModelInfo::GetModelInfo(model_id);
     return pModelInfo ? static_cast<int>(pModelInfo->AsPedModelInfoPtr()->m_defaultPedStats) : -1;
 }
+
+void CUtil::CalculateAimVector(CVector* vec1, CVector* vec2)
+{
+    float f1;
+    float f2;
+    float f3;
+
+    f1 = atan2(vec1->x, vec1->y) - 1.570796370506287;
+    f2 = sin(f1);
+    f3 = cos(f1);
+    vec2->x = vec1->y * 0.0 - f3 * vec1->z;
+    vec2->y = f2 * vec1->z - vec1->x * 0.0;
+    vec2->z = f3 * vec1->x - f2 * vec1->y;
+}

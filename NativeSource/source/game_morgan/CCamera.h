@@ -2,9 +2,10 @@
 
 #include "Core/CMatrix.h"
 class CEntity;
+struct CEntityGta;
 
-// #include "Enums/eCamMode.h"
-// #include "Enums/eSwitchType.h"
+#include "Enums/eCamMode.h"
+#include "Enums/eSwitchType.h"
 
 class CCamera
 {
@@ -22,6 +23,7 @@ public:
 
 	void SetBehindPlayer();
 	void Restore();
+	static void TakeControl(CCamera* thiz, CEntityGta* NewTarget, eCamMode CamMode, eSwitchType CamSwitchStyle, int WhoIsTakingControl);
 	void SetPosition(float fX, float fY, float fZ, float fRotationX, float fRotationY, float fRotationZ);
 	void LookAtPoint(float fX, float fY, float fZ, int iType);
 	void Fade(int iInOut);

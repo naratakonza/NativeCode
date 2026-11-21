@@ -521,6 +521,48 @@ void InterpolateCamera(RakNet::BitStream bsData)
 	}
 }
 
+void SpectatePlayer(RakNet::BitStream bsData)
+{
+    CNecessary::Log(OBFUSCATE("RPC: SpectatePlayer"));
+
+    uint16_t playerId;
+    uint8_t byteMode;
+
+    if (bsData.GetNumberOfUnreadBits() < 24) {
+        CNecessary::Log(OBFUSCATE("ERROR: Insufficient data for SpectatePlayer"));
+        return;
+    }
+
+    bsData.Read(playerId);
+    bsData.Read(byteMode);
+
+    switch (byteMode)
+    {
+        case SPECTATE_TYPE_FIXED: {
+            byteMode = 15;
+            break;
+        }
+
+        case SPECTATE_TYPE_SIDE: {
+            byteMode = 14;
+            break;
+        }
+
+        default: {
+            byteMode = 4;
+        }
+    }
+
+    if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool())
+    {
+        if (CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer())
+        {
+            CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->m_byteSpectateMode = byteMode;
+            CMultiPlayer::GetActiveNetwork()->GetNetGamePools()->GetPlayerPool()->GetLocalPlayer()->SpectateForPlayer(playerId);
+        }
+    }
+}
+
 void TogglePlayerSpectating(RakNet::BitStream bsData)
 {
 	CNecessary::Log(OBFUSCATE("RPC: TogglePlayerSpectating"));
@@ -2938,10 +2980,10 @@ bool CMultiPlayerOpcode::Receive(RakNet::BitStream* bsData, uint8_t rpcid)
 		//     break;
 		// }
 
-		// case RPC_SpectatePlayer: {
-		//     SpectatePlayer(*bsData);
-		//     break;
-		// }
+		case RPC_SpectatePlayer: {
+		    SpectatePlayer(*bsData);
+		    break;
+		}
 
 		// case RPC_SpectateVehicle: {
 		//     SpectateVehicle(*bsData);

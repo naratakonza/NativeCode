@@ -2,7 +2,7 @@
 
 #include "../utils/Quat/CQuaternion.h"
 
-// #include "../Core/CMultiPlayerShot.h"
+#include "../Core/CMultiPlayerShot.h"
 #include "../../Entity/Ped/CPlayerPed.h"
 #include "../../Entity/Ped/CPlayerPedSlot.h"
 // #include "../../Entity/Vehicle/CVehicle.h"
@@ -351,7 +351,7 @@ private:
 	ONFOOT_SYNC_DATA 	m_OnFootData;
 	// INCAR_SYNC_DATA 	m_InCarData;
 	// PASSENGER_SYNC_DATA m_PassengerData;
-	// AIM_SYNC_DATA		m_aimData;
+	AIM_SYNC_DATA		m_aimData;
 	// TRAILER_SYNC_DATA 	m_TrailerData;
 	// UNOCCUPIED_SYNC_DATA m_UnoccupiedData;
 

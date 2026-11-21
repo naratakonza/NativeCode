@@ -32,7 +32,8 @@ typedef struct _AIM_SYNC_DATA
     uint8_t byteCamExtZoom : 6;	// +29 - 0-63 normalized
     uint8_t byteWeaponState : 2; // +30 - see eWeaponState
 	uint8_t byteAspectRatio; // +31
-} AIM_SYNC_DATA; // size = 32
+} AIM_SYNC_DATA; // size = 31 (zoom and weapon state share one byte)
+static_assert(sizeof(AIM_SYNC_DATA) == 31);
 #pragma pack(pop)
 
 class CMultiPlayerShot
